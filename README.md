@@ -1,2 +1,2 @@
-# slo_exporter
+# slo-exporter
 
