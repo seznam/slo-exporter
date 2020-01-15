@@ -8,15 +8,15 @@ import (
 type RequestEvent struct {
 	Time           time.Time
 	IP             net.IP
+	StatusCode     int
+	Duration       time.Duration
 	Path           string
 	NormalizedPath string
-	Referer        string
-	StatusCode     int
+	UserAgent      string
 	Method         string
 	Params         map[string]string
-	Duration       float32 // request duration in seconds
-	Grid           string
 	SloClass       string
 	SloApp         string
 	SloEndpoint    string
+	SloDomain      string
 }
