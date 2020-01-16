@@ -12,7 +12,7 @@ type RequestEvent struct {
 	StatusCode    int
 	Duration      time.Duration
 	URL           *url.URL
-	NormalizedURL *url.URL
+	EventKey      string
 	Headers       map[string]string
 	Method        string
 	SloClass      string
