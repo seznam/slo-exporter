@@ -1,6 +1,7 @@
 package tailer
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -44,14 +45,14 @@ func New(filename string, follow bool, reopen bool) (*Tailer, error) {
 // - RequestEvent.IP may be nil in case invalid IP address is given in logline
 // - Slo* fields may not be filled at all
 // - Content of RequestEvent.Headers may vary
-func (t Tailer) Run(done chan struct{}, eventsChan chan *producer.RequestEvent, errChan chan error) {
+func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent, errChan chan error) {
 	go func() {
 		defer close(eventsChan)
 		defer t.tail.Cleanup()
 
 		for {
 			select {
-			case <-done:
+			case <- ctx.Done():
 				return
 			case line, ok := <-t.tail.Lines:
 				if !ok {

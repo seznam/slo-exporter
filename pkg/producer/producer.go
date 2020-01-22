@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type EndpointClassification struct {
+type SloClassification struct {
 	Domain string
 	App    string
 	Class  string
@@ -23,5 +23,5 @@ type RequestEvent struct {
 	Headers           map[string]string
 	Method            string
 	SloEndpoint       string
-	SloClassification *EndpointClassification
+	SloClassification *SloClassification
 }

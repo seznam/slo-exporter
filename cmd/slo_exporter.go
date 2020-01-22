@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -29,28 +31,35 @@ func main() {
 
 	setupLogging(*verbose)
 
+	eventCount := 0
+
 	// shared error channel
 	errChan := make(chan error)
-	// done chan is used to signal individual stages of a pipeline to quit
-	done := make(chan struct{})
-	defer close(done)
-
-	reopen := follow
-	tailer, err := tailer.New(*logFile, *follow, *reopen)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	eventCount := 0
-	eventsChan := make(chan *producer.RequestEvent)
-	tailer.Run(done, eventsChan, errChan)
 	go func() {
 		for err := range errChan {
 			log.Error(err)
 		}
 	}()
 
-	for event := range eventsChan {
+	// done chan is used to signal individual stages of a pipeline to quit
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	reopen := follow
+	nginxTailer, err := tailer.New(*logFile, *follow, *reopen)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	requestNormalizer := normalizer.NewForRequestEvent()
+
+	nginxEventsChan := make(chan *producer.RequestEvent)
+	nginxTailer.Run(ctx, nginxEventsChan, errChan)
+
+	normalizedEventsChan := make(chan *producer.RequestEvent)
+	requestNormalizer.Run(ctx, nginxEventsChan, normalizedEventsChan)
+
+	for event := range normalizedEventsChan {
 		eventCount += 1
 		log.Debug(event)
 	}
