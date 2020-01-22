@@ -82,13 +82,13 @@ type InvalidRequestError struct {
 }
 
 func (e *InvalidRequestError) Error() string {
-	return fmt.Sprintf("Invalid request: %s", e.request)
+	return fmt.Sprintf("Request '%s' contains unexpected number of fields", e.request)
 }
 
 // parseRequestLine parses request line (see https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html)
 // golang's http/parseRequestLine is too strict, it does not consider missing HTTP protocol as a valid request line
 // however we need to accept those as well
-func parseRequestLine(requestLine string) (string, string, string, error) {
+func parseRequestLine(requestLine string) (method string, uri string, protocol string, err error) {
 	requestLineArr := strings.Fields(requestLine)
 	// protocol is missing, happens in case of redirects
 	if len(requestLineArr) == 2 {
@@ -120,30 +120,31 @@ func parseLine(line string) (*producer.RequestEvent, error) {
 
 	t, err := time.Parse(timeLayout, lineData["time"])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to parse time '%s' using the format '%s': %w", lineData["time"], timeLayout, err)
 	}
 
-	duration, err := time.ParseDuration(lineData["requestDuration"] + "ms")
+	requestDuration := lineData["requestDuration"] + "ms"
+	duration, err := time.ParseDuration(requestDuration)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to parse duration '%s': %w", requestDuration, err)
 	}
 
 	statusCode, err := strconv.Atoi(lineData["statusCode"])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid HTTP status code '%d': %w", statusCode, err)
 	}
 	if statusCode < 100 || statusCode > 599 {
-		return nil, fmt.Errorf("Invalid HTTP status: %d", statusCode)
+		return nil, fmt.Errorf("Invalid HTTP status code '%d': out of range", statusCode)
 	}
 
 	method, requestURI, _, err := parseRequestLine(lineData["request"])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to parse request line '%s': %w", lineData["request"], err)
 	}
 
 	url, err := url.Parse(requestURI)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to parse url '%s': %w", requestURI, err)
 	}
 
 	return &producer.RequestEvent{
