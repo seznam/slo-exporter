@@ -1,4 +1,9 @@
 version: '3'
+
+# To make this work, add to the root of this repository .env file with credentials such as:
+# SZN_LOGY_USER=...
+# SZN_LOGY_PASSWORD=...
+
 services:
   tail-szn-logy:
     image: docker.dev.dszn.cz/generic/ci-scripts:latest
