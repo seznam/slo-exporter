@@ -1,6 +1,6 @@
 FROM docker.dev.dszn.cz/debian:stretch
 
-COPY dist/ /slo_exporter/
+COPY /slo_exporter /slo_exporter/
 
 COPY Dockerfile /
 

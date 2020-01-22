@@ -1,0 +1,23 @@
+version: '3'
+services:
+  tail-szn-logy:
+    image: docker.dev.dszn.cz/generic/ci-scripts:latest
+    entrypoint: ["bash"]
+    command:
+      - "-c"
+      - "cd /tmp/szn-logy/; while true; do wget --no-check-certificate -c -o /dev/null --http-user=${SZN_LOGY_USER} --password=${SZN_LOGY_PASSWORD} https://skweb1.ko.seznam.cz:8888/szn-sklik-userproxy/access_log; sleep 2; done"
+    volumes:
+      - log-volume:/tmp/szn-logy
+    depends_on:
+      - slo-exporter
+
+  slo-exporter:
+    build: .
+    command:
+      - "--follow"
+      - "/tmp/szn-logy/access_log"
+    volumes:
+      - log-volume:/tmp/szn-logy
+
+volumes:
+  log-volume:

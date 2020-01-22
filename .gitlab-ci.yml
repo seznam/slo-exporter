@@ -22,11 +22,9 @@ build:
   stage: build
   script: |
     make build
-    mkdir -p dist
-    cp $(pwd)/slo_exporter dist/
   artifacts:
     paths:
-    - dist/
+    - slo_exporter
     expire_in: 1 week
 
 build-ci-release-docker:
