@@ -21,8 +21,8 @@
 +--------------+       |                                                   |    |                     |
                        |                                                   |    |                     |         (classified)                 SLO
 +--------------+       |   +--------+       +------------+    event    +---+----v---+   event   +-----v-------+    event     +-----------+   event    +----------------+
-| envoy log    |       |   | event  |       | event      |             | dynamic    |           | statistical |              | event     |            | Prometheus     |
-| receiver     +-----------> filter +-------+ normalizer +-------------> classifier +-----------> classifier  +--------------+ validator +------------> SLO exporter   |
+| envoy log    |       |   | event  |       | event      |             | dynamic    |           | statistical |              | SLO event |            | Prometheus     |
+| receiver     +-----------> filter +-------+ normalizer +-------------> classifier +-----------> classifier  +--------------+ producer  +------------> SLO exporter   |
 |              |       |   |        |       |            |             |            |           |             |              |           |            |                |
 +--------------+       |   +--------+       +------------+             +------------+           +-------------+              +-----------+            +----------------+
                        |
