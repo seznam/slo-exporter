@@ -93,7 +93,7 @@ var parseLineTestTable = []parseLineTest{
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "0",
 		"requestTime": "0.123", // in ms, as logged by nginx
-	}, false},
+	}, true},
 	// invalid status code
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
@@ -110,11 +110,12 @@ func TestParseLine(t *testing.T) {
 		for k, v := range test.lineContentMapping {
 			requestLine = strings.Replace(requestLine, fmt.Sprintf("{%s}", k), v, -1)
 		}
-		parsedEvent := parseLine(requestLine)
+		parsedEvent, err := parseLine(requestLine)
 
 		var expectedEvent *producer.RequestEvent
 
 		if test.isLineValid {
+			// line is considered valid, build the expectedEvent struct in order to compare it to the parsed one
 			duration, _ := time.ParseDuration(test.lineContentMapping["requestTime"] + "ms")
 			lineTime, _ := time.Parse(timeLayout, test.lineContentMapping["time"])
 			statusCode, _ := strconv.Atoi(test.lineContentMapping["statusCode"])
@@ -131,9 +132,15 @@ func TestParseLine(t *testing.T) {
 				Headers:    make(map[string]string),
 				Method:     method,
 			}
+			if !reflect.DeepEqual(expectedEvent, parsedEvent) {
+				t.Errorf("Unexpected result of parse line: %s\n%v\nExpected:\n%v", requestLine, parsedEvent, expectedEvent)
+			}
+		} else {
+			// line is not valid, just check that err is returned
+			if err == nil {
+				t.Errorf("Line wrongly considered as valid: %s", requestLine)
+			}
 		}
-		if !reflect.DeepEqual(expectedEvent, parsedEvent) {
-			t.Errorf("Unexpected result of parse line: %s\n%v\nExpected:\n%v", requestLine, parsedEvent, expectedEvent)
-		}
+
 	}
 }
