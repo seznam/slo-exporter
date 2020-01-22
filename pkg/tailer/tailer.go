@@ -54,6 +54,9 @@ func (t Tailer) Run(done chan struct{}, eventsChan chan *producer.RequestEvent, 
 			case <-done:
 				return
 			case line, ok := <-t.tail.Lines:
+				if !ok {
+					return
+				}
 				if line.Err != nil {
 					log.Error(line.Err)
 				}
@@ -62,9 +65,6 @@ func (t Tailer) Run(done chan struct{}, eventsChan chan *producer.RequestEvent, 
 					reportErrLine(line.Text, err)
 				} else {
 					eventsChan <- event
-				}
-				if !ok {
-					return
 				}
 			}
 		}
