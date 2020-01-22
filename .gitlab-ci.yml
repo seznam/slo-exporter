@@ -1,0 +1,43 @@
+stages:
+- check
+- build
+- build-ci-release-docker
+
+image: docker.dev.dszn.cz/golang-build:stretch
+
+variables:
+  DOCKER_NAMESPACE: sklik-devops
+
+lint:
+  stage: check
+  script: |
+    make lint
+
+test:
+  stage: check
+  script: |
+    make test
+
+build:
+  stage: build
+  script: |
+    make build
+    mkdir -p dist
+    cp $(pwd)/slo_exporter dist/
+  artifacts:
+    paths:
+    - dist/
+    expire_in: 1 week
+
+build-ci-release-docker:
+  image: docker.dev.dszn.cz/generic/ci-scripts:1
+  stage: build-ci-release-docker
+  script: |
+    /ci/docker-build.sh --namespace $DOCKER_NAMESPACE
+    /ci/docker-release-ci.sh --namespace $DOCKER_NAMESPACE --extra-tags "$CI_COMMIT_REF_NAME"
+  dependencies:
+    - build
+  artifacts:
+    expire_in: 1 mos
+    paths:
+      - docker-release-ci.uri
