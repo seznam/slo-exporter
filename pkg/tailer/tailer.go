@@ -55,10 +55,12 @@ func (t Tailer) Run(done chan struct{}, eventsChan chan *producer.RequestEvent, 
 				return
 			case line, ok := <-t.tail.Lines:
 				if line.Err != nil {
-					errChan <- line.Err
+					log.Error(line.Err)
 				}
-				event := parseLine(line.Text)
-				if event != nil {
+				event, err := parseLine(line.Text)
+				if err != nil {
+					reportErrLine(line.Text, err)
+				} else {
 					eventsChan <- event
 				}
 				if !ok {
@@ -103,13 +105,12 @@ func parseRequestLine(requestLine string) (string, string, string, error) {
 // parseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
 // - RequestEvent.IP may
-func parseLine(line string) *producer.RequestEvent {
+func parseLine(line string) (*producer.RequestEvent, error) {
 	lineData := make(map[string]string)
 
 	match := lineParseRegexp.FindStringSubmatch(line)
 	if len(match) != len(lineParseRegexp.SubexpNames()) {
-		reportErrLine(line, fmt.Errorf("Invalid log line"))
-		return nil
+		return nil, fmt.Errorf("Unable to parse line")
 	}
 	for i, name := range lineParseRegexp.SubexpNames() {
 		if i != 0 && name != "" {
@@ -119,36 +120,30 @@ func parseLine(line string) *producer.RequestEvent {
 
 	t, err := time.Parse(timeLayout, lineData["time"])
 	if err != nil {
-		reportErrLine(line, err)
-		return nil
+		return nil, err
 	}
 
 	duration, err := time.ParseDuration(lineData["requestDuration"] + "ms")
 	if err != nil {
-		reportErrLine(line, err)
-		return nil
+		return nil, err
 	}
 
 	statusCode, err := strconv.Atoi(lineData["statusCode"])
 	if err != nil {
-		reportErrLine(line, err)
-		return nil
+		return nil, err
 	}
 	if statusCode < 100 || statusCode > 599 {
-		reportErrLine(line, fmt.Errorf("Invalid HTTP status: %d", statusCode))
-		return nil
+		return nil, fmt.Errorf("Invalid HTTP status: %d", statusCode)
 	}
 
 	method, requestURI, _, err := parseRequestLine(lineData["request"])
 	if err != nil {
-		reportErrLine(line, err)
-		return nil
+		return nil, err
 	}
 
 	url, err := url.Parse(requestURI)
 	if err != nil {
-		reportErrLine(line, err)
-		return nil
+		return nil, err
 	}
 
 	return &producer.RequestEvent{
@@ -159,5 +154,5 @@ func parseLine(line string) *producer.RequestEvent {
 		StatusCode: statusCode,
 		Headers:    make(map[string]string),
 		Method:     method,
-	}
+	}, nil
 }
