@@ -9,5 +9,5 @@ fi
 
 while(true); do
     sleep 2;
-    wget -c  --password $PASSWD --user lukas.svoboda2  -o /dev/null --no-check-certificate  "$URL"
+    wget -c  --password "$PASSWD" --user "$USER"  -o /dev/null --no-check-certificate  "$URL"
 done
