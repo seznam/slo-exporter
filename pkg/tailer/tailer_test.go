@@ -93,7 +93,7 @@ var parseLineTestTable = []parseLineTest{
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "0",
 		"requestTime": "0.123", // in ms, as logged by nginx
-	}, false},
+	}, true},
 	// invalid status code
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",

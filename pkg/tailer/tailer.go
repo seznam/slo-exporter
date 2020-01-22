@@ -133,9 +133,6 @@ func parseLine(line string) (*producer.RequestEvent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Invalid HTTP status code '%d': %w", statusCode, err)
 	}
-	if statusCode < 100 || statusCode > 599 {
-		return nil, fmt.Errorf("Invalid HTTP status code '%d': out of range", statusCode)
-	}
 
 	method, requestURI, _, err := parseRequestLine(lineData["request"])
 	if err != nil {
