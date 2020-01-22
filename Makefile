@@ -9,6 +9,6 @@ lint:
 	revive -formatter friendly $(shell find $(src_dir) -name "*.go" | grep -v "^$(src_dir)/vendor/")
 
 test:
-	go test ./... -coverprofile=coverage.out
+	go test -coverprofile=coverage.out $(shell go list ./... | grep -v /vendor/)
 
 .PHONY: build lint test
