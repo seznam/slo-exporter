@@ -2,15 +2,16 @@ package tailer
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"net"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/hpcloud/tail"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
@@ -19,8 +20,30 @@ import (
 const timeLayout string = "02/Jan/2006:15:04:05 -0700"
 
 var (
+	log             *logrus.Entry
 	lineParseRegexp = regexp.MustCompile(`^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"`)
+
+	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "slo_exporter",
+		Subsystem: "tailer",
+		Name:      "lines_read_total",
+		Help:      "Total number of lines tailed from the file.",
+	})
+	malformedLinesTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "slo_exporter",
+			Subsystem: "tailer",
+			Name:      "malformed_lines_total",
+			Help:      "Total number of invalid lines that faild to prse.",
+		},
+		[]string{"reason"},
+	)
 )
+
+func init() {
+	log = logrus.WithField("component", "tailer")
+	prometheus.MustRegister(linesReadTotal, malformedLinesTotal)
+}
 
 // Tailer is an instance of github.com/hpcloud/tail dedicated to a single file
 type Tailer struct {
@@ -49,20 +72,24 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 	go func() {
 		defer close(eventsChan)
 		defer t.tail.Cleanup()
+		defer log.Info("stopping tailer")
 
 		for {
 			select {
-			case <- ctx.Done():
+			case <-ctx.Done():
 				return
 			case line, ok := <-t.tail.Lines:
 				if !ok {
+					log.Info("tail lines channel has been closed")
 					return
 				}
 				if line.Err != nil {
 					log.Error(line.Err)
 				}
+				linesReadTotal.Inc()
 				event, err := parseLine(line.Text)
 				if err != nil {
+					malformedLinesTotal.WithLabelValues(errors.Unwrap(err).Error()).Inc()
 					reportErrLine(line.Text, err)
 				} else {
 					eventsChan <- event
@@ -78,6 +105,7 @@ func reportErrLine(line string, err error) {
 	log.Errorf("Error (%v) while parsing line: %s", err, line)
 }
 
+// InvalidRequestError is error representing invalid RequestEvent
 type InvalidRequestError struct {
 	request string
 }

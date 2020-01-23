@@ -3,11 +3,11 @@ module gitlab.seznam.net/sklik-devops/slo-exporter
 go 1.13
 
 require (
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
+	github.com/go-kit/kit v0.9.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/mgechev/revive v1.0.1 // indirect
+	github.com/prometheus/client_golang v1.3.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6

@@ -12,6 +12,6 @@ test:
 	go test -coverprofile=coverage.out $(shell go list ./... | grep -v /vendor/)
 
 compose: build
-	docker-compose up
+	docker-compose up --build
 
 .PHONY: build lint test compose

@@ -11,6 +11,7 @@ import (
 const eventKeyFieldSeparator = ":"
 
 var log *logrus.Entry
+
 // Should replace IDs in the URL path such as `/user/1/info` but not to replace for example `/api/v1/`
 var digitRegex = regexp.MustCompile("/[0-9]+")
 
@@ -26,7 +27,7 @@ func NewForRequestEvent() *requestNormalizer {
 type requestNormalizer struct{}
 
 func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent) string {
-	var eventIdentifiers []string = []string{event.Method}
+	var eventIdentifiers = []string{event.Method}
 	eventIdentifiers = append(eventIdentifiers, digitRegex.ReplaceAllLiteralString(event.URL.Path, "/0"))
 	// Append all values of 'operationName' parameter.
 	operationNames, ok := event.URL.Query()["operationName"]
@@ -42,6 +43,7 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent)
 func (rn *requestNormalizer) Run(ctx context.Context, inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
+		defer log.Info("stopping normalizer")
 
 		for {
 			select {
@@ -57,7 +59,7 @@ func (rn *requestNormalizer) Run(ctx context.Context, inputEventsChan <-chan *pr
 					continue
 				}
 				event.EventKey = rn.getNormalizedEventKey(event)
-				log.Infof("processed event with EventKey: %s", event.EventKey)
+				log.Debugf("processed event with EventKey: %s", event.EventKey)
 				outputEventsChan <- event
 			}
 		}

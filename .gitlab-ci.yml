@@ -1,7 +1,7 @@
 stages:
-- check
-- build
-- build-ci-release-docker
+  - check
+  - build
+  - build-ci-release-docker
 
 image: docker.dev.dszn.cz/golang-build:stretch
 
@@ -24,7 +24,7 @@ build:
     make build
   artifacts:
     paths:
-    - slo_exporter
+      - slo_exporter
     expire_in: 1 week
 
 build-ci-release-docker:
