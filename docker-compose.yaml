@@ -5,25 +5,32 @@ version: '3'
 # SZN_LOGY_PASSWORD=...
 
 services:
-  tail-szn-logy:
+  tail:
     image: docker.dev.dszn.cz/generic/ci-scripts:latest
+    environment:
+      SZN_LOGY_USER: "${SZN_LOGY_USER}"
+      SZN_LOGY_PASSWORD: "${SZN_LOGY_PASSWORD}"
     entrypoint: ["bash"]
     command:
       - "-c"
-      - "cd /tmp/szn-logy/; while true; do wget --no-check-certificate -c -o /dev/null --http-user=${SZN_LOGY_USER} --password=${SZN_LOGY_PASSWORD} https://skweb1.ko.seznam.cz:8888/szn-sklik-userproxy/access_log; sleep 2; done"
+      - "cd /tmp/szn-logy/; /scripts/http_tail.sh"
     volumes:
+      - ./scripts:/scripts
       - log-volume:/tmp/szn-logy
     depends_on:
       - slo-exporter
 
   slo-exporter:
-    build: .
+    image: docker.dev.dszn.cz/generic/ci-scripts:latest
     ports:
       - 8080:8080
+    entrypoint: ["/slo-exporter/slo_exporter"]
     command:
       - "--follow"
+      - "--log-level=debug"
       - "/tmp/szn-logy/access_log"
     volumes:
+      - ./:/slo-exporter
       - log-volume:/tmp/szn-logy
 
   prometheus:
