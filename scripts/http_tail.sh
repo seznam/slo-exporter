@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 URL=${URL:-"https://skweb1.ko.seznam.cz:8888/szn-sklik-userproxy/access_log"}
 
