@@ -31,17 +31,17 @@ func setupLogging(logLevel string) error {
 	return nil
 }
 
-func setupDefaultServer(iface string, liveness *prober.Prober, readiness *prober.Prober) *http.Server {
+func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/liveness", liveness.HandleFunc)
 	mux.HandleFunc("/readiness", readiness.HandleFunc)
-	return &http.Server{Addr: iface, Handler: mux,}
+	return &http.Server{Addr: listenAddr, Handler: mux,}
 }
 
 func main() {
-	logLevel := kingpin.Flag("log-level", "Set log level").Short('l').Default("info").String()
-	webServerIface := kingpin.Flag("web-interface", "Interface to listen on for web server.").Short('i').Default("0.0.0.0:8080").String()
+	logLevel := kingpin.Flag("log-level", "Set log level").Default("info").String()
+	webServerListenAddr := kingpin.Flag("listen-address", "Listen address to listen on for web server.").Short('l').Default("0.0.0.0:8080").String()
 	follow := kingpin.Flag("follow", "Follow the given log file.").Short('f').Bool()
 	gracefulShutdownTimeout := kingpin.Flag("graceful-shutdown-timeout", "How long to wait for graceful shutdown.").Default("20s").Short('g').Duration()
 	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().String()
@@ -59,24 +59,20 @@ func main() {
 
 	// shared error channel
 	errChan := make(chan error, 10)
+	gracefulShutdownChan := make(chan struct{}, 10)
+
 	// listen for OS signals
-	sigChan := make(chan os.Signal, 1)
+	sigChan := make(chan os.Signal, 3)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	// Start default server
-	defaultServer := setupDefaultServer(*webServerIface, liveness, readiness)
+	defaultServer := setupDefaultServer(*webServerListenAddr, liveness, readiness)
 	go func() {
 		log.Infof("HTTP server listening on %v", defaultServer.Addr)
 		if err := defaultServer.ListenAndServe(); err != nil {
 			errChan <- err
 		}
-		cancelFunc()
-	}()
-
-	go func() {
-		for err := range errChan {
-			log.Error(err)
-		}
+		gracefulShutdownChan <- struct{}{}
 	}()
 
 	// Tail nginx logs and parse them to RequestEvent
@@ -93,11 +89,10 @@ func main() {
 	requestNormalizer.Run(ctx, nginxEventsChan, normalizedEventsChan)
 
 	readiness.Ok()
-
-	run := true
-	gracefulShutdownChan := make(chan struct{}, 10)
-	for run {
+	defer log.Info("see ya!")
+	for {
 		select {
+		// TODO validate correctness of the graceful shutdown. Might be necessary to use wait group for verifying all modules are terminated.
 		case <-gracefulShutdownChan:
 			log.Info("gracefully shutting down")
 			readiness.NotOk(fmt.Errorf("shutting down"))
@@ -108,7 +103,7 @@ func main() {
 			}
 			log.Infof("waiting configured graceful shutdown timeout %v", gracefulShutdownTimeout)
 			shutdownCtx.Done()
-			run = false
+			return
 		case _, ok := <-normalizedEventsChan:
 			if !ok {
 				log.Info("finished processing all logs")
@@ -122,5 +117,5 @@ func main() {
 			gracefulShutdownChan <- struct{}{}
 		}
 	}
-	log.Infof("see ya!")
+
 }
