@@ -25,3 +25,21 @@ type RequestEvent struct {
 	SloEndpoint       string
 	SloClassification *SloClassification
 }
+
+// UpdateSLOClassification updates SloClassification field
+func (e *RequestEvent) UpdateSLOClassification(classification *SloClassification) {
+	e.SloClassification = classification
+}
+
+// IsClassified check if all SloClassification fields are set
+func (e *RequestEvent) IsClassified() bool {
+	if e.SloClassification != nil &&
+		e.SloClassification.Domain != "" &&
+		e.SloClassification.App != "" &&
+		e.SloClassification.Class != "" {
+
+		return true
+	}
+
+	return false
+}
