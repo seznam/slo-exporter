@@ -8,17 +8,18 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/gorilla/mux"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 func setupLogging(logLevel string) error {
@@ -55,6 +56,8 @@ func main() {
 	regexpClassificationFiles := kingpin.Flag("regexp-classification-file", "Path to regexp classification file.").ExistingFiles()
 	exactClassificationFiles := kingpin.Flag("exact-classification-file", "Path to exact classification file.").ExistingFiles()
 	sloRulesFile := kingpin.Flag("slo-rules-config", "Path to config with SLO rules for evaluation.").Required().ExistingFile()
+	persistPositionFile := kingpin.Arg("persist-position-file", "File to be used to persist tailer position").Default("./.slo_exporter.pos").String()
+	persistPositionInterval := kingpin.Arg("persist-position-interval", "Interval for persisting the file offset persistence").Default("2s").Duration()
 
 	kingpin.Parse()
 
@@ -91,7 +94,7 @@ func main() {
 	}()
 
 	// Tail nginx logs and parse them to RequestEvent
-	nginxTailer, err := tailer.New(*logFile, *follow, *follow)
+	nginxTailer, err := tailer.New(*logFile, *follow, *follow, *persistPositionFile, *persistPositionInterval)
 	if err != nil {
 		log.Fatal(err)
 	}

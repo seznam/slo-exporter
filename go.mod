@@ -4,8 +4,10 @@ go 1.13
 
 require (
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
+	github.com/go-kit/kit v0.9.0
 	github.com/go-test/deep v1.0.5
 	github.com/gorilla/mux v1.7.3
+	github.com/grafana/loki v6.7.8+incompatible
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/prometheus/client_golang v1.3.0

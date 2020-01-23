@@ -2,18 +2,24 @@ package tailer
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
+	"io"
 	"net"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/grafana/loki/pkg/promtail/positions"
 	"github.com/hpcloud/tail"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+
+	logrusAdapter "github.com/go-kit/kit/log/logrus"
 )
 
 const timeLayout string = "02/Jan/2006:15:04:05 -0700"
@@ -33,31 +39,65 @@ var (
 			Namespace: "slo_exporter",
 			Subsystem: "tailer",
 			Name:      "malformed_lines_total",
-			Help:      "Total number of invalid lines that faild to prse.",
+			Help:      "Total number of invalid lines that failed to parse.",
 		},
 		[]string{"reason"},
 	)
 )
 
 func init() {
-	log = logrus.WithField("component", "tailer")
+	log = logrus.WithFields(logrus.Fields{"component": "tailer"})
 	prometheus.MustRegister(linesReadTotal, malformedLinesTotal)
 }
 
 // Tailer is an instance of github.com/hpcloud/tail dedicated to a single file
 type Tailer struct {
-	filename string
-	tail     *tail.Tail
+	filename                string
+	tail                    *tail.Tail
+	positions               *positions.Positions
+	persistPositionInterval time.Duration
 }
 
 // New returns an instance of Tailer
-func New(filename string, follow bool, reopen bool) (*Tailer, error) {
-	tail, err := tail.TailFile(filename, tail.Config{Follow: follow, ReOpen: reopen, MustExist: true})
+func New(filename string, follow bool, reopen bool, persistPositionFile string, persistPositionInterval time.Duration) (*Tailer, error) {
+
+	var (
+		offset int64
+		err    error
+		pos    *positions.Positions
+	)
+	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{persistPositionInterval, persistPositionFile})
+	if err != nil {
+		return nil, fmt.Errorf("Error while initializing file position persister: %v", err)
+	}
+	// check that loaded position for a file is valid
+	fstat, err := os.Stat(filename)
+	if err != nil {
+		return nil, fmt.Errorf("could not check that loaded offset is valid: %w", err)
+	}
+	offset, err = pos.Get(filename)
 	if err != nil {
 		return nil, err
 	}
-	tailer := &Tailer{filename, tail}
-	return tailer, nil
+	if fstat.Size() < offset {
+		pos.Remove(filename)
+		offset = 0
+		log.Warnf("Loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
+	}
+
+	tailFile, err := tail.TailFile(filename, tail.Config{
+		Follow:    follow,
+		ReOpen:    reopen,
+		MustExist: true,
+		Location:  &tail.SeekInfo{Offset: offset, Whence: io.SeekStart},
+		// tail library has claimed problems with inotify: https://github.com/grafana/loki/commit/c994823369d65785e72c4247fd50c656801e429a
+		Poll: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Tailer{filename, tailFile, pos, persistPositionInterval}, nil
 }
 
 // Run starts to tail the associated file, feeding RequestEvents, errors into separated channels.
@@ -68,15 +108,17 @@ func New(filename string, follow bool, reopen bool) (*Tailer, error) {
 // - Slo* fields may not be filled at all
 // - Content of RequestEvent.Headers may vary
 func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent, errChan chan error) {
+
 	go func() {
 		defer close(eventsChan)
 		defer t.tail.Cleanup()
-		defer log.Info("stopping tailer")
+		ticker := time.NewTicker(t.persistPositionInterval)
+		defer ticker.Stop()
+		defer t.positions.Stop()
 
+		quitting := false
 		for {
 			select {
-			case <-ctx.Done():
-				return
 			case line, ok := <-t.tail.Lines:
 				if !ok {
 					log.Info("tail lines channel has been closed")
@@ -93,9 +135,31 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 				} else {
 					eventsChan <- event
 				}
+			case <-ticker.C:
+				if !quitting {
+					// get current offset from tail.TailFile instance
+					t.markOffsetPosition()
+				}
+			case <-ctx.Done():
+				if !quitting {
+					quitting = true
+					// we need to perform this strictly once, as tail return 0 offset when already stopped
+					t.markOffsetPosition()
+					go t.tail.Stop()
+				}
 			}
 		}
 	}()
+}
+
+func (t *Tailer) markOffsetPosition() {
+	// we may lose a log line due to claimed inaccuracy of Tail.tell (https://godoc.org/github.com/hpcloud/tail#Tail.Tell)
+	offset, err := t.tail.Tell()
+	if err != nil {
+		log.Errorf("Error while getting the current file offset: %w", errors.Unwrap(err))
+		return
+	}
+	t.positions.Put(t.filename, offset)
 }
 
 // reportErrLine does the necessary reporting in case a wrong line occurs

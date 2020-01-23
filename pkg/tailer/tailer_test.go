@@ -1,9 +1,12 @@
 package tailer
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -13,6 +16,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
+
+var (
+	requestLineFormat = `{ip} - - [{time}] "{request}" {statusCode} 79 "-" uag="Go-http-client/1.1" "-" ua="10.66.112.78:80" rt="{requestTime}" uct="0.000" uht="0.000" urt="0.000" cc="static" occ="-" url="68" ourl="-"`
+	// provided to getRequestLine, this returns a cosidered-valid line
+	requestLineFormatMapValid = map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+		"ip":          "34.65.133.58",
+		"request":     "GET /robots.txt HTTP/1.1",
+		"statusCode":  "200",
+		"requestTime": "0.123", // in ms, as logged by nginx
+	}
+)
+
+// return request line formatted using the provided formatMap
+func getRequestLine(formatMap map[string]string) (requestLine string) {
+	requestLine = requestLineFormat
+	for k, v := range formatMap {
+		requestLine = strings.Replace(requestLine, fmt.Sprintf("{%s}", k), v, -1)
+	}
+	return requestLine
+}
 
 type parseRequestLineTestData struct {
 	request    string
@@ -104,12 +127,9 @@ var parseLineTestTable = []parseLineTest{
 }
 
 func TestParseLine(t *testing.T) {
-	requestLineFormat := `{ip} - - [{time}] "{request}" {statusCode} 79 "-" uag="Go-http-client/1.1" "-" ua="10.66.112.78:80" rt="{requestTime}" uct="0.000" uht="0.000" urt="0.000" cc="static" occ="-" url="68" ourl="-"`
 	for _, test := range parseLineTestTable {
-		requestLine := requestLineFormat
-		for k, v := range test.lineContentMapping {
-			requestLine = strings.Replace(requestLine, fmt.Sprintf("{%s}", k), v, -1)
-		}
+		requestLine := getRequestLine(test.lineContentMapping)
+
 		parsedEvent, err := parseLine(requestLine)
 
 		var expectedEvent *producer.RequestEvent
@@ -142,5 +162,110 @@ func TestParseLine(t *testing.T) {
 			}
 		}
 
+	}
+}
+
+type offsetPersistenceTest struct {
+	// all values refers to number of events which should be written to a log file at a given phase of test
+	pre    int // *before* the tailing starts
+	during int // while the tailer is running
+	post   int // after the tailer temporarily stops
+	reopen int // after the tailer starts again
+}
+
+// reads in chan and on close returns count to out chan
+func countEvents(in chan *producer.RequestEvent, out chan int) {
+	count := 0
+	for range in {
+		count++
+	}
+	out <- count
+}
+
+func offsetPersistenceTestRun(t offsetPersistenceTest) error {
+	// temp file for logs
+	f, err := ioutil.TempFile("", "")
+	if err != nil {
+		return fmt.Errorf("Error while creating temp file: %w", err)
+	}
+	fname := f.Name()
+	positionsFname := f.Name() + ".pos"
+	defer os.Remove(positionsFname)
+	defer os.Remove(fname)
+	defer f.Close()
+
+	eventCount := make(chan int)
+	persistPositionInterval, _ := time.ParseDuration("10s")
+
+	for i := 0; i < t.pre; i++ {
+		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
+	}
+
+	tailer, err := New(fname, true, true, positionsFname, persistPositionInterval)
+	if err != nil {
+		return err
+	}
+
+	eventsChan := make(chan *producer.RequestEvent)
+	errChan := make(chan error, 10)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	tailer.Run(ctx, eventsChan, errChan)
+	go countEvents(eventsChan, eventCount)
+
+	for i := 0; i < t.during; i++ {
+		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	cancelFunc()
+	eventsCount := <-eventCount
+
+	if eventsCount != t.pre+t.during {
+		return fmt.Errorf("Number of processed events during first open of a log file does not match: got '%d', expected '%d'", eventsCount, t.pre+t.during)
+	}
+
+	for i := 0; i < t.post; i++ {
+		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
+	}
+
+	eventsChan = make(chan *producer.RequestEvent)
+	errChan = make(chan error, 10)
+	ctx, cancelFunc = context.WithCancel(context.Background())
+	tailer, err = New(fname, true, true, positionsFname, persistPositionInterval)
+	if err != nil {
+		return err
+	}
+	tailer.Run(ctx, eventsChan, errChan)
+	go countEvents(eventsChan, eventCount)
+
+	for i := 0; i < t.reopen; i++ {
+		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	cancelFunc()
+	eventsCount = <-eventCount
+
+	if eventsCount != t.post+t.reopen {
+		return fmt.Errorf("Number of processed events after reopening a log file does not match: got '%d', expected '%d'", eventsCount, t.post+t.reopen)
+	}
+
+	return nil
+}
+
+var testOffsetPersistenceTable = []offsetPersistenceTest{
+	// events in log file present before the first open
+	offsetPersistenceTest{10, 10, 0, 0},
+	// just new events are read on file reopen
+	offsetPersistenceTest{10, 10, 10, 10},
+}
+
+func TestOffsetPersistence(t *testing.T) {
+	for _, testData := range testOffsetPersistenceTable {
+		err := offsetPersistenceTestRun(testData)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 }
