@@ -1,10 +1,36 @@
 # SLO exporter
 
 [![pipeline status](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/pipeline.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
-[![coverage report](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/coverage.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master) 
+[![coverage report](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/coverage.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
+
+## Build
+```bash
+make build
+```
+
+## Testing on real-time production logs
+Requires credentials to log in to szn-logy
+
+Make sure to have `.env` file in the root of this repository in following format
+```bash
+SZN_LOGY_USER=xxx
+SZN_LOGY_PASSWORD=xxx
+```
+
+Then just run
+```bash
+make compose
+```
+
+Address:
+ - Prometheus scraping slo-exporter metrics: http://localhost:9090
+ - slo-exporter address: http://localhost:8080/metrics
 
 
-## Navrh klasifikace
+
+
+## Architecture diagram
+Written in Go using the [pipeline pattern](https://blog.golang.org/pipelines)
 
 ```
                                                       static config
@@ -37,6 +63,9 @@
 
 ```
 
+
+
+### RequestEvent classification flow
 flow:
 1. Pri startu se nahraje do cache pocatecni stav ze staticke konfigurace
 1. Do dynamickyho classifieru prichazi event:
@@ -63,44 +92,3 @@ flow:
         1. na zaklade statistik priradi slo_ data eventu
         1. inkrementuje metriky ze neco klasifikoval pro dany slo_ data
         1. posle ho dal
-            
-## Format staticke konfigurace
-Zapis formou jsonu ale muze byt napr v redisu nebo pro MVP v pameti.
-Kdyz senastartuje tak se do tohodle naloadujou ty SLo klasifikace stavajici.
-```json
-{
-"exact_match": {
-   "POST:/api/v1/graphQL?operationName=adsList": {"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "critical"}
-   "POST:/api/v1/graphQL?operationName=adsList&severity=critical": {"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "low"}
-},
-"regular_expression_match": [
-   ["POST:/api/v1/graphQL?.*", {"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "critical"}],
-   ["POST:/api/v1/graphQL?operationName=adsList", {"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "critical"}],
-]
-}
-```
-
-
-### Jeden endpoint muze spadat do vice class
-Aktualne nebudeme resit, pripadne muze fe-api pridat do paramu `?operationName=blah&severity=critical`
-
-Pokud by to tak neslo, tak budem muset pridat vahy ale tomu bcyh se osobne nejradsi vyhnul.
-```json
-{
-"exact": {
-   "POST:/api/v1/graphQL?operationName=adsList": { {"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "critical"}: 0}
-   "POST:/api/v1/graphQL?operationName=adsList": { {"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "low"}: 100 , {"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "critical"}: 200 }
-}
-}
-```
-
-## Cache statistickyho classifieru
-Bude drzet procentualni sanci pro kazdou kombinaci slo_ dat, na zaklade toho klasifikuje prichozi event.
-
-- statistickej posledni fallback kterej klasifikuje uplne vsehcny
-- musi vystavovat metriku s labelama te klasifikace kolik jich klasifikoval, musime sledovat!
-- mel by statistiky pocitat nad nejakym plovouvcim oknem.
-```
-{"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "critical"}: 0.2
-{"slo_domain": "test-domain", "slo_app": "test_app", "slo_class": "warning"}: 0.8
-```
