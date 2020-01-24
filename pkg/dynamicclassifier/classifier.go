@@ -1,15 +1,28 @@
 package dynamicclassifier
 
 import (
+	"context"
 	"encoding/csv"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 var log *logrus.Entry
+
+var eventsTotal = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "slo_exporter",
+		Subsystem: "dynamicclassifier",
+		Name:      "events_matched_total",
+		Help:      "Total number of invalid lines that faild to prse.",
+	},
+	[]string{"result", "classified_by"},
+)
 
 // DynamicClassifier is classifier based on cache and regexp matches
 type DynamicClassifier struct {
@@ -84,6 +97,7 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 		// event is classified by exact match
 		log.Tracef("Event '%s' matched against exact match", event.EventKey)
 		event.UpdateSLOClassification(classification)
+		eventsTotal.WithLabelValues("classified", "exact_match").Inc()
 		return true, nil
 	}
 
@@ -100,10 +114,13 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 		log.Tracef("Event '%s' matched against regex match", event.EventKey)
 		event.UpdateSLOClassification(classification)
 		dc.exactMatches.set(event.EventKey, classification)
+		eventsTotal.WithLabelValues("classified", "regexp_match").Inc()
 		return true, nil
 	}
 
 	log.Tracef("Event '%s' not matched", event.EventKey)
+	eventsTotal.WithLabelValues("unclassified", "").Inc()
+
 	return false, nil
 }
 
@@ -116,6 +133,44 @@ func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.Re
 	return classification, nil
 }
 
+// Run event normalizer receiving events and filling their EventKey if not already filled.
+func (dc *DynamicClassifier) Run(ctx context.Context, inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
+	go func() {
+		defer close(outputEventsChan)
+		defer log.Info("stopping dynamic classifier")
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event, ok := <-inputEventsChan:
+				if !ok {
+					log.Info("input channel closed, finishing")
+					return
+				}
+				if event.IsClassified() {
+					// TODO: maybe insert into exact matches cache for future use?
+					log.Debugf("skipping event dynamic classification, already classifier: %v", event.SloClassification)
+				} else {
+					ok, err := dc.Classify(event)
+					if err != nil {
+						log.Error(err)
+					} else {
+						if !ok {
+							log.Warnf("Unable to classify %s", event.EventKey)
+						} else {
+							log.Debugf("processed event with EventKey: %s", event.EventKey)
+						}
+					}
+				}
+				outputEventsChan <- event
+			}
+		}
+	}()
+}
+
 func init() {
-	log = logrus.WithFields(logrus.Fields{"boxík": "classifier"})
+	log = logrus.WithFields(logrus.Fields{"component": "dynamicclassifier"})
+	prometheus.MustRegister(eventsTotal)
+
 }

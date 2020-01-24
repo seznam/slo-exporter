@@ -28,6 +28,8 @@ services:
     command:
       - "--follow"
       - "--log-level=debug"
+      - "--slo-domain=test-domain"
+      - "--regexp-classification-file=/slo-exporter/examples/userportal.csv"
       - "/tmp/szn-logy/access_log"
     volumes:
       - ./:/slo-exporter
