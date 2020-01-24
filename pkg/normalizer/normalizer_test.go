@@ -25,6 +25,9 @@ var testCases = []testUrl{
 	testUrl{event: producer.RequestEvent{URL: urlMustParse("http://foo.bar:8845/api/v1/bar"), Method: "GET"}, expectedID: "GET:/api/v1/bar"},
 	testUrl{event: producer.RequestEvent{URL: urlMustParse("http://foo.bar:8845"), Method: "POST"}, expectedID: "POST:"},
 	testUrl{event: producer.RequestEvent{URL: urlMustParse("http://foo.bar:8845/"), Method: ""}, expectedID: ":/"},
+	testUrl{event: producer.RequestEvent{URL: urlMustParse("http://foo.bar:8845/banner-250x250.png"), Method: ""}, expectedID: ":/banner-0x0.png"},
+	testUrl{event: producer.RequestEvent{URL: urlMustParse("http://foo.bar:8845/banner-250x250.png/"), Method: ""}, expectedID: ":/banner-250x250.png/"},
+
 }
 
 func TestRequestNormalizer_Run(t *testing.T) {
