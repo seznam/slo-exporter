@@ -38,7 +38,7 @@ type requestNormalizer struct{}
 //  4. Last part of the path has all digit sequences replaced with the placeholder such as `/foo/banner-50x60.png` -> `/foo/banner-<placeholder>x<placeholder>.png`
 func (rn *requestNormalizer) normalizePath(rawPath string) string {
 	if rawPath == "" {
-		rawPath = "/"
+		return "/"
 	}
 	pathItems := strings.Split(path.Clean(rawPath), pathItemsSeparator)
 	itemsCount := len(pathItems)
