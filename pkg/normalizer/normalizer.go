@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -29,16 +30,25 @@ func NewForRequestEvent() *requestNormalizer {
 
 type requestNormalizer struct{}
 
-func (rn *requestNormalizer) normalizePath(path string) string {
-	pathItems := strings.Split(path, pathItemsSeparator)
+
+// Normalizes the URL path, applies those rules:
+//  1. If path is empty returns `/`.
+//  2. If path is non empty, the trailing `/` is removed.
+//  3. Only digit sequences between slashes are replaced with placeholder such as `/foo/123/bar` -> `/foo/<placeholder>/bar`.
+//  4. Last part of the path has all digit sequences replaced with the placeholder such as `/foo/banner-50x60.png` -> `/foo/banner-<placeholder>x<placeholder>.png`
+func (rn *requestNormalizer) normalizePath(rawPath string) string {
+	if rawPath == "" {
+		rawPath = "/"
+	}
+	pathItems := strings.Split(path.Clean(rawPath), pathItemsSeparator)
 	itemsCount := len(pathItems)
 	for i, item := range pathItems {
-		// In last part of the path replace all numbers for zero
+		// In last part of the rawPath replace all numbers for zero
 		if i+1 == itemsCount {
 			pathItems[i] = followingDigitsRegex.ReplaceAllString(item, numberPlaceholder)
 			continue
 		}
-		// Replace all only number items in the path with placeholder
+		// Replace all only number items in the rawPath with placeholder
 		pathItems[i] = onlyDigitsRegex.ReplaceAllString(item, numberPlaceholder)
 	}
 	return strings.Join(pathItems, pathItemsSeparator)
