@@ -9,7 +9,7 @@ lint:
 	revive -formatter friendly $(shell find $(src_dir) -name "*.go" | grep -v "^$(src_dir)/vendor/")
 
 test:
-	go test -coverprofile=coverage.out $(shell go list ./... | grep -v /vendor/)
+	go test --race -coverprofile=coverage.out $(shell go list ./... | grep -v /vendor/)
 
 compose: build
 	docker-compose up --force-recreate --renew-anon-volumes --abort-on-container-exit --remove-orphans --exit-code-from slo-exporter
