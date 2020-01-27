@@ -3,6 +3,9 @@
 [![pipeline status](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/pipeline.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
 [![coverage report](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/coverage.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
 
+[Here](https://sklik-devops.gitlab.seznam.net/slo-exporter) you can examine which code is not covered by tests.
+
+
 ## Build
 ```bash
 make build
