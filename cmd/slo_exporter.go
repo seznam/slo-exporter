@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamicclassifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
@@ -36,7 +37,7 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/liveness", liveness.HandleFunc)
 	mux.HandleFunc("/readiness", readiness.HandleFunc)
-	return &http.Server{Addr: listenAddr, Handler: mux,}
+	return &http.Server{Addr: listenAddr, Handler: mux}
 }
 
 func main() {
@@ -45,6 +46,10 @@ func main() {
 	follow := kingpin.Flag("follow", "Follow the given log file.").Short('f').Bool()
 	gracefulShutdownTimeout := kingpin.Flag("graceful-shutdown-timeout", "How long to wait for graceful shutdown.").Default("20s").Short('g').Duration()
 	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().String()
+	sloDomain := kingpin.Flag("slo-domain", "slo domain name").Required().String()
+	regexpClassificationFiles := kingpin.Flag("regexp-classification-file", "Path to regexp classification file.").ExistingFiles()
+	exactClassificationFiles := kingpin.Flag("exact-classification-file", "Path to exact classification file.").ExistingFiles()
+
 	kingpin.Parse()
 
 	if err := setupLogging(*logLevel); err != nil {
@@ -80,13 +85,33 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	nginxEventsChan := make(chan *producer.RequestEvent)
-	nginxTailer.Run(ctx, nginxEventsChan, errChan)
+
 
 	// Add the EntityKey to all RequestEvents
 	requestNormalizer := normalizer.NewForRequestEvent()
+
+
+	// Classify event by dynamic classifier
+	dynamicClassifier := dynamic_classifier.NewDynamicClassifier(*sloDomain)
+	// load regexp matches
+	if err := dynamicClassifier.LoadExactMatchesFromMultipleCSV(*exactClassificationFiles); err != nil {
+		log.Fatalf("Failed to load classification: %v", err)
+	}
+	// load regex matches
+	if err := dynamicClassifier.LoadRegexpMatchesFromMultipleCSV(*regexpClassificationFiles); err != nil {
+		log.Fatalf("Failed to load classification: %v", err)
+	}
+
+
+	// Pipeline definition
+	nginxEventsChan := make(chan *producer.RequestEvent)
+	nginxTailer.Run(ctx, nginxEventsChan, errChan)
+
 	normalizedEventsChan := make(chan *producer.RequestEvent)
 	requestNormalizer.Run(ctx, nginxEventsChan, normalizedEventsChan)
+
+	classifiedEventsChan := make(chan *producer.RequestEvent)
+	dynamicClassifier.Run(ctx, normalizedEventsChan, classifiedEventsChan)
 
 	readiness.Ok()
 	defer log.Info("see ya!")
@@ -104,17 +129,18 @@ func main() {
 			log.Infof("waiting configured graceful shutdown timeout %v", gracefulShutdownTimeout)
 			shutdownCtx.Done()
 			return
-		case _, ok := <-normalizedEventsChan:
-			if !ok {
-				log.Info("finished processing all logs")
-				gracefulShutdownChan <- struct{}{}
-			}
 		case sig := <-sigChan:
 			log.Infof("received signal %v", sig)
 			gracefulShutdownChan <- struct{}{}
 		case err := <-errChan:
 			log.Errorf("encountered error: %v", err)
 			gracefulShutdownChan <- struct{}{}
+		// TODO remove this, just for debugging now, reads the last channel and prints it out
+		case _, ok := <-classifiedEventsChan:
+			if !ok {
+				log.Info("finished classifying all events")
+				gracefulShutdownChan <- struct{}{}
+			}
 		}
 	}
 

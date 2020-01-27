@@ -1,15 +1,42 @@
-package dynamicclassifier
+package dynamic_classifier
 
 import (
+	"context"
 	"encoding/csv"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
+
+	multierror "github.com/hashicorp/go-multierror"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
-var log *logrus.Entry
+var (
+	log *logrus.Entry
+
+	eventsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "slo_exporter",
+			Subsystem: "dynamic_classifier",
+			Name:      "events_processed_total",
+			Help:      "Total number of processed events by result.",
+		},
+		[]string{"result", "classified_by"},
+	)
+
+	errorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "slo_exporter",
+			Subsystem: "dynamic_classifier",
+			Name:      "errors_total",
+			Help:      "Total number of processed events by result.",
+		},
+		[]string{"type"},
+	)
+
+)
 
 // DynamicClassifier is classifier based on cache and regexp matches
 type DynamicClassifier struct {
@@ -27,14 +54,24 @@ func NewDynamicClassifier(sloDomain string) *DynamicClassifier {
 	}
 }
 
-// LoadExactMatchesFromCSV loads exact matches from csv
-func (dc *DynamicClassifier) LoadExactMatchesFromCSV(path string) error {
-	return dc.loadMatchesFromCSV(dc.exactMatches, path)
+// LoadExactMatchesFromMultipleCSV loads exact matches from csv
+func (dc *DynamicClassifier) LoadExactMatchesFromMultipleCSV(paths []string) error {
+	return dc.loadMatchesFromMultipleCSV(dc.exactMatches, paths)
 }
 
-// LoadRegexpMatchesFromCSV loads exact matches from csv
-func (dc *DynamicClassifier) LoadRegexpMatchesFromCSV(path string) error {
-	return dc.loadMatchesFromCSV(dc.regexpMatches, path)
+// LoadRegexpMatchesFromMultipleCSV loads regexp matches from csv
+func (dc *DynamicClassifier) LoadRegexpMatchesFromMultipleCSV(paths []string) error {
+	return dc.loadMatchesFromMultipleCSV(dc.regexpMatches, paths)
+}
+
+func (dc *DynamicClassifier) loadMatchesFromMultipleCSV(matcher matcher, paths []string) error {
+	var errors error
+	for _, p := range paths {
+		if err := dc.loadMatchesFromCSV(matcher, p); err != nil {
+			errors = multierror.Append(errors, err)
+		}
+	}
+	return errors
 }
 
 func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) error {
@@ -75,47 +112,89 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 
 // Classify classifies endpoint by updating its Classification field
 func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error) {
-	// classify against exact match
-	classification, err := dc.classifyByMatch(dc.exactMatches, event)
-	if err != nil {
-		log.Error(err)
-	}
-	if classification != nil {
-		// event is classified by exact match
-		log.Tracef("Event '%s' matched against exact match", event.EventKey)
-		event.UpdateSLOClassification(classification)
+	var (
+		classificationErrors error
+		classification       *producer.SloClassification
+		classifiedBy         matcherType
+	)
+	if event.IsClassified() {
+		if err := dc.exactMatches.set(event.EventKey, classification); err != nil {
+			log.Errorf("failed to set the exact matcher: %v", err)
+		}
 		return true, nil
 	}
 
-	log.Tracef("Event '%s' not matched against exact match, trying regexp match", event.EventKey)
-
-	// not classified against exact matches, try regexp match
-	classification, err = dc.classifyByMatch(dc.regexpMatches, event)
-	if err != nil {
-		log.Error(err)
+	classifiers := []matcher{dc.exactMatches, dc.regexpMatches}
+	for _, classifier := range classifiers {
+		var err error
+		classification, err = dc.classifyByMatch(classifier, event)
+		if err != nil {
+			log.Errorf("error while classifying event: %v", err)
+			classificationErrors = multierror.Append(classificationErrors, err)
+		}
+		if classification == nil {
+			continue
+		}
+		classifiedBy = classifier.getType()
+		break
 	}
 
-	if classification != nil {
-		// event is classified by regexp match
-		log.Tracef("Event '%s' matched against regex match", event.EventKey)
-		event.UpdateSLOClassification(classification)
-		dc.exactMatches.set(event.EventKey, classification)
-		return true, nil
+	if classification == nil {
+		log.Warnf("unable to classify event %s", event.EventKey)
+		eventsTotal.WithLabelValues("unclassified", string(classifiedBy)).Inc()
+		return false, classificationErrors
 	}
 
-	log.Tracef("Event '%s' not matched", event.EventKey)
-	return false, nil
+	log.Debugf("event '%s' matched by %s matcher", event.EventKey, classifiedBy)
+	event.UpdateSLOClassification(classification)
+	eventsTotal.WithLabelValues("classified", string(classifiedBy)).Inc()
+
+	// Those matched by regex we want to write to the exact matcher so it is cached
+	if classifiedBy == regexpMatcherType {
+		if err := dc.exactMatches.set(event.EventKey, classification); err != nil {
+			log.Errorf("failed to set the exact matcher: %v", err)
+		}
+	}
+	return true, nil
 }
 
 func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.RequestEvent) (*producer.SloClassification, error) {
-	classification, err := matcher.get(event.EventKey)
-	if err != nil {
-		return nil, err
-	}
+	return matcher.get(event.EventKey)
+}
 
-	return classification, nil
+// Run event normalizer receiving events and filling their EventKey if not already filled.
+func (dc *DynamicClassifier) Run(ctx context.Context, inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
+	go func() {
+		defer close(outputEventsChan)
+		defer log.Info("stopping dynamic classifier")
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event, ok := <-inputEventsChan:
+				if !ok {
+					log.Info("input channel closed, finishing")
+					return
+				}
+				classified, err := dc.Classify(event)
+				if err != nil {
+					log.Error(err)
+					errorsTotal.WithLabelValues(err.Error()).Inc()
+				}
+				if !classified {
+					log.Warnf("unable to classify %s", event.EventKey)
+				} else {
+					log.Debugf("processed event with EventKey: %s", event.EventKey)
+				}
+				outputEventsChan <- event
+			}
+		}
+	}()
 }
 
 func init() {
-	log = logrus.WithFields(logrus.Fields{"boxík": "classifier"})
+	log = logrus.WithFields(logrus.Fields{"component": "dynamic_classifier"})
+	prometheus.MustRegister(eventsTotal, errorsTotal)
+
 }

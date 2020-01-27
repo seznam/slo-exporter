@@ -27,7 +27,9 @@ services:
     entrypoint: ["/slo-exporter/slo_exporter"]
     command:
       - "--follow"
-      - "--log-level=debug"
+      - "--log-level=info"
+      - "--slo-domain=userportal"
+      - "--regexp-classification-file=/slo-exporter/examples/userportal.csv"
       - "/tmp/szn-logy/access_log"
     volumes:
       - ./:/slo-exporter
@@ -50,7 +52,7 @@ services:
     entrypoint: ["sh"]
     command:
       - "-c"
-      - 'echo $PROMETHEUS_CONFIG; echo $$PROMETHEUS_CONFIG > /etc/prometheus/prometheus.yml; cat /etc/prometheus/prometheus.yml; prometheus --config.file=/etc/prometheus/prometheus.yml'
+      - 'echo $$PROMETHEUS_CONFIG > /etc/prometheus/prometheus.yml; prometheus --config.file=/etc/prometheus/prometheus.yml'
 
 
 volumes:
