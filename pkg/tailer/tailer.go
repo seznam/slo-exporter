@@ -2,7 +2,6 @@ package tailer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -89,7 +88,7 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 				linesReadTotal.Inc()
 				event, err := parseLine(line.Text)
 				if err != nil {
-					malformedLinesTotal.WithLabelValues(errors.Unwrap(err).Error()).Inc()
+					malformedLinesTotal.WithLabelValues(err.Error()).Inc()
 					reportErrLine(line.Text, err)
 				} else {
 					eventsChan <- event

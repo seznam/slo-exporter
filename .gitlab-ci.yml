@@ -2,6 +2,7 @@ stages:
   - check
   - build
   - build-ci-release-docker
+  - pages
 
 image: docker.dev.dszn.cz/golang-build:stretch
 
@@ -16,7 +17,11 @@ lint:
 test:
   stage: check
   script: |
-    make test
+    make test-and-coverage
+  artifacts:
+    paths:
+      - coverage.out
+    expire_in: 1 week
 
 build:
   stage: build
@@ -39,3 +44,15 @@ build-ci-release-docker:
     expire_in: 1 mos
     paths:
       - docker-release-ci.uri
+
+pages:
+  stage: pages
+  dependencies:
+    - test
+  script: |
+    mkdir public
+    go tool cover -html coverage.out -o public/index.html
+  artifacts:
+    expire_in: 1 mos
+    paths:
+      - public

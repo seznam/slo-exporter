@@ -1,4 +1,4 @@
-package dynamicclassifier
+package dynamic_classifier
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-func TestLoadExactMatchesFromCSV(t *testing.T) {
+func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 	classifier := NewDynamicClassifier("test-domain")
-	testData := filepath.Join("testdata", t.Name()+".golden")
+	testData := []string{filepath.Join("testdata", t.Name()+".golden")}
 
-	err := classifier.LoadExactMatchesFromCSV(testData)
+	err := classifier.LoadExactMatchesFromMultipleCSV(testData)
 	if err != nil {
 		t.Fatalf("Failed to load golden file '%s'", testData)
 	}
@@ -27,11 +27,11 @@ func TestLoadExactMatchesFromCSV(t *testing.T) {
 
 }
 
-func TestLoadRegexpMatchesFromCSV(t *testing.T) {
+func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 	classifier := NewDynamicClassifier("test-domain")
-	testData := filepath.Join("testdata", t.Name()+".golden")
+	testData := []string{filepath.Join("testdata", t.Name()+".golden")}
 
-	err := classifier.LoadRegexpMatchesFromCSV(testData)
+	err := classifier.LoadRegexpMatchesFromMultipleCSV(testData)
 	if err != nil {
 		t.Fatalf("Failed to load golden file '%s'", testData)
 	}
@@ -41,7 +41,7 @@ func TestLoadRegexpMatchesFromCSV(t *testing.T) {
 		classification: newSloClassification("test-domain", "test-app", "test-class"),
 	}
 	expectedExactMatches := newRegexpMatcher()
-	*expectedExactMatches = append(*expectedExactMatches, expectedRegexpSloClassification)
+	expectedExactMatches.matchers = append(expectedExactMatches.matchers, expectedRegexpSloClassification)
 
 	if !reflect.DeepEqual(classifier.regexpMatches, expectedExactMatches) {
 		t.Errorf("Loaded data from csv and expected data does not match: %v != %v", classifier.regexpMatches, expectedExactMatches)
@@ -51,9 +51,9 @@ func TestLoadRegexpMatchesFromCSV(t *testing.T) {
 
 func TestClassificationByExactMatches(t *testing.T) {
 	classifier := NewDynamicClassifier("test-domain")
-	testData := filepath.Join("testdata", t.Name()+".golden")
+	testData := []string{filepath.Join("testdata", t.Name()+".golden")}
 
-	err := classifier.LoadExactMatchesFromCSV(testData)
+	err := classifier.LoadExactMatchesFromMultipleCSV(testData)
 	if err != nil {
 		t.Fatalf("Failed to load golden file '%s'", testData)
 	}
@@ -87,9 +87,9 @@ func TestClassificationByExactMatches(t *testing.T) {
 
 func TestClassificationByRegexpMatches(t *testing.T) {
 	classifier := NewDynamicClassifier("test-domain")
-	testData := filepath.Join("testdata", t.Name()+".golden")
+	testData := []string{filepath.Join("testdata", t.Name()+".golden")}
 
-	err := classifier.LoadRegexpMatchesFromCSV(testData)
+	err := classifier.LoadRegexpMatchesFromMultipleCSV(testData)
 	if err != nil {
 		t.Fatalf("Failed to load golden file '%s'", testData)
 	}

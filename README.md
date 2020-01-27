@@ -26,7 +26,7 @@ Address:
  - Prometheus scraping slo-exporter metrics: http://localhost:9090
  - slo-exporter address: http://localhost:8080/metrics
 
-
+[Use this link to see the logs](http://localhost:9090/graph?g0.range_input=5m&g0.stacked=1&g0.expr=increase(slo_exporter_tailer_lines_read_total%5B10s%5D)&g0.tab=0&g1.range_input=5m&g1.stacked=1&g1.expr=sum(increase(slo_exporter_dynamic_classifier_events_processed_total%5B10s%5D))%20by%20(result%2C%20classified_by)&g1.tab=0&g2.range_input=5m&g2.expr=histogram_quantile(1%2Crate(slo_exporter_dynamic_classifier_matcher_operation_duration_seconds_bucket%5B10s%5D))&g2.tab=0&g3.range_input=5m&g3.expr=increase(slo_exporter_tailer_malformed_lines_total%5B10s%5D)&g3.tab=0)
 
 
 ## Architecture diagram

@@ -41,7 +41,7 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 }
 
 func main() {
-	logLevel := kingpin.Flag("log-level", "Set log level").Default("trace").String()
+	logLevel := kingpin.Flag("log-level", "Set log level").Default("info").String()
 	webServerListenAddr := kingpin.Flag("listen-address", "Listen address to listen on for web server.").Short('l').Default("0.0.0.0:8080").String()
 	follow := kingpin.Flag("follow", "Follow the given log file.").Short('f').Bool()
 	gracefulShutdownTimeout := kingpin.Flag("graceful-shutdown-timeout", "How long to wait for graceful shutdown.").Default("20s").Short('g').Duration()
@@ -85,32 +85,32 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	nginxEventsChan := make(chan *producer.RequestEvent)
-	nginxTailer.Run(ctx, nginxEventsChan, errChan)
+
 
 	// Add the EntityKey to all RequestEvents
 	requestNormalizer := normalizer.NewForRequestEvent()
+
+
+	// Classify event by dynamic classifier
+	dynamicClassifier := dynamic_classifier.NewDynamicClassifier(*sloDomain)
+	// load regexp matches
+	if err := dynamicClassifier.LoadExactMatchesFromMultipleCSV(*exactClassificationFiles); err != nil {
+		log.Fatalf("Failed to load classification: %v", err)
+	}
+	// load regex matches
+	if err := dynamicClassifier.LoadRegexpMatchesFromMultipleCSV(*regexpClassificationFiles); err != nil {
+		log.Fatalf("Failed to load classification: %v", err)
+	}
+
+
+	// Pipeline definition
+	nginxEventsChan := make(chan *producer.RequestEvent)
+	nginxTailer.Run(ctx, nginxEventsChan, errChan)
+
 	normalizedEventsChan := make(chan *producer.RequestEvent)
 	requestNormalizer.Run(ctx, nginxEventsChan, normalizedEventsChan)
 
-	// Classify event by dynamic classifier
-	dynamicClassifier := dynamicclassifier.NewDynamicClassifier(*sloDomain)
 	classifiedEventsChan := make(chan *producer.RequestEvent)
-	// load regexp matches
-	for _, file := range *regexpClassificationFiles {
-		err := dynamicClassifier.LoadRegexpMatchesFromCSV(file)
-		if err != nil {
-			log.Fatalf("Failed to load classification from %v - %v", file, err)
-		}
-	}
-	// load exact matches
-	for _, file := range *exactClassificationFiles {
-		err := dynamicClassifier.LoadExactMatchesFromCSV(file)
-		if err != nil {
-			log.Fatalf("Failed to load classification from %v - %v", file, err)
-		}
-	}
-
 	dynamicClassifier.Run(ctx, normalizedEventsChan, classifiedEventsChan)
 
 	readiness.Ok()
@@ -129,22 +129,18 @@ func main() {
 			log.Infof("waiting configured graceful shutdown timeout %v", gracefulShutdownTimeout)
 			shutdownCtx.Done()
 			return
-		case _, ok := <-normalizedEventsChan:
-			if !ok {
-				log.Info("finished processing all logs")
-				gracefulShutdownChan <- struct{}{}
-			}
-		case _, ok := <-classifiedEventsChan:
-			if !ok {
-				log.Info("finished classifying all events")
-				gracefulShutdownChan <- struct{}{}
-			}
 		case sig := <-sigChan:
 			log.Infof("received signal %v", sig)
 			gracefulShutdownChan <- struct{}{}
 		case err := <-errChan:
 			log.Errorf("encountered error: %v", err)
 			gracefulShutdownChan <- struct{}{}
+		// TODO remove this, just for debugging now, reads the last channel and prints it out
+		case _, ok := <-classifiedEventsChan:
+			if !ok {
+				log.Info("finished classifying all events")
+				gracefulShutdownChan <- struct{}{}
+			}
 		}
 	}
 

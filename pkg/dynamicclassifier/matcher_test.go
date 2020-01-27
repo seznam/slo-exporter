@@ -1,4 +1,4 @@
-package dynamicclassifier
+package dynamic_classifier
 
 import (
 	"reflect"
@@ -30,7 +30,7 @@ func TestMatcher(t *testing.T) {
 		{newMemoryExactMatcher(), "", newSloClassification("test-domain", "test-app", "test-class"), "", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
 		{newMemoryExactMatcher(), "test", newSloClassification("test-domain", "test-app", "test-class"), "aaa", nil, "", ""},
 		{newRegexpMatcher(), ".*", newSloClassification("test-domain", "test-app", "test-class"), "aaa", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
-		{newRegexpMatcher(), ".*****", newSloClassification("test-domain", "test-app", "test-class"), "aaa", newSloClassification("test-domain", "test-app", "test-class"), "Failed to create new regexp endpoint classification: error parsing regexp: invalid nested repetition operator: `**`", ""},
+		{newRegexpMatcher(), ".*****", newSloClassification("test-domain", "test-app", "test-class"), "aaa", newSloClassification("test-domain", "test-app", "test-class"), "failed to create new regexp endpoint classification: error parsing regexp: invalid nested repetition operator: `**`", ""},
 	}
 
 	for _, v := range cases {
