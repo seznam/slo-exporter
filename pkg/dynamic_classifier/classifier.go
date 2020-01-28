@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"io"
+	"net/http"
 	"os"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -35,7 +36,6 @@ var (
 		},
 		[]string{"type"},
 	)
-
 )
 
 // DynamicClassifier is classifier based on cache and regexp matches
@@ -156,6 +156,16 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 		}
 	}
 	return true, nil
+}
+
+// DumpExactMatchesCSVHandler is http handler for dumping exact matches to csv
+func (dc *DynamicClassifier) DumpExactMatchesCSVHandler(w http.ResponseWriter, req *http.Request) {
+	_, _ = w.Write(dc.exactMatches.dumpCSV())
+}
+
+// DumpDynamicMatchesCSVHandler is http handler for dumping dynamic matches to csv
+func (dc *DynamicClassifier) DumpDynamicMatchesCSVHandler(w http.ResponseWriter, req *http.Request) {
+	_, _ = w.Write(dc.regexpMatches.dumpCSV())
 }
 
 func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.RequestEvent) (*producer.SloClassification, error) {
