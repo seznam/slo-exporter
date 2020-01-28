@@ -15,7 +15,13 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gorilla/mux"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
@@ -54,6 +60,7 @@ func main() {
 	sloDomain := kingpin.Flag("slo-domain", "slo domain name").Required().String()
 	regexpClassificationFiles := kingpin.Flag("regexp-classification-file", "Path to regexp classification file.").ExistingFiles()
 	exactClassificationFiles := kingpin.Flag("exact-classification-file", "Path to exact classification file.").ExistingFiles()
+	thresholds := kingpin.Flag("latency-threshold", "Latency threshold").Required().DurationList()
 
 	kingpin.Parse()
 
@@ -107,6 +114,9 @@ func main() {
 		log.Fatalf("Failed to load classification: %v", err)
 	}
 
+	sloEventProducer := slo_event_producer.NewSloEventProducer(*thresholds)
+
+
 	// Pipeline definition
 	nginxEventsChan := make(chan *producer.RequestEvent)
 	nginxTailer.Run(ctx, nginxEventsChan, errChan)
@@ -116,6 +126,10 @@ func main() {
 
 	classifiedEventsChan := make(chan *producer.RequestEvent)
 	dynamicClassifier.Run(ctx, normalizedEventsChan, classifiedEventsChan)
+
+	sloEventsChan := make(chan *slo_event_producer.SloEvent)
+	sloEventProducer.Run(ctx, classifiedEventsChan, sloEventsChan)
+
 
 	readiness.Ok()
 	defer log.Info("see ya!")
@@ -140,7 +154,8 @@ func main() {
 			log.Errorf("encountered error: %v", err)
 			gracefulShutdownChan <- struct{}{}
 		// TODO remove this, just for debugging now, reads the last channel and prints it out
-		case _, ok := <-classifiedEventsChan:
+		case event, ok := <-sloEventsChan:
+			log.Infof("processed event: %v", event)
 			if !ok {
 				log.Info("finished classifying all events")
 				gracefulShutdownChan <- struct{}{}

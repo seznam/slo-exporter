@@ -29,6 +29,9 @@ services:
       - "--follow"
       - "--log-level=info"
       - "--slo-domain=userportal"
+      - "--latency-threshold=0.5s"
+      - "--latency-threshold=1s"
+      - "--latency-threshold=2s"
       - "--regexp-classification-file=/slo-exporter/examples/userportal.csv"
       - "/tmp/szn-logy/access_log"
     volumes:
