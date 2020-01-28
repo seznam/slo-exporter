@@ -1,8 +1,9 @@
 package dynamic_classifier
 
 import (
-	"bytes"
 	"encoding/csv"
+	"io"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
@@ -43,13 +44,15 @@ func (c *memoryExactMatcher) getType() matcherType {
 	return exactMatcherType
 }
 
-func (c *memoryExactMatcher) dumpCSV() []byte {
-	data := &bytes.Buffer{}
-	buffer := csv.NewWriter(data)
+func (c *memoryExactMatcher) dumpCSV(w io.Writer) {
+	buffer := csv.NewWriter(w)
+	defer buffer.Flush()
 	for k, v := range c.exactMatches {
-		buffer.Write([]string{v.App, v.Class, k})
+		err := buffer.Write([]string{v.App, v.Class, k})
+		if err != nil {
+			errorsTotal.WithLabelValues(err.Error()).Inc()
+			log.Error(err)
+		}
+		buffer.Flush()
 	}
-
-	buffer.Flush()
-	return data.Bytes()
 }

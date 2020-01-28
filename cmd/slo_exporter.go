@@ -10,12 +10,13 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
+	"github.com/gorilla/mux"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
 )
 
@@ -34,13 +35,12 @@ func setupLogging(logLevel string) error {
 }
 
 func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober, dc *dynamic_classifier.DynamicClassifier) *http.Server {
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/liveness", liveness.HandleFunc)
-	mux.HandleFunc("/readiness", readiness.HandleFunc)
-	mux.HandleFunc("/dump/exactMatches", dc.DumpExactMatchesCSVHandler)
-	mux.HandleFunc("/dump/regexpMatches", dc.DumpDynamicMatchesCSVHandler)
-	return &http.Server{Addr: listenAddr, Handler: mux}
+	router := mux.NewRouter()
+	router.Handle("/metrics", promhttp.Handler())
+	router.HandleFunc("/liveness", liveness.HandleFunc)
+	router.HandleFunc("/readiness", readiness.HandleFunc)
+	router.HandleFunc("/dump/matcher/{matcher}", dc.DumpCSVHandler)
+	return &http.Server{Addr: listenAddr, Handler: router}
 }
 
 func main() {

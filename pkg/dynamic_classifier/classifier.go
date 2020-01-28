@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/mux"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -158,14 +159,36 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 	return true, nil
 }
 
-// DumpExactMatchesCSVHandler is http handler for dumping exact matches to csv
-func (dc *DynamicClassifier) DumpExactMatchesCSVHandler(w http.ResponseWriter, req *http.Request) {
-	_, _ = w.Write(dc.exactMatches.dumpCSV())
-}
+// DumpCSVHandler is http handler for dumping exact matches to csv
+func (dc *DynamicClassifier) DumpCSVHandler(w http.ResponseWriter, req *http.Request) {
+	matchers := map[string]matcher{
+		string(dc.exactMatches.getType()):  dc.exactMatches,
+		string(dc.regexpMatches.getType()): dc.regexpMatches,
+	}
 
-// DumpDynamicMatchesCSVHandler is http handler for dumping dynamic matches to csv
-func (dc *DynamicClassifier) DumpDynamicMatchesCSVHandler(w http.ResponseWriter, req *http.Request) {
-	_, _ = w.Write(dc.regexpMatches.dumpCSV())
+	vars := mux.Vars(req)
+
+	matcherType := vars["matcher"]
+	matcher, ok := matchers[matcherType]
+
+	// no matcher found
+	if !ok {
+		_, err := w.Write([]byte("Matcher '" + matcherType + "' not found\n Available matchers:\n"))
+		if err != nil {
+			errorsTotal.WithLabelValues(err.Error()).Inc()
+			log.Error(err)
+		}
+		for k := range matchers {
+			_, err = w.Write([]byte("* " + k + "\n"))
+			if err != nil {
+				errorsTotal.WithLabelValues(err.Error()).Inc()
+				log.Error(err)
+			}
+		}
+		return
+	}
+
+	matcher.dumpCSV(w)
 }
 
 func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.RequestEvent) (*producer.SloClassification, error) {

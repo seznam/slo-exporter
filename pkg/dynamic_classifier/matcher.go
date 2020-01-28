@@ -3,6 +3,7 @@ package dynamic_classifier
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"io"
 )
 
 type matcherType string
@@ -27,5 +28,5 @@ type matcher interface {
 	getType() matcherType
 	set(key string, classification *producer.SloClassification) error
 	get(key string) (*producer.SloClassification, error)
-	dumpCSV() []byte
+	dumpCSV(w io.Writer)
 }
