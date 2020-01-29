@@ -1,7 +1,11 @@
 package dynamic_classifier
 
 import (
+	"bytes"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -50,4 +54,44 @@ func TestMatcher(t *testing.T) {
 		}
 
 	}
+}
+
+func TestMarcherExactDumpCSV(t *testing.T) {
+	expectedDataFilename := filepath.Join("testdata", t.Name()+".golden")
+	expectedDataBytes, err := ioutil.ReadFile(expectedDataFilename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var dataBytes []byte
+	dataBuffer := bytes.NewBuffer(dataBytes)
+
+	matcher := newMemoryExactMatcher()
+	matcher.exactMatches["test-endpoint"] = newSloClassification("test-domain", "test-app", "test-class")
+	matcher.dumpCSV(dataBuffer)
+
+	assert.EqualValues(t, expectedDataBytes, dataBuffer.Bytes())
+}
+
+func TestMarcherRegexpDumpCSV(t *testing.T) {
+	expectedDataFilename := filepath.Join("testdata", t.Name()+".golden")
+	expectedDataBytes, err := ioutil.ReadFile(expectedDataFilename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var dataBytes []byte
+	dataBuffer := bytes.NewBuffer(dataBytes)
+
+	matcher := newRegexpMatcher()
+	matcher.matchers = append(matcher.matchers,
+		&regexpSloClassification{
+			regexpCompiled: regexp.MustCompile(".*"),
+			classification: newSloClassification("test-domain", "test-app", "test-class"),
+		},
+	)
+
+	matcher.dumpCSV(dataBuffer)
+
+	assert.EqualValues(t, expectedDataBytes, dataBuffer.Bytes())
 }
