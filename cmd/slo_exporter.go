@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
@@ -18,13 +19,6 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"github.com/gorilla/mux"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
 )
 
 func setupLogging(logLevel string) error {
@@ -60,7 +54,7 @@ func main() {
 	sloDomain := kingpin.Flag("slo-domain", "slo domain name").Required().String()
 	regexpClassificationFiles := kingpin.Flag("regexp-classification-file", "Path to regexp classification file.").ExistingFiles()
 	exactClassificationFiles := kingpin.Flag("exact-classification-file", "Path to exact classification file.").ExistingFiles()
-	thresholds := kingpin.Flag("latency-threshold", "Latency threshold").Required().DurationList()
+	sloRulesFile := kingpin.Flag("slo-rules-config", "Path to config with SLO rules for evaluation.").Required().ExistingFile()
 
 	kingpin.Parse()
 
@@ -114,8 +108,10 @@ func main() {
 		log.Fatalf("Failed to load classification: %v", err)
 	}
 
-	sloEventProducer := slo_event_producer.NewSloEventProducer(*thresholds)
-
+	sloEventProducer, err := slo_event_producer.NewSloEventProducer(*sloRulesFile)
+	if err != nil {
+		log.Fatalf("failed to load SLO rules config: %v", err)
+	}
 
 	// Pipeline definition
 	nginxEventsChan := make(chan *producer.RequestEvent)
@@ -129,7 +125,6 @@ func main() {
 
 	sloEventsChan := make(chan *slo_event_producer.SloEvent)
 	sloEventProducer.Run(ctx, classifiedEventsChan, sloEventsChan)
-
 
 	readiness.Ok()
 	defer log.Info("see ya!")

@@ -1,4 +1,7 @@
+//revive:disable:var-naming
 package slo_event_producer
+
+//revive:enable:var-naming
 
 import (
 	"context"
@@ -6,7 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-	"time"
 )
 
 var (
@@ -17,82 +19,40 @@ var (
 		Name:      "generated_slo_events_total",
 		Help:      "Total number of generated SLO events per type.",
 	}, []string{"type"})
-
-	unclassifiedEventsTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "slo_exporter",
-		Subsystem: "slo_event_producer",
-		Name:      "unclassified_events_total",
-		Help:      "Total number of dropped events without classification.",
-	})
 )
 
 func init() {
 	log = logrus.WithField("component", "slo_event_producer")
-	prometheus.MustRegister(generatedSloEventsTotal, unclassifiedEventsTotal)
+	prometheus.MustRegister(generatedSloEventsTotal)
 }
 
 type ClassifiableEvent interface {
-	GetAvailabilityResult() bool
-	GetLatencyResult(time.Duration) bool
 	GetSloMetadata() *map[string]string
 }
 
 type SloEvent struct {
-	Result      bool
-	SloMetadata *map[string]string
+	failed      bool
+	SloMetadata map[string]string
 }
 
 func (se *SloEvent) String() string {
-	return fmt.Sprintf("SloEvent result: %v  identifiers: %v", se.Result, se.SloMetadata)
+	return fmt.Sprintf("SloEvent result: %v  identifiers: %v", se.failed, se.SloMetadata)
 }
 
-func NewSloEventProducer(latencyBuckets []time.Duration) *SloEventProducer {
-	return &SloEventProducer{latencyThresholds: latencyBuckets}
+func NewSloEventProducer(configPath string) (*SloEventProducer, error) {
+	eventEvaluator, err := NewEventEvaluatorFromConfigFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	return &SloEventProducer{eventEvaluator: eventEvaluator}, nil
 }
 
 type SloEventProducer struct {
-	latencyThresholds []time.Duration
+	eventEvaluator EventEvaluator
 }
 
-func metadataWithSloType(metadata *map[string]string, sloType string) *map[string]string {
-	newMetadata := map[string]string{}
-	for k, v := range *metadata {
-		newMetadata[k] = v
-	}
-	newMetadata["slo_type"] = sloType
-	return &newMetadata
-}
-
-func availabilityMetadata(metadata *map[string]string) *map[string]string {
-	return metadataWithSloType(metadata, "availability")
-}
-
-func latencyMetadata(metadata *map[string]string, threshold time.Duration) *map[string]string {
-	m := *metadataWithSloType(metadata, "latency")
-	m["le"] = fmt.Sprintf("%g", threshold.Seconds())
-	return &m
-}
-
-func (sep *SloEventProducer) generateSLOEvents(event ClassifiableEvent, sloEventsChan chan<- *SloEvent) {
-	metadata := event.GetSloMetadata()
-	if metadata == nil {
-		log.Warnf("dropping unclassified event")
-		unclassifiedEventsTotal.Inc()
-		return
-	}
-
-	sloEventsChan <- &SloEvent{
-		Result:      event.GetAvailabilityResult(),
-		SloMetadata: availabilityMetadata(metadata),
-	}
-	generatedSloEventsTotal.WithLabelValues("availability").Inc()
-	for _, threshold := range sep.latencyThresholds {
-		sloEventsChan <- &SloEvent{
-			Result:      event.GetLatencyResult(threshold),
-			SloMetadata: latencyMetadata(metadata, threshold),
-		}
-		generatedSloEventsTotal.WithLabelValues("latency").Inc()
-	}
+func (sep *SloEventProducer) generateSLOEvents(event *producer.RequestEvent, sloEventsChan chan<- *SloEvent) {
+	sep.eventEvaluator.Evaluate(event, sloEventsChan)
 }
 
 // TODO move to interfaces in channels, those cannot be mixed so we have to stick to one type now

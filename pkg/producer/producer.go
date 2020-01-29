@@ -48,16 +48,7 @@ func (e *RequestEvent) IsClassified() bool {
 
 		return true
 	}
-
 	return false
-}
-
-func (e RequestEvent) GetAvailabilityResult() bool {
-	return e.StatusCode < 500
-}
-
-func (e RequestEvent) GetLatencyResult(threshold time.Duration) bool {
-	return e.Duration <= threshold
 }
 
 func (e RequestEvent) GetSloMetadata() *map[string]string {

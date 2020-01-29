@@ -1,0 +1,6 @@
+rules:
+  - event_type: request
+    failure_crittttttteria:
+      - criterium: requestStatusHigherThan
+        value: 500
+    hahahahaha:
