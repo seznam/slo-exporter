@@ -3,18 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamicclassifier"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/handler"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/gorilla/mux"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
 )
 
@@ -32,12 +35,14 @@ func setupLogging(logLevel string) error {
 	return nil
 }
 
-func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober) *http.Server {
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/liveness", liveness.HandleFunc)
-	mux.HandleFunc("/readiness", readiness.HandleFunc)
-	return &http.Server{Addr: listenAddr, Handler: mux}
+func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober, dch *handler.DynamicClassifierHandler) *http.Server {
+	router := mux.NewRouter()
+	router.Handle("/metrics", promhttp.Handler())
+	router.HandleFunc("/liveness", liveness.HandleFunc)
+	router.HandleFunc("/readiness", readiness.HandleFunc)
+	// TODO: mby dump format by content-type?
+	router.HandleFunc("/dynamic_classifier/matchers/{matcher}", dch.DumpCSV)
+	return &http.Server{Addr: listenAddr, Handler: router}
 }
 
 func main() {
@@ -70,8 +75,12 @@ func main() {
 	sigChan := make(chan os.Signal, 3)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
+	// Classify event by dynamic classifier
+	dynamicClassifier := dynamic_classifier.NewDynamicClassifier(*sloDomain)
+	dynamicClassifierHandler := handler.NewDynamicClassifierHandler(dynamicClassifier)
+
 	// Start default server
-	defaultServer := setupDefaultServer(*webServerListenAddr, liveness, readiness)
+	defaultServer := setupDefaultServer(*webServerListenAddr, liveness, readiness, dynamicClassifierHandler)
 	go func() {
 		log.Infof("HTTP server listening on %v", defaultServer.Addr)
 		if err := defaultServer.ListenAndServe(); err != nil {
@@ -86,13 +95,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-
 	// Add the EntityKey to all RequestEvents
 	requestNormalizer := normalizer.NewForRequestEvent()
 
-
-	// Classify event by dynamic classifier
-	dynamicClassifier := dynamic_classifier.NewDynamicClassifier(*sloDomain)
 	// load regexp matches
 	if err := dynamicClassifier.LoadExactMatchesFromMultipleCSV(*exactClassificationFiles); err != nil {
 		log.Fatalf("Failed to load classification: %v", err)
@@ -101,7 +106,6 @@ func main() {
 	if err := dynamicClassifier.LoadRegexpMatchesFromMultipleCSV(*regexpClassificationFiles); err != nil {
 		log.Fatalf("Failed to load classification: %v", err)
 	}
-
 
 	// Pipeline definition
 	nginxEventsChan := make(chan *producer.RequestEvent)

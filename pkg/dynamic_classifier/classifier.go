@@ -3,6 +3,7 @@ package dynamic_classifier
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"io"
 	"os"
 
@@ -35,7 +36,6 @@ var (
 		},
 		[]string{"type"},
 	)
-
 )
 
 // DynamicClassifier is classifier based on cache and regexp matches
@@ -156,6 +156,21 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 		}
 	}
 	return true, nil
+}
+
+// DumpCSV dump matches in CSV format to io.Writer
+func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
+	matchers := map[string]matcher{
+		string(dc.exactMatches.getType()):  dc.exactMatches,
+		string(dc.regexpMatches.getType()): dc.regexpMatches,
+	}
+
+	matcher, ok := matchers[matcherType]
+	if !ok {
+		return errors.New("Matcher '" + matcherType + "' does not exists")
+	}
+
+	return matcher.dumpCSV(w)
 }
 
 func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.RequestEvent) (*producer.SloClassification, error) {

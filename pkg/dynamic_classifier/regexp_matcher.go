@@ -1,14 +1,17 @@
 package dynamic_classifier
 
 import (
+	"encoding/csv"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
+	"io"
 	"regexp"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
-const regexpMatcherType = "regex"
+const regexpMatcherType = "regexp"
 
 // regexpSloClassification encapsulates combination of regexp and endpoint classification
 type regexpSloClassification struct {
@@ -18,7 +21,7 @@ type regexpSloClassification struct {
 
 // regexpMatcher is list of endpoint classifications
 type regexpMatcher struct {
-	matchers    []*regexpSloClassification
+	matchers []*regexpSloClassification
 }
 
 // newRegexpMatcher returns new instance of regexpMatcher
@@ -77,4 +80,18 @@ func (rm *regexpMatcher) get(key string) (*producer.SloClassification, error) {
 
 func (rm *regexpMatcher) getType() matcherType {
 	return regexpMatcherType
+}
+
+func (rm *regexpMatcher) dumpCSV(w io.Writer) error {
+	buffer := csv.NewWriter(w)
+	defer buffer.Flush()
+	for _, v := range rm.matchers {
+		err := buffer.Write([]string{v.classification.App, v.classification.Class, v.regexpCompiled.String()})
+		if err != nil {
+			errorsTotal.WithLabelValues(err.Error()).Inc()
+			return fmt.Errorf("Failed to dump csv: %w", err)
+		}
+		buffer.Flush()
+	}
+	return nil
 }

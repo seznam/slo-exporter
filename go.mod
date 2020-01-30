@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
+	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/mgechev/revive v1.0.1 // indirect
