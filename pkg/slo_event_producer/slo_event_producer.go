@@ -6,10 +6,11 @@ package slo_event_producer
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-	"time"
 )
 
 var (
@@ -53,6 +54,10 @@ func NewSloEventProducer(configPath string) (*SloEventProducer, error) {
 
 type SloEventProducer struct {
 	eventEvaluator EventEvaluator
+}
+
+func (sep *SloEventProducer) PossibleMetadataKeys() []string {
+	return sep.eventEvaluator.PossibleMetadataKeys()
 }
 
 func (sep *SloEventProducer) generateSLOEvents(event *producer.RequestEvent, sloEventsChan chan<- *SloEvent) {
