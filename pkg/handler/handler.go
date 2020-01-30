@@ -20,7 +20,7 @@ var (
 )
 
 func init() {
-	log = logrus.WithFields(logrus.Fields{"component": "request_handler"})
+	log = logrus.WithFields(logrus.Fields{"component": "http_handler"})
 	prometheus.MustRegister(errorsTotal)
 
 }

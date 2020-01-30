@@ -56,7 +56,7 @@ func TestMatcher(t *testing.T) {
 	}
 }
 
-func TestMarcherExactDumpCSV(t *testing.T) {
+func testDumpCSV(t *testing.T, matcher matcher) {
 	expectedDataFilename := filepath.Join("testdata", t.Name()+".golden")
 	expectedDataBytes, err := ioutil.ReadFile(expectedDataFilename)
 	if err != nil {
@@ -65,24 +65,17 @@ func TestMarcherExactDumpCSV(t *testing.T) {
 
 	var dataBytes []byte
 	dataBuffer := bytes.NewBuffer(dataBytes)
-
-	matcher := newMemoryExactMatcher()
-	matcher.exactMatches["test-endpoint"] = newSloClassification("test-domain", "test-app", "test-class")
 	matcher.dumpCSV(dataBuffer)
-
 	assert.EqualValues(t, expectedDataBytes, dataBuffer.Bytes())
 }
 
-func TestMarcherRegexpDumpCSV(t *testing.T) {
-	expectedDataFilename := filepath.Join("testdata", t.Name()+".golden")
-	expectedDataBytes, err := ioutil.ReadFile(expectedDataFilename)
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestMatcherExactDumpCSV(t *testing.T) {
+	matcher := newMemoryExactMatcher()
+	matcher.exactMatches["test-endpoint"] = newSloClassification("test-domain", "test-app", "test-class")
+	testDumpCSV(t, matcher)
+}
 
-	var dataBytes []byte
-	dataBuffer := bytes.NewBuffer(dataBytes)
-
+func TestMatcherRegexpDumpCSV(t *testing.T) {
 	matcher := newRegexpMatcher()
 	matcher.matchers = append(matcher.matchers,
 		&regexpSloClassification{
@@ -90,8 +83,5 @@ func TestMarcherRegexpDumpCSV(t *testing.T) {
 			classification: newSloClassification("test-domain", "test-app", "test-class"),
 		},
 	)
-
-	matcher.dumpCSV(dataBuffer)
-
-	assert.EqualValues(t, expectedDataBytes, dataBuffer.Bytes())
+	testDumpCSV(t, matcher)
 }

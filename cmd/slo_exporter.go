@@ -40,7 +40,8 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/liveness", liveness.HandleFunc)
 	router.HandleFunc("/readiness", readiness.HandleFunc)
-	router.HandleFunc("/dump/matcher/{matcher}", dch.DumpCSV)
+	// TODO: mby dump format by content-type?
+	router.HandleFunc("/dynamic_classifier/matchers/{matcher}", dch.DumpCSV)
 	return &http.Server{Addr: listenAddr, Handler: router}
 }
 
