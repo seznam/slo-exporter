@@ -9,7 +9,7 @@ build:
 
 lint:
 	go get github.com/mgechev/revive
-	revive -formatter friendly $(shell find $(src_dir) -name "*.go" | grep -v "^$(src_dir)/vendor/")
+	revive -formatter friendly -config .revive.toml $(shell find $(src_dir) -name "*.go" | grep -v "^$(src_dir)/vendor/")
 
 test:
 	go test -v --race -coverprofile=coverage.out $(shell go list ./... | grep -v /vendor/)

@@ -29,6 +29,7 @@ services:
       - "--follow"
       - "--log-level=info"
       - "--slo-domain=userportal"
+      - "--slo-rules-config=/slo-exporter/examples/slo_rules.yaml"
       - "--regexp-classification-file=/slo-exporter/examples/userportal.csv"
       - "/tmp/szn-logy/access_log"
     volumes:

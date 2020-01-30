@@ -1,0 +1,9 @@
+rules:
+  - event_type: request
+    matcher:
+        slo_domain: domain
+    failure_criteria:
+      - criterium: requestStatusHigherThan
+        value: 500
+    additional_metadata:
+      slo_type: availability
