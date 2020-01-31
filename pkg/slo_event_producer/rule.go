@@ -9,7 +9,10 @@ import (
 	"strconv"
 )
 
-const failedResultMetadataKey = "failed"
+const (
+	failedResultMetadataKey = "failed"
+	eventKeyMetadataKey     = "event_key"
+)
 
 type eventMetadata map[string]string
 
@@ -75,7 +78,7 @@ type evaluationRule struct {
 func (er *evaluationRule) PossibleMetadataKeys() []string {
 	sloClassification := producer.SloClassification{}
 	resultingMetadata := mergeMetadata(sloClassification.GetMap(), er.additionalMetadata)
-	resultingMetadata = mergeMetadata(resultingMetadata, map[string]string{failedResultMetadataKey: ""})
+	resultingMetadata = mergeMetadata(resultingMetadata, map[string]string{failedResultMetadataKey: "", eventKeyMetadataKey: ""})
 	var keys []string
 	for k := range resultingMetadata {
 		keys = append(keys, k)
@@ -87,6 +90,9 @@ func (er *evaluationRule) markEventResult(failed bool, event *SloEvent) {
 	event.SloMetadata[failedResultMetadataKey] = strconv.FormatBool(failed)
 }
 
+func (er *evaluationRule) setEventKey(event *producer.RequestEvent, newEvent *SloEvent) {
+	newEvent.SloMetadata[eventKeyMetadataKey] = event.GetEventKey()
+}
 
 func (er *evaluationRule) evaluateEvent(event *producer.RequestEvent) (*SloEvent, bool) {
 	eventMetadata := event.GetSloMetadata()
@@ -119,6 +125,7 @@ func (er *evaluationRule) evaluateEvent(event *producer.RequestEvent) (*SloEvent
 
 	newSloEvent := &SloEvent{TimeOccurred: event.GetTimeOccurred(), SloMetadata: finalMetadata}
 	er.markEventResult(failed, newSloEvent)
+	er.setEventKey(event, newSloEvent)
 	log.Debugf("generated SLO event: %v", newSloEvent)
 	return newSloEvent, true
 
