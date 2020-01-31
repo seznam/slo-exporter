@@ -28,11 +28,11 @@ type rulesConfig struct {
 func (rc *rulesConfig) loadFromFile(path string) (*rulesConfig, error) {
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load configuration file: %w", err)
+		return nil, fmt.Errorf("Failed to load configuration file: %w", err)
 	}
 	err = yaml.UnmarshalStrict(yamlFile, rc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshall configuration file: %w", err)
+		return nil, fmt.Errorf("Failed to unmarshall configuration file: %w", err)
 	}
 	return rc, nil
 }

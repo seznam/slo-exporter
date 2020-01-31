@@ -10,6 +10,7 @@ require (
 	github.com/grafana/loki v6.7.8+incompatible
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
+	github.com/mgechev/revive v1.0.1 // indirect
 	github.com/prometheus/client_golang v1.3.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0

@@ -32,7 +32,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []SloEvent{
-				{failed: false, SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "endpoint": ""}},
+				{SloMetadata: map[string]string{"failed": "false", "slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "endpoint": ""}},
 			},
 		},
 		{
@@ -49,7 +49,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []SloEvent{
-				{failed: false, SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "endpoint": ""}},
+				{SloMetadata: map[string]string{"failed": "true", "slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "endpoint": ""}},
 			},
 		},
 	}
@@ -67,7 +67,7 @@ func TestSloEventProducer(t *testing.T) {
 			results = append(results, *event)
 		}
 		if diff := deep.Equal(tc.expectedSloEvents, results); diff != nil {
-			t.Error(diff)
+			t.Errorf("events are different %v, \nexpected: %v\n result: %v\n", diff, tc.expectedSloEvents, results)
 		}
 	}
 }

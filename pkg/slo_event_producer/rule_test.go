@@ -60,19 +60,19 @@ type ruleTestCase struct {
 func TestEvaluateEvent(t *testing.T) {
 	testCases := []ruleTestCase{
 		{
-			rule:           evaluationRule{matcher:eventMetadata{},additionalMetadata:eventMetadata{},failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold:500}}},
+			rule:           evaluationRule{matcher: eventMetadata{}, additionalMetadata: eventMetadata{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
 			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
-			outputSloEvent: &SloEvent{failed: false, SloMetadata: map[string]string{"slo_domain": "domain", "slo_class": "class", "app": "app", "endpoint": ""}},
+			outputSloEvent: &SloEvent{SloMetadata: map[string]string{"failed": "false", "slo_domain": "domain", "slo_class": "class", "app": "app", "endpoint": ""}},
 			ok:             true,
 		},
 		{
-			rule:           evaluationRule{matcher:eventMetadata{},additionalMetadata:eventMetadata{},failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold:500}}},
+			rule:           evaluationRule{matcher: eventMetadata{}, additionalMetadata: eventMetadata{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
 			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: nil},
 			outputSloEvent: nil,
 			ok:             false,
 		},
 		{
-			rule:           evaluationRule{matcher:eventMetadata{"foo": "bar"},additionalMetadata:eventMetadata{},failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold:500}}},
+			rule:           evaluationRule{matcher: eventMetadata{"foo": "bar"}, additionalMetadata: eventMetadata{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
 			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			outputSloEvent: nil,
 			ok:             false,
@@ -85,4 +85,3 @@ func TestEvaluateEvent(t *testing.T) {
 		assert.Equal(t, tc.outputSloEvent, sloEvent)
 	}
 }
-

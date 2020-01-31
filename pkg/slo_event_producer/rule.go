@@ -6,6 +6,7 @@ package slo_event_producer
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"strconv"
 )
 
 type eventMetadata map[string]string
@@ -18,7 +19,6 @@ var (
 		Help:      "Total number of dropped events without classification.",
 	})
 )
-
 
 func init() {
 	prometheus.MustRegister(unclassifiedEventsTotal)
@@ -83,7 +83,7 @@ func (er *evaluationRule) evaluateEvent(event *producer.RequestEvent) (*SloEvent
 			return nil, false
 		}
 	}
-	// Evaluate all criteria and if matches any, mark it asi failed event
+	// Evaluate all criteria and if matches any, mark it as failed.
 	failed := false
 	for _, criterium := range er.failureCriteria {
 		log.Tracef("evaluating criterium %v", criterium)
@@ -92,15 +92,15 @@ func (er *evaluationRule) evaluateEvent(event *producer.RequestEvent) (*SloEvent
 			break
 		}
 	}
-	log.Tracef("event failed: %v", failed)
-	log.Tracef("event metadata: %v", eventMetadata)
 	finalMetadata := map[string]string{}
 	if er.additionalMetadata != nil {
 		finalMetadata = mergeMetadata(er.additionalMetadata, *eventMetadata)
 	} else {
 		finalMetadata = *eventMetadata
 	}
+	// Add label to metadata to indicate result of the event.
+	finalMetadata["failed"] = strconv.FormatBool(failed)
 	log.Tracef("event extended metadata: %v", finalMetadata)
-	return &SloEvent{failed: failed, SloMetadata: finalMetadata}, true
+	return &SloEvent{TimeOccurred: event.GetTimeOccurred(), SloMetadata: finalMetadata}, true
 
 }

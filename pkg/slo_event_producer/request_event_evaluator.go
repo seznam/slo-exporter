@@ -37,6 +37,10 @@ func (re *requestEventEvaluator) AddEvaluationRule(rule *evaluationRule) {
 	re.rules = append(re.rules, rule)
 }
 
+func (re *requestEventEvaluator) addRequestMetadata(event *producer.RequestEvent, sloEvent *SloEvent) {
+	sloEvent.SloMetadata["endpoint"] = event.GetEventKey()
+}
+
 func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan chan<- *SloEvent) {
 	timer := prometheus.NewTimer(evaluationDurationSeconds)
 	defer timer.ObserveDuration()
@@ -46,6 +50,7 @@ func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan 
 		if !matched {
 			continue
 		}
+		re.addRequestMetadata(event, newSloEvent)
 		matchedRulesCount++
 		outChan <- newSloEvent
 	}
