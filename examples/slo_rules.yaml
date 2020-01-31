@@ -6,7 +6,7 @@ rules:
       slo_domain: userportal
     failure_criteria:
       - criterium: requestStatusHigherThan
-        value: 500
+        value: 499
     additional_metadata:
       slo_type: availability
       slo_version: 1

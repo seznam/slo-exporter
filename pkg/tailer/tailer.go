@@ -215,7 +215,7 @@ func parseLine(line string) (*producer.RequestEvent, error) {
 		return nil, fmt.Errorf("Unable to parse time '%s' using the format '%s': %w", lineData["time"], timeLayout, err)
 	}
 
-	requestDuration := lineData["requestDuration"] + "ms"
+	requestDuration := lineData["requestDuration"] + "s"
 	duration, err := time.ParseDuration(requestDuration)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse duration '%s': %w", requestDuration, err)
