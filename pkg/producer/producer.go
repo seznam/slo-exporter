@@ -56,7 +56,6 @@ func (e RequestEvent) GetSloMetadata() *map[string]string {
 		return nil
 	}
 	metadata := e.SloClassification.GetMap()
-	metadata["endpoint"] = e.EventKey
 	return &metadata
 }
 
