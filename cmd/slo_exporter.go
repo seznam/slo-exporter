@@ -13,6 +13,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/prometheus_exporter"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/gorilla/mux"
@@ -116,6 +117,8 @@ func main() {
 		log.Fatalf("failed to load SLO rules config: %v", err)
 	}
 
+	sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys())
+
 	// Pipeline definition
 	nginxEventsChan := make(chan *producer.RequestEvent)
 	nginxTailer.Run(ctx, nginxEventsChan, errChan)
@@ -128,6 +131,8 @@ func main() {
 
 	sloEventsChan := make(chan *slo_event_producer.SloEvent)
 	sloEventProducer.Run(ctx, classifiedEventsChan, sloEventsChan)
+
+	sloEventExporter.Run(ctx, sloEventsChan)
 
 	readiness.Ok()
 	defer log.Info("see ya!")
@@ -151,13 +156,6 @@ func main() {
 		case err := <-errChan:
 			log.Errorf("encountered error: %v", err)
 			gracefulShutdownChan <- struct{}{}
-		// TODO remove this, just for debugging now, reads the last channel and prints it out
-		case event, ok := <-sloEventsChan:
-			log.Infof("processed event: %v", event)
-			if !ok {
-				log.Info("finished classifying all events")
-				gracefulShutdownChan <- struct{}{}
-			}
 		}
 	}
 
