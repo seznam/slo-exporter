@@ -24,7 +24,7 @@ var (
 		"ip":          "34.65.133.58",
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "200",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}
 )
 
@@ -73,56 +73,56 @@ var parseLineTestTable = []parseLineTest{
 		"ip":          "34.65.133.58",
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "200",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, true},
 	// ipv6
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "200",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, true},
 	// invalid time
 	{map[string]string{"time": "32/Nov/2019:25:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "200x",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, false},
 	// invalid request
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
 		"request":     "invalid-request[eof]",
 		"statusCode":  "200x",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, false},
 	// request without protocol
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
 		"request":     "GET /robots.txt",
 		"statusCode":  "301",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, true},
 	// http2.0 proto request
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
 		"request":     "GET /robots.txt HTTP/2.0",
 		"statusCode":  "200",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, true},
 	// zero status code
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "0",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, true},
 	// invalid status code
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":          "2001:718:801:230::1",
 		"request":     "GET /robots.txt HTTP/1.1",
 		"statusCode":  "xxx",
-		"requestTime": "0.123", // in ms, as logged by nginx
+		"requestTime": "0.123", // in s, as logged by nginx
 	}, false},
 }
 
@@ -136,7 +136,7 @@ func TestParseLine(t *testing.T) {
 
 		if test.isLineValid {
 			// line is considered valid, build the expectedEvent struct in order to compare it to the parsed one
-			duration, _ := time.ParseDuration(test.lineContentMapping["requestTime"] + "ms")
+			duration, _ := time.ParseDuration(test.lineContentMapping["requestTime"] + "s")
 			lineTime, _ := time.Parse(timeLayout, test.lineContentMapping["time"])
 			statusCode, _ := strconv.Atoi(test.lineContentMapping["statusCode"])
 			method, requestURI, _, _ := parseRequestLine(test.lineContentMapping["request"])
