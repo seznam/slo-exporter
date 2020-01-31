@@ -5,6 +5,7 @@ package slo_event_producer
 
 import (
 	"github.com/go-test/deep"
+	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"testing"
 	"time"
@@ -70,4 +71,32 @@ func TestSloEventProducer(t *testing.T) {
 			t.Errorf("events are different %v, \nexpected: %v\n result: %v\n", diff, tc.expectedSloEvents, results)
 		}
 	}
+}
+
+func TestSloEventProducer_PossibleMetadataKeys(t *testing.T) {
+	config := rulesConfig{Rules: []ruleOptions{
+		{
+			EventType:              "request",
+			Matcher:                eventMetadata{},
+			FailureCriteriaOptions: []criteriumOptions{},
+			AdditionalMetadata:     eventMetadata{"test1": "foo"},
+		},
+		{
+			EventType:              "request",
+			Matcher:                eventMetadata{},
+			FailureCriteriaOptions: []criteriumOptions{},
+			AdditionalMetadata:     eventMetadata{"test2": "bar"},
+		},
+	},
+	}
+	expectedKeys := []string{"test1", "test2", "failed", "slo_domain", "slo_class", "app"}
+
+	evaluator, err := NewEventEvaluatorFromConfig(&config)
+	if err != nil {
+		t.Error(err)
+	}
+	possibleKeys := evaluator.PossibleMetadataKeys()
+
+	assert.ElementsMatch(t, possibleKeys, expectedKeys)
+
 }

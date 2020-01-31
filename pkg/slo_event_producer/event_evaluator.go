@@ -4,13 +4,14 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 type EventEvaluator interface {
 	Evaluate(event *producer.RequestEvent, outChan chan<- *SloEvent)
 	AddEvaluationRule(*evaluationRule)
+	PossibleMetadataKeys() []string
 }
 
 func NewEventEvaluatorFromConfigFile(path string) (EventEvaluator, error) {

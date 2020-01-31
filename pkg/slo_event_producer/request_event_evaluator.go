@@ -37,8 +37,18 @@ func (re *requestEventEvaluator) AddEvaluationRule(rule *evaluationRule) {
 	re.rules = append(re.rules, rule)
 }
 
-func (re *requestEventEvaluator) addRequestMetadata(event *producer.RequestEvent, sloEvent *SloEvent) {
-	sloEvent.SloMetadata["endpoint"] = event.GetEventKey()
+func (re *requestEventEvaluator) PossibleMetadataKeys() []string {
+	possibleMetadata := map[string]string{}
+	for _, rule := range re.rules {
+		for _, key := range rule.PossibleMetadataKeys() {
+			possibleMetadata[key] = key
+		}
+	}
+	var possibleKeys []string
+	for k := range possibleMetadata {
+		possibleKeys = append(possibleKeys, k)
+	}
+	return possibleKeys
 }
 
 func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan chan<- *SloEvent) {
@@ -50,7 +60,6 @@ func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan 
 		if !matched {
 			continue
 		}
-		re.addRequestMetadata(event, newSloEvent)
 		matchedRulesCount++
 		outChan <- newSloEvent
 	}
