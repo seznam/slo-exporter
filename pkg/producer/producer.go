@@ -59,3 +59,11 @@ func (e RequestEvent) GetSloMetadata() *map[string]string {
 	metadata["endpoint"] = e.EventKey
 	return &metadata
 }
+
+func (e RequestEvent) GetTimeOccurred() time.Time {
+	return e.Time
+}
+
+func (e RequestEvent) GetEventKey() string {
+	return e.EventKey
+}

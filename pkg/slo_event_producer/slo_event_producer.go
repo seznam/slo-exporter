@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"time"
 )
 
 var (
@@ -27,16 +28,19 @@ func init() {
 }
 
 type ClassifiableEvent interface {
+	GetEventKey() string
+	IsClassified() bool
 	GetSloMetadata() *map[string]string
+	GetTimeOccurred() time.Time
 }
 
 type SloEvent struct {
-	failed      bool
-	SloMetadata map[string]string
+	TimeOccurred time.Time
+	SloMetadata  map[string]string
 }
 
 func (se *SloEvent) String() string {
-	return fmt.Sprintf("SloEvent result: %v  identifiers: %v", se.failed, se.SloMetadata)
+	return fmt.Sprintf("SloEvent %v", se.SloMetadata)
 }
 
 func NewSloEventProducer(configPath string) (*SloEventProducer, error) {
