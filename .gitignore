@@ -18,3 +18,4 @@
 
 slo_exporter
 /.env
+.slo_exporter.pos

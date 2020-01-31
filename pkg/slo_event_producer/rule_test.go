@@ -85,3 +85,10 @@ func TestEvaluateEvent(t *testing.T) {
 		assert.Equal(t, tc.outputSloEvent, sloEvent)
 	}
 }
+
+func TestPossibleLabels(t *testing.T) {
+	rule := evaluationRule{matcher: eventMetadata{}, additionalMetadata: eventMetadata{"label": "value"}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}}
+	expectedMetadata := []string{"label", "failed", "slo_domain", "slo_class", "app"}
+	result := rule.PossibleMetadataKeys()
+	assert.ElementsMatch(t, expectedMetadata, result)
+}
