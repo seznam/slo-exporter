@@ -43,11 +43,23 @@ var (
 		},
 		[]string{"reason"},
 	)
+	fileSizeBytes = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "slo_exporter",
+		Subsystem: "tailer",
+		Name:      "file_size_bytes",
+		Help:      "Size of the tailed file in bytes.",
+	})
+	fileOffsetBytes = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "slo_exporter",
+		Subsystem: "tailer",
+		Name:      "file_offset_bytes",
+		Help:      "Current tailing offset within the file in bytes (from the beginning of the file).",
+	})
 )
 
 func init() {
 	log = logrus.WithFields(logrus.Fields{"component": "tailer"})
-	prometheus.MustRegister(linesReadTotal, malformedLinesTotal)
+	prometheus.MustRegister(linesReadTotal, malformedLinesTotal, fileSizeBytes, fileOffsetBytes)
 }
 
 // Tailer is an instance of github.com/hpcloud/tail dedicated to a single file
@@ -138,13 +150,17 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 			case <-ticker.C:
 				if !quitting {
 					// get current offset from tail.TailFile instance
-					t.markOffsetPosition()
+					if err := t.markOffsetPosition(); err != nil {
+						log.Error(err)
+					}
 				}
 			case <-ctx.Done():
 				if !quitting {
 					quitting = true
 					// we need to perform this strictly once, as tail return 0 offset when already stopped
-					t.markOffsetPosition()
+					if err := t.markOffsetPosition(); err != nil {
+						log.Error(err)
+					}
 					go t.tail.Stop()
 				}
 			}
@@ -152,14 +168,25 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 	}()
 }
 
-func (t *Tailer) markOffsetPosition() {
+// marks current file offset and size for the use of:
+// - offset persistence
+// - prometheus metrics
+func (t *Tailer) markOffsetPosition() error {
 	// we may lose a log line due to claimed inaccuracy of Tail.tell (https://godoc.org/github.com/hpcloud/tail#Tail.Tell)
 	offset, err := t.tail.Tell()
 	if err != nil {
-		log.Errorf("Error while getting the current file offset: %w", errors.Unwrap(err))
-		return
+		return fmt.Errorf("could not get the file offset: %w", errors.Unwrap(err))
 	}
+	fileOffsetBytes.Set(float64(offset))
 	t.positions.Put(t.filename, offset)
+
+	fstat, err := os.Stat(t.filename)
+	if err != nil {
+		return fmt.Errorf("unable to get file size: %w", err)
+	}
+	fileSizeBytes.Set(float64(fstat.Size()))
+
+	return nil
 }
 
 // reportErrLine does the necessary reporting in case a wrong line occurs
