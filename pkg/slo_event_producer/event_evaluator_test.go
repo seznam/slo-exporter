@@ -33,7 +33,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []SloEvent{
-				{SloMetadata: map[string]string{"failed": "false", "slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}},
+				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Failed: false},
 			},
 		},
 		{
@@ -50,7 +50,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []SloEvent{
-				{SloMetadata: map[string]string{"failed": "true", "slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}},
+				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Failed: true},
 			},
 		},
 	}
@@ -89,7 +89,7 @@ func TestSloEventProducer_PossibleMetadataKeys(t *testing.T) {
 		},
 	},
 	}
-	expectedKeys := []string{"test1", "test2", "failed", "slo_domain", "slo_class", "app", "event_key"}
+	expectedKeys := []string{"test1", "test2", "slo_domain", "slo_class", "app", "event_key"}
 
 	evaluator, err := NewEventEvaluatorFromConfig(&config)
 	if err != nil {

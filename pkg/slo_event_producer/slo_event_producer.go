@@ -38,6 +38,7 @@ type ClassifiableEvent interface {
 type SloEvent struct {
 	TimeOccurred time.Time
 	SloMetadata  map[string]string
+	Failed       bool
 }
 
 func (se *SloEvent) String() string {
