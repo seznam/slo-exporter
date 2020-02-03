@@ -62,7 +62,7 @@ func TestEvaluateEvent(t *testing.T) {
 		{
 			rule:           evaluationRule{matcher: eventMetadata{}, additionalMetadata: eventMetadata{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
 			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
-			outputSloEvent: &SloEvent{SloMetadata: map[string]string{"failed": "false", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}},
+			outputSloEvent: &SloEvent{SloMetadata: map[string]string{"slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Failed: false},
 			ok:             true,
 		},
 		{
@@ -88,7 +88,7 @@ func TestEvaluateEvent(t *testing.T) {
 
 func TestPossibleLabels(t *testing.T) {
 	rule := evaluationRule{matcher: eventMetadata{}, additionalMetadata: eventMetadata{"label": "value"}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}}
-	expectedMetadata := []string{"label", "failed", "slo_domain", "slo_class", "app", "event_key"}
+	expectedMetadata := []string{"label", "slo_domain", "slo_class", "app", "event_key"}
 	result := rule.PossibleMetadataKeys()
 	assert.ElementsMatch(t, expectedMetadata, result)
 }

@@ -2,15 +2,16 @@ package prometheus_exporter
 
 import (
 	"context"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 )
 
 var (
-	component string
-	log       *logrus.Entry
+	component           string
+	log                 *logrus.Entry
+	sloEventResultLabel = "failed"
+	metricName          = "slo_events_total"
 )
 
 func init() {
@@ -26,11 +27,11 @@ type PrometheusSloEventExporter struct {
 func New(labels []string) *PrometheusSloEventExporter {
 	return &PrometheusSloEventExporter{
 		prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name:        "slo_events_total",
+			Name:        metricName,
 			Help:        "Total number of SLO events exported with it's result and metadata.",
 			ConstLabels: nil,
-		}, labels),
-		labels,
+		}, append(labels, sloEventResultLabel)),
+		append(labels, sloEventResultLabel),
 	}
 }
 
@@ -62,5 +63,16 @@ func normalizeEventMetadata(knownMetadata []string, eventMetadata map[string]str
 }
 
 func (e *PrometheusSloEventExporter) processEvent(event *slo_event_producer.SloEvent) {
-	e.counterVec.With(prometheus.Labels(normalizeEventMetadata(e.knownLabels, event.SloMetadata))).Inc()
+	normalizedMetadata := normalizeEventMetadata(e.knownLabels, event.SloMetadata)
+	if event.Failed {
+		normalizedMetadata[sloEventResultLabel] = "true"
+		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Inc()
+		normalizedMetadata[sloEventResultLabel] = "false"
+		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Add(0)
+	} else {
+		normalizedMetadata[sloEventResultLabel] = "true"
+		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Add(0)
+		normalizedMetadata[sloEventResultLabel] = "false"
+		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Inc()
+	}
 }

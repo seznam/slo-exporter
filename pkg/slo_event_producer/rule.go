@@ -6,12 +6,10 @@ package slo_event_producer
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-	"strconv"
 )
 
 const (
-	failedResultMetadataKey = "failed"
-	eventKeyMetadataKey     = "event_key"
+	eventKeyMetadataKey = "event_key"
 )
 
 type eventMetadata map[string]string
@@ -78,7 +76,7 @@ type evaluationRule struct {
 func (er *evaluationRule) PossibleMetadataKeys() []string {
 	sloClassification := producer.SloClassification{}
 	resultingMetadata := mergeMetadata(sloClassification.GetMap(), er.additionalMetadata)
-	resultingMetadata = mergeMetadata(resultingMetadata, map[string]string{failedResultMetadataKey: "", eventKeyMetadataKey: ""})
+	resultingMetadata = mergeMetadata(resultingMetadata, map[string]string{eventKeyMetadataKey: ""})
 	var keys []string
 	for k := range resultingMetadata {
 		keys = append(keys, k)
@@ -87,7 +85,7 @@ func (er *evaluationRule) PossibleMetadataKeys() []string {
 }
 
 func (er *evaluationRule) markEventResult(failed bool, event *SloEvent) {
-	event.SloMetadata[failedResultMetadataKey] = strconv.FormatBool(failed)
+	event.Failed = failed
 }
 
 func (er *evaluationRule) setEventKey(event *producer.RequestEvent, newEvent *SloEvent) {
