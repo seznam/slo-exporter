@@ -22,7 +22,10 @@ import (
 	logrusAdapter "github.com/go-kit/kit/log/logrus"
 )
 
-const timeLayout string = "02/Jan/2006:15:04:05 -0700"
+const (
+	timeLayout string = "02/Jan/2006:15:04:05 -0700"
+	component  string = "tailer"
+)
 
 var (
 	log             *logrus.Entry
@@ -30,14 +33,14 @@ var (
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "slo_exporter",
-		Subsystem: "tailer",
+		Subsystem: component,
 		Name:      "lines_read_total",
 		Help:      "Total number of lines tailed from the file.",
 	})
 	malformedLinesTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "slo_exporter",
-			Subsystem: "tailer",
+			Subsystem: component,
 			Name:      "malformed_lines_total",
 			Help:      "Total number of invalid lines that failed to parse.",
 		},
@@ -45,20 +48,20 @@ var (
 	)
 	fileSizeBytes = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "slo_exporter",
-		Subsystem: "tailer",
+		Subsystem: component,
 		Name:      "file_size_bytes",
 		Help:      "Size of the tailed file in bytes.",
 	})
 	fileOffsetBytes = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "slo_exporter",
-		Subsystem: "tailer",
+		Subsystem: component,
 		Name:      "file_offset_bytes",
 		Help:      "Current tailing offset within the file in bytes (from the beginning of the file).",
 	})
 )
 
 func init() {
-	log = logrus.WithFields(logrus.Fields{"component": "tailer"})
+	log = logrus.WithFields(logrus.Fields{"component": component})
 	prometheus.MustRegister(linesReadTotal, malformedLinesTotal, fileSizeBytes, fileOffsetBytes)
 }
 
