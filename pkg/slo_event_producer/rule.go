@@ -85,7 +85,11 @@ func (er *evaluationRule) PossibleMetadataKeys() []string {
 }
 
 func (er *evaluationRule) markEventResult(failed bool, event *SloEvent) {
-	event.Failed = failed
+	if failed {
+		event.Result = SloEventResultFail
+	} else {
+		event.Result = SloEventResultSuccess
+	}
 }
 
 func (er *evaluationRule) setEventKey(event *producer.RequestEvent, newEvent *SloEvent) {

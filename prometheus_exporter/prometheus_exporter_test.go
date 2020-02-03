@@ -64,22 +64,22 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 			event: &slo_event_producer.SloEvent{
 				TimeOccurred: time.Time{},
 				SloMetadata:  map[string]string{"a": "a1", "b": "b1"},
-				Failed:       false,
+				Result:       slo_event_producer.SloEventResultFail,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%s{ a = "a1" , b = "b1", failed="false"} 1
-				%s{ a = "a1" , b = "b1", failed="true"} 0
+				%s{ a = "a1" , b = "b1", result="fail"} 1
+				%s{ a = "a1" , b = "b1", result="success"} 0
 				`, metricName, metricName),
 		},
 		{
 			event: &slo_event_producer.SloEvent{
 				TimeOccurred: time.Time{},
 				SloMetadata:  map[string]string{"a": "a1", "b": "b1"},
-				Failed:       true,
+				Result:       slo_event_producer.SloEventResultSuccess,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%s{ a = "a1" , b = "b1", failed="false"} 0
-				%s{ a = "a1" , b = "b1", failed="true"} 1
+				%s{ a = "a1" , b = "b1", result="success"} 1
+				%s{ a = "a1" , b = "b1", result="fail"} 0
 				`, metricName, metricName),
 		},
 	}
