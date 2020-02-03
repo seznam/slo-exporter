@@ -13,7 +13,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/prometheus_exporter"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/gorilla/mux"
