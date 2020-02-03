@@ -33,7 +33,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []SloEvent{
-				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Failed: false},
+				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Result: SloEventResultSuccess},
 			},
 		},
 		{
@@ -50,7 +50,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []SloEvent{
-				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Failed: true},
+				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Result: SloEventResultFail},
 			},
 		},
 	}

@@ -10,7 +10,7 @@ import (
 var (
 	component           string
 	log                 *logrus.Entry
-	sloEventResultLabel = "failed"
+	sloEventResultLabel = "result"
 	metricName          = "slo_events_total"
 )
 
@@ -64,15 +64,12 @@ func normalizeEventMetadata(knownMetadata []string, eventMetadata map[string]str
 
 func (e *PrometheusSloEventExporter) processEvent(event *slo_event_producer.SloEvent) {
 	normalizedMetadata := normalizeEventMetadata(e.knownLabels, event.SloMetadata)
-	if event.Failed {
-		normalizedMetadata[sloEventResultLabel] = "true"
-		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Inc()
-		normalizedMetadata[sloEventResultLabel] = "false"
+
+	// Make sure that for given eventMetadata, all possible cases are properly initialized
+	for _, possibleResult := range slo_event_producer.EventResults {
+		normalizedMetadata[sloEventResultLabel] = string(possibleResult)
 		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Add(0)
-	} else {
-		normalizedMetadata[sloEventResultLabel] = "true"
-		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Add(0)
-		normalizedMetadata[sloEventResultLabel] = "false"
-		e.counterVec.With(prometheus.Labels(normalizedMetadata)).Inc()
 	}
+	normalizedMetadata[sloEventResultLabel] = string(event.Result)
+	e.counterVec.With(prometheus.Labels(normalizedMetadata)).Inc()
 }

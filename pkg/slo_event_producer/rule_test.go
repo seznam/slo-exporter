@@ -62,7 +62,7 @@ func TestEvaluateEvent(t *testing.T) {
 		{
 			rule:           evaluationRule{matcher: eventMetadata{}, additionalMetadata: eventMetadata{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
 			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
-			outputSloEvent: &SloEvent{SloMetadata: map[string]string{"slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Failed: false},
+			outputSloEvent: &SloEvent{SloMetadata: map[string]string{"slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Result: SloEventResultSuccess},
 			ok:             true,
 		},
 		{

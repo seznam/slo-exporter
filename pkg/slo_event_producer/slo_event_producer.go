@@ -13,6 +13,11 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
+const (
+	SloEventResultSuccess SloEventResult = "success"
+	SloEventResultFail    SloEventResult = "fail"
+)
+
 var (
 	log                     *logrus.Entry
 	generatedSloEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -21,6 +26,7 @@ var (
 		Name:      "generated_slo_events_total",
 		Help:      "Total number of generated SLO events per type.",
 	}, []string{"type"})
+	EventResults = [...]SloEventResult{SloEventResultSuccess, SloEventResultFail}
 )
 
 func init() {
@@ -35,10 +41,12 @@ type ClassifiableEvent interface {
 	GetTimeOccurred() time.Time
 }
 
+type SloEventResult string
+
 type SloEvent struct {
 	TimeOccurred time.Time
 	SloMetadata  map[string]string
-	Failed       bool
+	Result       SloEventResult
 }
 
 func (se *SloEvent) String() string {
