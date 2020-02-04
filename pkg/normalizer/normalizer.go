@@ -15,9 +15,10 @@ const pathItemsSeparator = "/"
 
 var log *logrus.Entry
 
-// Should replace IDs in the URL path such as `/user/1/info` but not to replace for example `/api/v1/`
-var followingDigitsRegex = regexp.MustCompile("[0-9]+")
-var onlyDigitsRegex = regexp.MustCompile("^[0-9]+$")
+var (
+	followingDigitsRegex = regexp.MustCompile("[0-9]+")
+	onlyDigitsRegex      = regexp.MustCompile("^[0-9]+$")
+)
 
 func init() {
 	log = logrus.WithField("component", "normalizer")
@@ -29,7 +30,6 @@ func NewForRequestEvent() *requestNormalizer {
 }
 
 type requestNormalizer struct{}
-
 
 // Normalizes the URL path, applies those rules:
 //  1. If path is empty returns `/`.
@@ -43,12 +43,12 @@ func (rn *requestNormalizer) normalizePath(rawPath string) string {
 	pathItems := strings.Split(path.Clean(rawPath), pathItemsSeparator)
 	itemsCount := len(pathItems)
 	for i, item := range pathItems {
-		// In last part of the rawPath replace all numbers for zero
+		// replace all numbers with zero in the last part of the rawPath
 		if i+1 == itemsCount {
 			pathItems[i] = followingDigitsRegex.ReplaceAllString(item, numberPlaceholder)
 			continue
 		}
-		// Replace all only number items in the rawPath with placeholder
+		// if a single part of a path contains only numbers, replace it with a placeholder
 		pathItems[i] = onlyDigitsRegex.ReplaceAllString(item, numberPlaceholder)
 	}
 	return strings.Join(pathItems, pathItemsSeparator)
@@ -58,6 +58,7 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent)
 	var eventIdentifiers = []string{event.Method}
 	eventIdentifiers = append(eventIdentifiers, rn.normalizePath(event.URL.Path))
 	// Append all values of 'operationName' parameter.
+	// TODO possibly have this in a configuration
 	operationNames, ok := event.URL.Query()["operationName"]
 	if ok {
 		for _, operation := range operationNames {

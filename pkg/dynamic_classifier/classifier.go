@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -119,7 +120,7 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 	)
 	if event.IsClassified() {
 		if err := dc.exactMatches.set(event.EventKey, classification); err != nil {
-			log.Errorf("failed to set the exact matcher: %v", err)
+			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 		return true, nil
 	}
@@ -132,15 +133,13 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 			log.Errorf("error while classifying event: %v", err)
 			classificationErrors = multierror.Append(classificationErrors, err)
 		}
-		if classification == nil {
-			continue
+		if classification != nil {
+			classifiedBy = classifier.getType()
+			break
 		}
-		classifiedBy = classifier.getType()
-		break
 	}
 
 	if classification == nil {
-		log.Warnf("unable to classify event %s", event.EventKey)
 		eventsTotal.WithLabelValues("unclassified", string(classifiedBy)).Inc()
 		return false, classificationErrors
 	}
@@ -152,7 +151,7 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
 		if err := dc.exactMatches.set(event.EventKey, classification); err != nil {
-			log.Errorf("failed to set the exact matcher: %v", err)
+			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 	}
 	return true, nil

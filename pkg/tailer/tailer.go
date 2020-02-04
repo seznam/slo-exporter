@@ -22,7 +22,10 @@ import (
 	logrusAdapter "github.com/go-kit/kit/log/logrus"
 )
 
-const timeLayout string = "02/Jan/2006:15:04:05 -0700"
+const (
+	timeLayout string = "02/Jan/2006:15:04:05 -0700"
+	component  string = "tailer"
+)
 
 var (
 	log             *logrus.Entry
@@ -30,14 +33,14 @@ var (
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "slo_exporter",
-		Subsystem: "tailer",
+		Subsystem: component,
 		Name:      "lines_read_total",
 		Help:      "Total number of lines tailed from the file.",
 	})
 	malformedLinesTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "slo_exporter",
-			Subsystem: "tailer",
+			Subsystem: component,
 			Name:      "malformed_lines_total",
 			Help:      "Total number of invalid lines that failed to parse.",
 		},
@@ -45,20 +48,20 @@ var (
 	)
 	fileSizeBytes = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "slo_exporter",
-		Subsystem: "tailer",
+		Subsystem: component,
 		Name:      "file_size_bytes",
 		Help:      "Size of the tailed file in bytes.",
 	})
 	fileOffsetBytes = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "slo_exporter",
-		Subsystem: "tailer",
+		Subsystem: component,
 		Name:      "file_offset_bytes",
 		Help:      "Current tailing offset within the file in bytes (from the beginning of the file).",
 	})
 )
 
 func init() {
-	log = logrus.WithFields(logrus.Fields{"component": "tailer"})
+	log = logrus.WithFields(logrus.Fields{"component": component})
 	prometheus.MustRegister(linesReadTotal, malformedLinesTotal, fileSizeBytes, fileOffsetBytes)
 }
 
@@ -80,7 +83,7 @@ func New(filename string, follow bool, reopen bool, persistPositionFile string, 
 	)
 	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{persistPositionInterval, persistPositionFile})
 	if err != nil {
-		return nil, fmt.Errorf("Error while initializing file position persister: %v", err)
+		return nil, fmt.Errorf("could not initialize file position persister: %v", err)
 	}
 	// check that loaded position for a file is valid
 	fstat, err := os.Stat(filename)
@@ -175,7 +178,12 @@ func (t *Tailer) markOffsetPosition() error {
 	// we may lose a log line due to claimed inaccuracy of Tail.tell (https://godoc.org/github.com/hpcloud/tail#Tail.Tell)
 	offset, err := t.tail.Tell()
 	if err != nil {
-		return fmt.Errorf("could not get the file offset: %w", errors.Unwrap(err))
+		if errors.Unwrap(err) != nil {
+			// include more details about the file inaccessibility, if possible
+			return fmt.Errorf("could not get the file offset: %w", errors.Unwrap(err))
+		} else {
+			return fmt.Errorf("could not get the file offset: %w", err)
+		}
 	}
 	fileOffsetBytes.Set(float64(offset))
 	t.positions.Put(t.filename, offset)
@@ -192,7 +200,7 @@ func (t *Tailer) markOffsetPosition() error {
 // reportErrLine does the necessary reporting in case a wrong line occurs
 func reportErrLine(line string, err error) {
 	// TODO increment metrics
-	log.Errorf("Error (%v) while parsing line: %s", err, line)
+	log.Errorf("err (%w) while parsing the line: %s", err, line)
 }
 
 // InvalidRequestError is error representing invalid RequestEvent
@@ -229,7 +237,7 @@ func parseLine(line string) (*producer.RequestEvent, error) {
 
 	match := lineParseRegexp.FindStringSubmatch(line)
 	if len(match) != len(lineParseRegexp.SubexpNames()) {
-		return nil, fmt.Errorf("Unable to parse line")
+		return nil, fmt.Errorf("unable to parse line")
 	}
 	for i, name := range lineParseRegexp.SubexpNames() {
 		if i != 0 && name != "" {
@@ -239,28 +247,28 @@ func parseLine(line string) (*producer.RequestEvent, error) {
 
 	t, err := time.Parse(timeLayout, lineData["time"])
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse time '%s' using the format '%s': %w", lineData["time"], timeLayout, err)
+		return nil, fmt.Errorf("unable to parse time '%s' using the format '%s': %w", lineData["time"], timeLayout, err)
 	}
 
 	requestDuration := lineData["requestDuration"] + "s"
 	duration, err := time.ParseDuration(requestDuration)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse duration '%s': %w", requestDuration, err)
+		return nil, fmt.Errorf("unable to parse duration '%s': %w", requestDuration, err)
 	}
 
 	statusCode, err := strconv.Atoi(lineData["statusCode"])
 	if err != nil {
-		return nil, fmt.Errorf("Invalid HTTP status code '%d': %w", statusCode, err)
+		return nil, fmt.Errorf("invalid HTTP status code '%d': %w", statusCode, err)
 	}
 
 	method, requestURI, _, err := parseRequestLine(lineData["request"])
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse request line '%s': %w", lineData["request"], err)
+		return nil, fmt.Errorf("unable to parse request line '%s': %w", lineData["request"], err)
 	}
 
 	url, err := url.Parse(requestURI)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse url '%s': %w", requestURI, err)
+		return nil, fmt.Errorf("unable to parse url '%s': %w", requestURI, err)
 	}
 
 	return &producer.RequestEvent{
