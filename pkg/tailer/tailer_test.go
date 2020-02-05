@@ -269,3 +269,15 @@ func TestOffsetPersistence(t *testing.T) {
 		}
 	}
 }
+
+func TestGetDefaultPositionsFilePath(t *testing.T) {
+	testData := map[string]string{
+		"/tmp/access_log":  "/tmp/.access_log.pos",
+		"./access_log":     ".access_log.pos",
+		"./access_log.log": ".access_log.log.pos",
+		".access_log":      ".access_log.pos",
+	}
+	for logFile, posFile := range testData {
+		assert.Equal(t, posFile, getDefaultPositionsFilePath(logFile))
+	}
+}

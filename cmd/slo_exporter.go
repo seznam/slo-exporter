@@ -52,13 +52,14 @@ func main() {
 	webServerListenAddr := kingpin.Flag("listen-address", "Listen address to listen on for web server.").Short('l').Default("0.0.0.0:8080").String()
 	follow := kingpin.Flag("follow", "Follow the given log file.").Short('f').Bool()
 	gracefulShutdownTimeout := kingpin.Flag("graceful-shutdown-timeout", "How long to wait for graceful shutdown.").Default("20s").Short('g').Duration()
-	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().String()
 	sloDomain := kingpin.Flag("slo-domain", "slo domain name").Required().String()
 	regexpClassificationFiles := kingpin.Flag("regexp-classification-file", "Path to regexp classification file.").ExistingFiles()
 	exactClassificationFiles := kingpin.Flag("exact-classification-file", "Path to exact classification file.").ExistingFiles()
 	sloRulesFile := kingpin.Flag("slo-rules-config", "Path to config with SLO rules for evaluation.").Required().ExistingFile()
-	persistPositionFile := kingpin.Arg("persist-position-file", "File to be used to persist tailer position").Default("./.slo_exporter.pos").String()
-	persistPositionInterval := kingpin.Arg("persist-position-interval", "Interval for persisting the file offset persistence").Default("2s").Duration()
+	persistPositionFile := kingpin.Flag("persist-position-file", "File to be used to persist tailer position. Defaults to <logFile>.pos arg if not set.").Default("").String()
+	persistPositionInterval := kingpin.Flag("persist-position-interval", "Interval for persisting the file offset persistence").Default("2s").Duration()
+
+	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().String()
 
 	kingpin.Parse()
 

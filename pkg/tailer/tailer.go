@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -73,6 +74,17 @@ type Tailer struct {
 	persistPositionInterval time.Duration
 }
 
+// getDefaultPositionsFilePath derives positions file path for given tailed filename
+func getDefaultPositionsFilePath(filename string) string {
+	dir, file := filepath.Split(filename)
+	if file[0:1] != "." {
+		file = fmt.Sprintf(".%s.pos", file)
+	} else {
+		file = fmt.Sprintf("%s.pos", file)
+	}
+	return filepath.Join(dir, file)
+}
+
 // New returns an instance of Tailer
 func New(filename string, follow bool, reopen bool, persistPositionFile string, persistPositionInterval time.Duration) (*Tailer, error) {
 
@@ -81,6 +93,10 @@ func New(filename string, follow bool, reopen bool, persistPositionFile string, 
 		err    error
 		pos    *positions.Positions
 	)
+
+	if persistPositionFile == "" {
+		persistPositionFile = getDefaultPositionsFilePath(filename)
+	}
 	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{persistPositionInterval, persistPositionFile})
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize file position persister: %v", err)
