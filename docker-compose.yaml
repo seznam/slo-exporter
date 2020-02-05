@@ -31,6 +31,8 @@ services:
       - "--slo-domain=userportal"
       - "--slo-rules-config=/slo-exporter/examples/slo_rules.yaml"
       - "--regexp-classification-file=/slo-exporter/examples/userportal.csv"
+      - "--drop-with-status=301"
+      - "--drop-with-status=404"
       - "/tmp/szn-logy/access_log"
     volumes:
       - ./:/slo-exporter

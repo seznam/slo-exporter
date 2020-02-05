@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 	"net/http"
 	"os"
 	"os/signal"
@@ -58,6 +59,8 @@ func main() {
 	sloRulesFile := kingpin.Flag("slo-rules-config", "Path to config with SLO rules for evaluation.").Required().ExistingFile()
 	persistPositionFile := kingpin.Flag("persist-position-file", "File to be used to persist tailer position. Defaults to <logFile>.pos arg if not set.").Default("").String()
 	persistPositionInterval := kingpin.Flag("persist-position-interval", "Interval for persisting the file offset persistence").Default("2s").Duration()
+	dropWithStatuses := kingpin.Flag("drop-with-status", "Drop request events with this HTTP status code").Ints()
+	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (case insensitive). eg --drop-with-header key=value").StringMap()
 
 	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().String()
 
@@ -104,6 +107,8 @@ func main() {
 	// Add the EntityKey to all RequestEvents
 	requestNormalizer := normalizer.NewForRequestEvent()
 
+	eventFilter := event_filter.New(*dropWithStatuses, *dropWithHeaders)
+
 	// load regexp matches
 	if err := dynamicClassifier.LoadExactMatchesFromMultipleCSV(*exactClassificationFiles); err != nil {
 		log.Fatalf("Failed to load classification: %v", err)
@@ -127,8 +132,11 @@ func main() {
 	normalizedEventsChan := make(chan *producer.RequestEvent)
 	requestNormalizer.Run(ctx, nginxEventsChan, normalizedEventsChan)
 
+	filteredEventsChan := make(chan *producer.RequestEvent)
+	eventFilter.Run(normalizedEventsChan, filteredEventsChan)
+
 	classifiedEventsChan := make(chan *producer.RequestEvent)
-	dynamicClassifier.Run(ctx, normalizedEventsChan, classifiedEventsChan)
+	dynamicClassifier.Run(ctx, filteredEventsChan, classifiedEventsChan)
 
 	sloEventsChan := make(chan *slo_event_producer.SloEvent)
 	sloEventProducer.Run(ctx, classifiedEventsChan, sloEventsChan)
