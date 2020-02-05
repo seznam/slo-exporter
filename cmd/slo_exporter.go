@@ -141,7 +141,7 @@ func main() {
 		log.Fatalf("failed to load SLO rules config: %v", err)
 	}
 
-	sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys())
+	sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults)
 
 	timescaleExporter, err := timescale_exporter.NewFromFile(*timescaleConfig)
 	if err != nil {
