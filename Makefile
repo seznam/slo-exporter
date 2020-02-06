@@ -17,8 +17,10 @@ test:
 test-and-coverage: test
 	go tool cover -func coverage.out
 
-compose: build
+compose: build clean-compose
 	$(DOCKER_COMPOSE) up --force-recreate --renew-anon-volumes --abort-on-container-exit --remove-orphans --exit-code-from slo-exporter
+
+clean-compose:
 	$(DOCKER_COMPOSE) rm --force --stop -v
 
 .PHONY: build lint test test-and-coverage compose

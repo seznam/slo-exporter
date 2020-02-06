@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/mux"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 	"net/http"
 	"os"
@@ -11,17 +12,16 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
-
-	"github.com/gorilla/mux"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/timescale_exporter"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 func setupLogging(logLevel string) error {
@@ -48,6 +48,27 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 	return &http.Server{Addr: listenAddr, Handler: router}
 }
 
+// TODO FUSAKLA temporary workaround to multiplex one event to multiple channels, we should think if we can do better
+func multiplexToChannels(srcChannel chan *slo_event_producer.SloEvent, dstChannels []chan *slo_event_producer.SloEvent) {
+	for e := range srcChannel {
+		for _, ch := range dstChannels {
+			// Needs copy because we are not concurrent safe (probably accessing metadata).
+			newE := slo_event_producer.SloEvent{
+				TimeOccurred: e.TimeOccurred,
+				SloMetadata:  map[string]string{},
+				Result:       e.Result,
+			}
+			for k, v := range e.SloMetadata {
+				newE.SloMetadata[k] = v
+			}
+			ch <- &newE
+		}
+	}
+	for _, ch := range dstChannels {
+		close(ch)
+	}
+}
+
 func main() {
 	logLevel := kingpin.Flag("log-level", "Set log level").Default("info").String()
 	webServerListenAddr := kingpin.Flag("listen-address", "Listen address to listen on for web server.").Short('l').Default("0.0.0.0:8080").String()
@@ -59,6 +80,7 @@ func main() {
 	sloRulesFile := kingpin.Flag("slo-rules-config", "Path to config with SLO rules for evaluation.").Required().ExistingFile()
 	persistPositionFile := kingpin.Flag("persist-position-file", "File to be used to persist tailer position. Defaults to <logFile>.pos arg if not set.").Default("").String()
 	persistPositionInterval := kingpin.Flag("persist-position-interval", "Interval for persisting the file offset persistence").Default("2s").Duration()
+	timescaleConfig := kingpin.Flag("timescale-config", "Path to config with TimescaleDB configuration.").ExistingFile()
 	dropWithStatuses := kingpin.Flag("drop-with-status", "Drop request events with this HTTP status code").Ints()
 	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (both case insensitive). eg --drop-with-header key=value").StringMap()
 
@@ -79,10 +101,6 @@ func main() {
 	// shared error channel
 	errChan := make(chan error, 10)
 	gracefulShutdownChan := make(chan struct{}, 10)
-
-	// listen for OS signals
-	sigChan := make(chan os.Signal, 3)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	// Classify event by dynamic classifier
 	dynamicClassifier := dynamic_classifier.NewDynamicClassifier(*sloDomain)
@@ -125,6 +143,15 @@ func main() {
 
 	sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys())
 
+	timescaleExporter, err := timescale_exporter.NewFromFile(*timescaleConfig)
+	if err != nil {
+		log.Fatalf("failed to initialize timescale exporter: %v", err)
+	}
+
+	// listen for OS signals
+	sigChan := make(chan os.Signal, 3)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
 	// Pipeline definition
 	nginxEventsChan := make(chan *producer.RequestEvent)
 	nginxTailer.Run(ctx, nginxEventsChan, errChan)
@@ -141,7 +168,16 @@ func main() {
 	sloEventsChan := make(chan *slo_event_producer.SloEvent)
 	sloEventProducer.Run(ctx, classifiedEventsChan, sloEventsChan)
 
-	sloEventExporter.Run(ctx, sloEventsChan)
+	prometheusSloEventsChan := make(chan *slo_event_producer.SloEvent)
+	timescaleSloEventsChan := make(chan *slo_event_producer.SloEvent)
+
+	exporterChannels := []chan *slo_event_producer.SloEvent{prometheusSloEventsChan, timescaleSloEventsChan}
+
+	// Replicate events to multiple channels
+	go multiplexToChannels(sloEventsChan, exporterChannels)
+
+	sloEventExporter.Run(ctx, prometheusSloEventsChan)
+	timescaleExporter.Run(timescaleSloEventsChan)
 
 	readiness.Ok()
 	defer log.Info("see ya!")

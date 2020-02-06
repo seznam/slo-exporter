@@ -17,13 +17,13 @@ services:
     volumes:
       - ./scripts:/scripts
       - log-volume:/tmp/szn-logy
-    depends_on:
-      - slo-exporter
 
   slo-exporter:
     image: docker.dev.dszn.cz/generic/ci-scripts:latest
     ports:
       - 8080:8080
+    depends_on:
+      - tail
     entrypoint: ["/slo-exporter/slo_exporter"]
     command:
       - "--follow"
@@ -33,6 +33,7 @@ services:
       - "--regexp-classification-file=/slo-exporter/examples/userportal.csv"
       - "--drop-with-status=301"
       - "--drop-with-status=404"
+      - "--timescale-config=/slo-exporter/examples/timescale.yaml"
       - "/tmp/szn-logy/access_log"
     volumes:
       - ./:/slo-exporter
@@ -44,18 +45,59 @@ services:
       - 9090:9090
     environment:
       PROMETHEUS_CONFIG: |
-        {"scrape_configs":[{
+        {
+          "scrape_configs":[{
             "job_name": "slo-exporter",
             "scrape_interval": "2s",
             "static_configs":[
               {"targets":["slo-exporter:8080"]},
               ],
-            }]
+            }],
+          "remote_read": [
+                 {"url": "http://prometheus_postgresql_adapter:9201/read"}
+            ]
         }
     entrypoint: ["sh"]
+#    volumes:
+#      - ./prometheus/data:/prometheus/data
     command:
       - "-c"
       - 'echo $$PROMETHEUS_CONFIG > /etc/prometheus/prometheus.yml; prometheus --config.file=/etc/prometheus/prometheus.yml'
+
+  postgresql:
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    image: timescale/pg_prometheus:latest-pg11
+    command:
+      - "-csynchronous_commit=off"
+      - "-ccommit_delay=2000"
+      - "-clog_checkpoints=on"
+    ports:
+      - 5432:5432/tcp
+    volumes:
+      - ./:/slo-exporter
+#      - ./postgresql/data:/var/lib/postgresql/data
+
+  prometheus_postgresql_adapter:
+    image: timescale/prometheus-postgresql-adapter:latest
+    depends_on:
+    - postgresql
+    - prometheus
+    entrypoint:
+      - "sh"
+    command:
+      - "-c"
+      - "sleep 30; /prometheus-postgresql-adapter"
+    environment:
+      TS_PROM_LOG_LEVEL: info
+      TS_PROM_PG_DB_CONNECT_RETRIES: 1000000
+      TS_PROM_PG_HOST: postgresql
+      TS_PROM_PG_PASSWORD: postgres
+      TS_PROM_PG_SCHEMA: postgres
+      TS_PROM_WEB_TELEMETRY_PATH: /metrics-text
+    ports:
+    - 9201:9201/tcp
 
 
 volumes:
