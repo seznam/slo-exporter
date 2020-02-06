@@ -15,8 +15,8 @@ type SloClassification struct {
 func (sc *SloClassification) GetMap() map[string]string {
 	return map[string]string{
 		"slo_domain": sc.Domain,
-		"slo_class": sc.Class,
-		"app": sc.App,
+		"slo_class":  sc.Class,
+		"app":        sc.App,
 	}
 }
 
@@ -28,7 +28,7 @@ type RequestEvent struct {
 	Duration          time.Duration
 	URL               *url.URL
 	EventKey          string
-	Headers           map[string]string
+	Headers           map[string]string // name:value, header name is in lower-case
 	Method            string
 	SloEndpoint       string
 	SloClassification *SloClassification
