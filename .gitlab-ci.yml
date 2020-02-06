@@ -49,6 +49,8 @@ pages:
   stage: pages
   dependencies:
     - test
+  only:
+    - master
   script: |
     mkdir public
     go tool cover -html coverage.out -o public/index.html
