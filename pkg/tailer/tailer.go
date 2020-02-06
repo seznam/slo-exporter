@@ -73,6 +73,11 @@ type Tailer struct {
 	persistPositionInterval time.Duration
 }
 
+// getDefaultPositionsFilePath derives positions file path for given tailed filename
+func getDefaultPositionsFilePath(filename string) string {
+	return filename + ".pos"
+}
+
 // New returns an instance of Tailer
 func New(filename string, follow bool, reopen bool, persistPositionFile string, persistPositionInterval time.Duration) (*Tailer, error) {
 
@@ -81,6 +86,10 @@ func New(filename string, follow bool, reopen bool, persistPositionFile string, 
 		err    error
 		pos    *positions.Positions
 	)
+
+	if persistPositionFile == "" {
+		persistPositionFile = getDefaultPositionsFilePath(filename)
+	}
 	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{persistPositionInterval, persistPositionFile})
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize file position persister: %v", err)
