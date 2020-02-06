@@ -84,8 +84,8 @@ func main() {
 	dropWithStatuses := kingpin.Flag("drop-with-status", "Drop request events with this HTTP status code").Ints()
 	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (both case insensitive). eg --drop-with-header key=value").StringMap()
 
-	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().String()
-
+	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().ExistingFile()
+	
 	kingpin.Parse()
 
 	if err := setupLogging(*logLevel); err != nil {
