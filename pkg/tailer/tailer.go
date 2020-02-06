@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -76,13 +75,7 @@ type Tailer struct {
 
 // getDefaultPositionsFilePath derives positions file path for given tailed filename
 func getDefaultPositionsFilePath(filename string) string {
-	dir, file := filepath.Split(filename)
-	if file[0:1] != "." {
-		file = fmt.Sprintf(".%s.pos", file)
-	} else {
-		file = fmt.Sprintf("%s.pos", file)
-	}
-	return filepath.Join(dir, file)
+	return filename + ".pos"
 }
 
 // New returns an instance of Tailer
