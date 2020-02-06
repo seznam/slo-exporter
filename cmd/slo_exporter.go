@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gorilla/mux"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/gorilla/mux"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -176,7 +177,7 @@ func main() {
 	// Replicate events to multiple channels
 	go multiplexToChannels(sloEventsChan, exporterChannels)
 
-	sloEventExporter.Run(ctx, prometheusSloEventsChan)
+	sloEventExporter.Run(prometheusSloEventsChan)
 	timescaleExporter.Run(timescaleSloEventsChan)
 
 	readiness.Ok()

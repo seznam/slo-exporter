@@ -92,3 +92,14 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 		}
 	}
 }
+
+func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
+	exporter := New([]string{}, slo_event_producer.EventResults)
+	testCases := map[slo_event_producer.SloEventResult]bool{
+		slo_event_producer.EventResults[0]:                     true,
+		slo_event_producer.SloEventResult("nonexistingresult"): false,
+	}
+	for eventResult, valid := range testCases {
+		assert.Equal(t, valid, exporter.isValidResult(eventResult))
+	}
+}

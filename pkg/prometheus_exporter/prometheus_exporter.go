@@ -1,7 +1,6 @@
 package prometheus_exporter
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
@@ -59,7 +58,7 @@ func New(labels []string, results []slo_event_producer.SloEventResult) *Promethe
 	}
 }
 
-func (e *PrometheusSloEventExporter) Run(ctx context.Context, input <-chan *slo_event_producer.SloEvent) {
+func (e *PrometheusSloEventExporter) Run(input <-chan *slo_event_producer.SloEvent) {
 	prometheus.MustRegister(e.eventsCount)
 
 	go func() {
@@ -95,23 +94,37 @@ func normalizeEventMetadata(knownMetadata []string, eventMetadata map[string]str
 	return normalized
 }
 
+func (e *PrometheusSloEventExporter) isValidResult(result slo_event_producer.SloEventResult) bool {
+	for _, validEventResult := range e.validEventResults {
+		if validEventResult == result {
+			return true
+		}
+	}
+	return false
+}
+
+// for given event metadata, initialize exposed metric for all possible result label values
+func (e *PrometheusSloEventExporter) initializeMetricForGivenMetadata(metadata map[string]string) {
+	// do not edit the original metadata map
+	metadataCopy := map[string]string{}
+	for k, v := range metadata {
+		metadataCopy[k] = v
+	}
+	for _, result := range e.validEventResults {
+		metadataCopy[sloEventResultLabel] = string(result)
+		e.eventsCount.With(prometheus.Labels(metadataCopy)).Add(0)
+	}
+}
+
 func (e *PrometheusSloEventExporter) processEvent(event *slo_event_producer.SloEvent) error {
 	normalizedMetadata := normalizeEventMetadata(e.knownLabels, event.SloMetadata)
 
-	// Make sure that for given eventMetadata, all possible cases are properly initialized
-	// and check that event.Result is one of the expected ones
-	var resultIsValid bool
-	for _, validEventResult := range e.validEventResults {
-		normalizedMetadata[sloEventResultLabel] = string(validEventResult)
-		e.eventsCount.With(prometheus.Labels(normalizedMetadata)).Add(0)
-		if event.Result == validEventResult {
-			resultIsValid = true
-		}
-	}
-
-	if !resultIsValid {
+	if !e.isValidResult(event.Result) {
 		return &InvalidSloEventResult{string(event.Result), e.validEventResults}
 	}
+	e.initializeMetricForGivenMetadata(normalizedMetadata)
+
+	// add result to metadata
 	normalizedMetadata[sloEventResultLabel] = string(event.Result)
 	e.eventsCount.With(prometheus.Labels(normalizedMetadata)).Inc()
 	return nil
