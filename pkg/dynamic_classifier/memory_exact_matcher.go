@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
@@ -12,9 +13,9 @@ import (
 const exactMatcherType = "exact"
 
 type memoryExactMatcher struct {
-	exactMatches map[string]*producer.SloClassification
-
+	exactMatches  map[string]*producer.SloClassification
 	matchersCount prometheus.Counter
+	mtx           sync.RWMutex
 }
 
 // newMemoryExactMatcher returns instance of memoryCache
@@ -22,6 +23,7 @@ func newMemoryExactMatcher() *memoryExactMatcher {
 	exactMatches := map[string]*producer.SloClassification{}
 	return &memoryExactMatcher{
 		exactMatches: exactMatches,
+		mtx:          sync.RWMutex{},
 	}
 }
 
@@ -29,6 +31,9 @@ func newMemoryExactMatcher() *memoryExactMatcher {
 func (c *memoryExactMatcher) set(key string, classification *producer.SloClassification) error {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("set", exactMatcherType))
 	defer timer.ObserveDuration()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
 	c.exactMatches[key] = classification
 	return nil
 }
@@ -37,6 +42,9 @@ func (c *memoryExactMatcher) set(key string, classification *producer.SloClassif
 func (c *memoryExactMatcher) get(key string) (*producer.SloClassification, error) {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("get", exactMatcherType))
 	defer timer.ObserveDuration()
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
 	value := c.exactMatches[key]
 	return value, nil
 }
@@ -46,6 +54,9 @@ func (c *memoryExactMatcher) getType() matcherType {
 }
 
 func (c *memoryExactMatcher) dumpCSV(w io.Writer) error {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
 	buffer := csv.NewWriter(w)
 	defer buffer.Flush()
 	for k, v := range c.exactMatches {

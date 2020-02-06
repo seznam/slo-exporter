@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -22,11 +23,12 @@ type regexpSloClassification struct {
 // regexpMatcher is list of endpoint classifications
 type regexpMatcher struct {
 	matchers []*regexpSloClassification
+	mtx      sync.RWMutex
 }
 
 // newRegexpMatcher returns new instance of regexpMatcher
 func newRegexpMatcher() *regexpMatcher {
-	return &regexpMatcher{}
+	return &regexpMatcher{mtx: sync.RWMutex{}}
 }
 
 // newRegexSloClassification returns new instance of regexpSloClassification
@@ -46,6 +48,9 @@ func newRegexSloClassification(regexpString string, classification *producer.Slo
 func (rm *regexpMatcher) set(regexpString string, classification *producer.SloClassification) error {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("set", regexpMatcherType))
 	defer timer.ObserveDuration()
+	rm.mtx.Lock()
+	defer rm.mtx.Unlock()
+
 	regexpClassification, err := newRegexSloClassification(regexpString, classification)
 	if err != nil {
 		return err
@@ -59,6 +64,9 @@ func (rm *regexpMatcher) set(regexpString string, classification *producer.SloCl
 func (rm *regexpMatcher) get(key string) (*producer.SloClassification, error) {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("get", regexpMatcherType))
 	defer timer.ObserveDuration()
+	rm.mtx.RLock()
+	defer rm.mtx.RUnlock()
+
 	var classification *producer.SloClassification = nil
 	for _, r := range rm.matchers {
 		// go next if no match
@@ -83,6 +91,9 @@ func (rm *regexpMatcher) getType() matcherType {
 }
 
 func (rm *regexpMatcher) dumpCSV(w io.Writer) error {
+	rm.mtx.RLock()
+	defer rm.mtx.RUnlock()
+
 	buffer := csv.NewWriter(w)
 	defer buffer.Flush()
 	for _, v := range rm.matchers {
