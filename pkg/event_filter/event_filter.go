@@ -18,7 +18,7 @@ var (
 		Subsystem: component,
 		Name:      "filtered_events_total",
 		Help:      "Total number of filtered events by reason.",
-	}, []string{"matcher", "filtered_value"})
+	}, []string{"matcher"})
 )
 
 func init() {
@@ -48,10 +48,12 @@ func New(dropStatuses []int, dropHeaders map[string]string) *RequestEventFilter 
 
 func (ef *RequestEventFilter) matches(event *producer.RequestEvent) bool {
 	if ef.statusMatch(event.StatusCode) {
+		filteredEventsTotal.WithLabelValues("status_code").Inc()
 		log.WithField("event", event).Debugf("matched event because of status code")
 		return true
 	}
 	if ef.headersMatch(event.Headers) {
+		filteredEventsTotal.WithLabelValues("http_header").Inc()
 		log.WithField("event", event).Debugf("matched event because of status code")
 		return true
 	}
@@ -61,7 +63,7 @@ func (ef *RequestEventFilter) matches(event *producer.RequestEvent) bool {
 func (ef *RequestEventFilter) statusMatch(testedStatus int) bool {
 	for _, status := range ef.statuses {
 		if status == testedStatus {
-			filteredEventsTotal.WithLabelValues("status_code", string(testedStatus)).Inc()
+
 			return true
 		}
 	}
@@ -73,7 +75,6 @@ func (ef *RequestEventFilter) headersMatch(testedHeaders map[string]string) bool
 	for k, v := range ef.headers {
 		value, ok := lowerTestedHeaders[k]
 		if ok && value == v {
-			filteredEventsTotal.WithLabelValues("http_header", k+"="+v).Inc()
 			return true
 		}
 	}
