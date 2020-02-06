@@ -60,7 +60,7 @@ func main() {
 	persistPositionFile := kingpin.Flag("persist-position-file", "File to be used to persist tailer position. Defaults to <logFile>.pos arg if not set.").Default("").String()
 	persistPositionInterval := kingpin.Flag("persist-position-interval", "Interval for persisting the file offset persistence").Default("2s").Duration()
 	dropWithStatuses := kingpin.Flag("drop-with-status", "Drop request events with this HTTP status code").Ints()
-	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (case insensitive). eg --drop-with-header key=value").StringMap()
+	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (both case insensitive). eg --drop-with-header key=value").StringMap()
 
 	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().String()
 
