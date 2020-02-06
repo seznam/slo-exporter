@@ -77,7 +77,7 @@ func NewSqlBatchWriter(db *sql.DB, logger *logrus.Entry, promRegistry prometheus
 		retryLimit:  retryLimit,
 		retryTicker: time.NewTicker(retryInterval),
 		writeTicker: time.NewTicker(writeInterval),
-		writeQueue:  make(chan *parametrizedQuery, 10000),
+		writeQueue:  make(chan *parametrizedQuery, 50000),
 		retryQueue:  make(chan *parametrizedQuery, 10000),
 	}
 	go writer.startBatchedWrite(writer.writeTicker, writer.writeQueue, "write")
