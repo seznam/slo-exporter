@@ -145,15 +145,21 @@ func TestTimescaleExporter_processEvent(t *testing.T) {
 		if v == testedResult {
 			newMetric.value = 1
 		}
-		expectedStatistics[fmt.Sprintf("{%s=%q}", sloResultLabel, v)] = newMetric
+		expectedStatistics[fmt.Sprintf("{%s=%q,%s=%q}", instanceLabel, "test",sloResultLabel, v)] = newMetric
 	}
 	te := TimescaleExporter{
+		instanceName: "test",
 		statistics: map[string]*timescaleMetric{},
 	}
 
 	te.processEvent(&testEvent)
 	assert.Equal(t, len(expectedStatistics), len(te.statistics))
 	for k, v := range expectedStatistics {
-		assert.Equal(t, v.value, te.statistics[k].value)
+		value, ok := te.statistics[k]
+		if !ok {
+			t.Errorf("did not find key %v", k)
+			continue
+		}
+		assert.Equal(t, v.value, value.value)
 	}
 }

@@ -24,6 +24,7 @@ const (
 	sloEventsMetricName   = "timescale_slo_events_total"
 	timescaleMetricsTable = "metrics"
 	sloResultLabel        = "result"
+	instanceLabel         = "instance"
 )
 
 var (
@@ -35,6 +36,7 @@ func init() {
 }
 
 type TimescaleExporter struct {
+	instanceName    string
 	statistics      map[string]*timescaleMetric
 	statisticsMutex sync.Mutex
 	lastPushTime    time.Time
@@ -71,7 +73,7 @@ func checkDatabase(db *sql.DB, checkTimeout time.Duration, checkInterval time.Du
 	return checkFailed
 }
 
-func NewFromFile(path string) (*TimescaleExporter, error) {
+func NewFromFile(instanceName string, path string) (*TimescaleExporter, error) {
 	newConfig := TimescaleConfig{}
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -81,10 +83,10 @@ func NewFromFile(path string) (*TimescaleExporter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshall configuration file: %w", err)
 	}
-	return NewFromConfig(newConfig)
+	return NewFromConfig("test", newConfig)
 }
 
-func NewFromConfig(config TimescaleConfig) (*TimescaleExporter, error) {
+func NewFromConfig(instanceName string, config TimescaleConfig) (*TimescaleExporter, error) {
 	db, err := sql.Open("postgres", config.psqlInfo())
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to timescale db: %w", err)
@@ -94,6 +96,7 @@ func NewFromConfig(config TimescaleConfig) (*TimescaleExporter, error) {
 		return nil, err
 	}
 	return &TimescaleExporter{
+		instanceName: instanceName,
 		statisticsMutex: sync.Mutex{},
 		statistics:      map[string]*timescaleMetric{},
 		lastPushTime:    time.Time{},
@@ -208,6 +211,7 @@ func (ts *TimescaleExporter) initializeMetricsIfNotExist(metadata map[string]str
 func (ts *TimescaleExporter) processEvent(event *slo_event_producer.SloEvent) {
 	ts.statisticsMutex.Lock()
 	defer ts.statisticsMutex.Unlock()
+	event.SloMetadata[instanceLabel] = ts.instanceName
 	for _, possibleResult := range slo_event_producer.EventResults {
 		newMetadata := event.SloMetadata
 		newMetadata[sloResultLabel] = string(possibleResult)

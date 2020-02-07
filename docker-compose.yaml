@@ -34,6 +34,7 @@ services:
       - "--drop-with-status=301"
       - "--drop-with-status=404"
       - "--timescale-config=/slo-exporter/examples/timescale.yaml"
+      - "--instance-name=slo_exporter-1"
       - "/tmp/szn-logy/access_log"
     volumes:
       - ./:/slo-exporter
