@@ -1,7 +1,6 @@
 package prometheus_exporter
 
 import (
-	"errors"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -16,7 +15,7 @@ var (
 			Namespace:   "slo_exporter",
 			Subsystem:   component,
 			Name:        "errors_total",
-			Help:        "",
+			Help:        "Errors occurred during application runtime",
 			ConstLabels: prometheus.Labels{"app": "slo_exporter", "subsystem": component},
 		},
 		[]string{"type"})
@@ -73,9 +72,10 @@ func (e *PrometheusSloEventExporter) Run(input <-chan *slo_event_producer.SloEve
 				err := e.processEvent(event)
 				if err != nil {
 					log.Errorf("unable to process slo event: %v", err)
-					if errors.Is(err, &InvalidSloEventResult{}) {
+					switch err.(type) {
+					case *InvalidSloEventResult:
 						errorsTotal.With(prometheus.Labels{"type": "InvalidResult"}).Inc()
-					} else {
+					default:
 						errorsTotal.With(prometheus.Labels{"type": "Unknown"}).Inc()
 					}
 				}
