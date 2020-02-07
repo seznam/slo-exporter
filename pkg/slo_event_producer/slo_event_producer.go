@@ -26,7 +26,7 @@ var (
 		Name:      "generated_slo_events_total",
 		Help:      "Total number of generated SLO events per type.",
 	}, []string{"type"})
-	EventResults = [...]SloEventResult{SloEventResultSuccess, SloEventResultFail}
+	EventResults = []SloEventResult{SloEventResultSuccess, SloEventResultFail}
 )
 
 func init() {

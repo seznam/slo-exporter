@@ -85,10 +85,21 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		exporter := New(labels)
+		exporter := New(labels, slo_event_producer.EventResults)
 		exporter.processEvent(test.event)
-		if err := testutil.CollectAndCompare(exporter.counterVec, strings.NewReader(test.expectedMetrics), metricName); err != nil {
+		if err := testutil.CollectAndCompare(exporter.eventsCount, strings.NewReader(test.expectedMetrics), metricName); err != nil {
 			t.Errorf("unexpected collecting result:\n%s", err)
 		}
+	}
+}
+
+func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
+	exporter := New([]string{}, slo_event_producer.EventResults)
+	testCases := map[slo_event_producer.SloEventResult]bool{
+		slo_event_producer.EventResults[0]:                     true,
+		slo_event_producer.SloEventResult("nonexistingresult"): false,
+	}
+	for eventResult, valid := range testCases {
+		assert.Equal(t, valid, exporter.isValidResult(eventResult))
 	}
 }

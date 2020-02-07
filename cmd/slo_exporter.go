@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gorilla/mux"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/gorilla/mux"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -141,7 +142,7 @@ func main() {
 		log.Fatalf("failed to load SLO rules config: %v", err)
 	}
 
-	sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys())
+	sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults)
 
 	timescaleExporter, err := timescale_exporter.NewFromFile(*timescaleConfig)
 	if err != nil {
@@ -176,7 +177,7 @@ func main() {
 	// Replicate events to multiple channels
 	go multiplexToChannels(sloEventsChan, exporterChannels)
 
-	sloEventExporter.Run(ctx, prometheusSloEventsChan)
+	sloEventExporter.Run(prometheusSloEventsChan)
 	timescaleExporter.Run(timescaleSloEventsChan)
 
 	readiness.Ok()
