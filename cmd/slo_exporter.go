@@ -84,9 +84,11 @@ func main() {
 	timescaleConfig := kingpin.Flag("timescale-config", "Path to config with TimescaleDB configuration.").ExistingFile()
 	dropWithStatuses := kingpin.Flag("drop-with-status", "Drop request events with this HTTP status code").Ints()
 	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (both case insensitive). eg --drop-with-header key=value").StringMap()
+	disableTimescale := kingpin.Flag("disable-timescale-exporter", "Do not start timescale exporter").Bool()
+	disablePrometheus := kingpin.Flag("disable-prometheus-exporter", "Do not start prometheus exporter. (App runtime metrics are still exposed)").Bool()
 
 	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().ExistingFile()
-	
+
 	kingpin.Parse()
 
 	if err := setupLogging(*logLevel); err != nil {
@@ -142,12 +144,28 @@ func main() {
 		log.Fatalf("failed to load SLO rules config: %v", err)
 	}
 
-	sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults)
+	//-- start enabled exporters
+	exporterChannels := []chan *slo_event_producer.SloEvent{}
 
-	timescaleExporter, err := timescale_exporter.NewFromFile(*timescaleConfig)
-	if err != nil {
-		log.Fatalf("failed to initialize timescale exporter: %v", err)
+	if !*disablePrometheus {
+		sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults)
+		prometheusSloEventsChan := make(chan *slo_event_producer.SloEvent)
+		exporterChannels = append(exporterChannels, prometheusSloEventsChan)
+		sloEventExporter.Run(prometheusSloEventsChan)
 	}
+
+	if !*disableTimescale {
+		timescaleExporter, err := timescale_exporter.NewFromFile(*timescaleConfig)
+		if err != nil {
+			log.Fatalf("failed to initialize timescale exporter: %v", err)
+		}
+		timescaleSloEventsChan := make(chan *slo_event_producer.SloEvent)
+		exporterChannels = append(exporterChannels, timescaleSloEventsChan)
+		timescaleExporter.Run(timescaleSloEventsChan)
+	}
+	//--
+
+	//-- start the rest of the pipeline
 
 	// listen for OS signals
 	sigChan := make(chan os.Signal, 3)
@@ -169,16 +187,9 @@ func main() {
 	sloEventsChan := make(chan *slo_event_producer.SloEvent)
 	sloEventProducer.Run(ctx, classifiedEventsChan, sloEventsChan)
 
-	prometheusSloEventsChan := make(chan *slo_event_producer.SloEvent)
-	timescaleSloEventsChan := make(chan *slo_event_producer.SloEvent)
-
-	exporterChannels := []chan *slo_event_producer.SloEvent{prometheusSloEventsChan, timescaleSloEventsChan}
-
 	// Replicate events to multiple channels
 	go multiplexToChannels(sloEventsChan, exporterChannels)
-
-	sloEventExporter.Run(prometheusSloEventsChan)
-	timescaleExporter.Run(timescaleSloEventsChan)
+	//--
 
 	readiness.Ok()
 	defer log.Info("see ya!")
