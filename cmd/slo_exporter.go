@@ -86,6 +86,7 @@ func main() {
 	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (both case insensitive). eg --drop-with-header key=value").StringMap()
 	disableTimescale := kingpin.Flag("disable-timescale-exporter", "Do not start timescale exporter").Bool()
 	disablePrometheus := kingpin.Flag("disable-prometheus-exporter", "Do not start prometheus exporter. (App runtime metrics are still exposed)").Bool()
+	instanceName := kingpin.Flag("instance-name", "Name of the instance propagated to some metadata. Defaults to HOSTNAME").Default(os.Getenv("HOSTNAME")).String()
 
 	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().ExistingFile()
 
@@ -155,7 +156,7 @@ func main() {
 	}
 
 	if !*disableTimescale {
-		timescaleExporter, err := timescale_exporter.NewFromFile(*timescaleConfig)
+		timescaleExporter, err := timescale_exporter.NewFromFile(*instanceName, *timescaleConfig)
 		if err != nil {
 			log.Fatalf("failed to initialize timescale exporter: %v", err)
 		}
