@@ -1,7 +1,6 @@
 package dynamic_classifier
 
 import (
-	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -177,15 +176,13 @@ func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.Re
 }
 
 // Run event normalizer receiving events and filling their EventKey if not already filled.
-func (dc *DynamicClassifier) Run(ctx context.Context, inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
+func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
-		defer log.Info("stopping dynamic classifier")
+		defer log.Info("stopping...")
 
 		for {
 			select {
-			case <-ctx.Done():
-				return
 			case event, ok := <-inputEventsChan:
 				if !ok {
 					log.Info("input channel closed, finishing")

@@ -1,13 +1,13 @@
 package normalizer
 
 import (
-	"context"
-	"github.com/asaskevich/govalidator"
-	"github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/asaskevich/govalidator"
+	"github.com/sirupsen/logrus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 	hashPlaceholder        = ":hash"
 	uuidPlaceholder        = ":uuid"
 	imagePlaceholder       = ":image"
-	fontPlaceholder       = ":font"
+	fontPlaceholder        = ":font"
 	pathItemsSeparator     = "/"
 )
 
@@ -37,11 +37,11 @@ var (
 	log                  *logrus.Entry
 	followingDigitsRegex = regexp.MustCompile("[0-9]+")
 	imageExtensionRegex  = regexp.MustCompile(`(?i)\.(?:png|jpg|jpeg|svg|tif|tiff|gif)$`)
-	fontExtensionRegex  = regexp.MustCompile(`(?i)\.(?:ttf|woff)$`)
+	fontExtensionRegex   = regexp.MustCompile(`(?i)\.(?:ttf|woff)$`)
 
 	customPatterns = []normalizator{
-		{pattern: regexp.MustCompile(`/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}`),	replacement: "/api/v1/ppchit/rule/0"},
-		{pattern: regexp.MustCompile(`/campaigns/\d+/groups/\d+/placements/automatic/(\w[\w-]+\.)+\w{2,}/urls`),	replacement: "/campaigns/0/groups/0/placements/automatic/:domain/urls"},
+		{pattern: regexp.MustCompile(`/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}`), replacement: "/api/v1/ppchit/rule/0"},
+		{pattern: regexp.MustCompile(`/campaigns/\d+/groups/\d+/placements/automatic/(\w[\w-]+\.)+\w{2,}/urls`), replacement: "/campaigns/0/groups/0/placements/automatic/:domain/urls"},
 	}
 )
 
@@ -127,15 +127,13 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent)
 }
 
 // Run event normalizer receiving events and filling their EventKey if not already filled.
-func (rn *requestNormalizer) Run(ctx context.Context, inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
+func (rn *requestNormalizer) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
-		defer log.Info("stopping normalizer")
+		defer log.Info("stopping...")
 
 		for {
 			select {
-			case <-ctx.Done():
-				return
 			case event, ok := <-inputEventsChan:
 				if !ok {
 					log.Info("input channel closed, finishing")
