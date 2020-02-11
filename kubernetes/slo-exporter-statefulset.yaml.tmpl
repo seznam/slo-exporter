@@ -1,0 +1,131 @@
+{{ $slo_domain := (env "SLO_EXPORTER_SLO_DOMAIN" | default "unknown") }}
+{{ $upstream_proxy := (env "SLO_EXPORTER_UPSTREAM_PROXY_SHORT_NAME" | default "unknown") }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+  labels:
+    app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+spec:
+  replicas: 1
+  updateStrategy:
+    type: OnDelete
+  selector:
+    matchLabels:
+      app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+  serviceName: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+  template:
+    metadata:
+      labels:
+        app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+      annotations:
+        app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+        team: sklik.devops@firma.seznam.cz
+        cz.sklik.metrics.scrape: 'true'
+        cz.sklik.metrics.port: '8080'
+        cz.sklik.metrics.path: /metrics
+    spec:
+      containers:
+
+      # tail sznlogy logs and store locally
+      - name: htail
+        image: doc.ker/sklik-devops/htail:1.4.1
+        args:
+        - -k
+        - --follow
+        - --sleep-interval=0.1
+        - {{ env "HTAIL_URL" | default "https://skweb1.ko.seznam.cz:8888/szn-sklik-userproxy/access_log" }}
+        env:
+        - name: HTAIL_AUTH_USER
+          valueFrom:
+            secretKeyRef:
+              name: slo-exporter-htail
+              key: ldap-username
+        - name: HTAIL_AUTH_PASS
+          valueFrom:
+            secretKeyRef:
+              name: slo-exporter-htail
+              key: ldap-password
+        livenessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - -e
+            - find /log -newermt '2 minute ago' -name htail.log | grep htail.log$
+        resources:
+          requests:
+            cpu: "{{ env "HTAIL_KUBERNETES_RESOURCES_REQUESTS_CPU" | default "0.1" }}"
+            memory: "{{ env "HTAIL_KUBERNETES_RESOURCES_REQUESTS_MEMORY" | default "128Mi" }}"
+          limits:
+            cpu: "{{ env "HTAIL_KUBERNETES_RESOURCES_LIMITS_CPU" | default "0.5" }}"
+            memory: "{{ env "HTAIL_KUBERNETES_RESOURCES_LIMITS_MEMORY" | default "256Mi" }}"
+        volumeMounts:
+        - name: skweb-logs
+          mountPath: /log
+          readOnly: false
+
+      # read logs and compute SLO
+      - name: slo-exporter
+        image: {{ env "DOCKER_IMAGE" | default "doc.ker/sklik-devops/slo-exporter:latest" }}
+        args:
+        - --follow
+        - --slo-domain={{ $slo_domain }}
+        - --slo-rules-config={{ env "SLO_EXPORTER_SLO_RULES_CONFIG" | default "/slo_exporter/conf/examples/slo_rules.yaml" }}
+        - --timescale-config={{ env "SLO_EXPORTER_TIMESCALE_CONFIG" | default "/slo_exporter/conf/examples/timescale.yaml" }}
+        - --regexp-classification-file={{ env "SLO_EXPORTER_REGEXP_CLASSIFICATION_FILE" | default "/slo_exporter/conf/examples/userportal.csv" }}
+        {{ $exluded_http_status_codes := env "SLO_EXPORTER_DROPPED_HTTP_STATUSES" | default "301 302 404" | split " " -}}
+        {{- range $exluded_http_status_codes }}
+            {{- if . }}
+        - --drop-with-status={{ . }}
+            {{- end -}}
+        {{- end }}
+        {{ $exluded_http_headers := env "SLO_EXPORTER_DROPPED_HTTP_HEADERS" | default "" | split " " -}}
+        {{- range $exluded_http_headers }}
+            {{- if . }}
+        - --drop-with-header={{ . }}
+            {{- end -}}
+        {{- end }}
+        {{ $optional_args := env "SLO_EXPORTER_OPTIONAL_ARGS" | default "" | split " " -}}
+        {{- range $optional_args }}
+            {{- if . }}
+        - {{ . }}
+            {{- end -}}
+        {{- end }}
+        - /logs/htail.log
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: KUBERNETES_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: KUBERNETES_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        {{ if env "KUBERNETES_ENV_CONFIG_MAP" }}
+        envFrom:
+        - configMapRef:
+            name: {{ env "KUBERNETES_ENV_CONFIG_MAP" }}
+        {{ end }}
+        livenessProbe:
+          httpGet:
+            port: 8080
+            path: /dynamic_classifier/matchers/regexp
+        resources:
+          requests:
+            cpu: "{{ env "SLO_EXPORTER_KUBERNETES_RESOURCES_REQUESTS_CPU" | default "0.5" }}"
+            memory: "{{ env "SLO_EXPORTER_KUBERNETES_RESOURCES_REQUESTS_MEMORY" | default "256Mi" }}"
+          limits:
+            cpu: "{{ env "SLO_EXPORTER_KUBERNETES_RESOURCES_LIMITS_CPU" | default "1.0" }}"
+            memory: "{{ env "SLO_EXPORTER_KUBERNETES_RESOURCES_LIMITS_MEMORY" | default "1Gi" }}"
+        volumeMounts:
+        - name: skweb-logs
+          mountPath: /logs
+          readOnly: false
+
+      volumes:
+      - name: skweb-logs
+        emptyDir: {}
