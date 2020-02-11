@@ -72,42 +72,14 @@ spec:
       - name: slo-exporter
         image: {{ env "DOCKER_IMAGE" | default "doc.ker/sklik-devops/slo-exporter:latest" }}
         args:
-        - --follow
-        - --slo-domain={{ $slo_domain }}
-        - --slo-rules-config={{ env "SLO_EXPORTER_SLO_RULES_CONFIG" | default "/slo_exporter/conf/examples/slo_rules.yaml" }}
-        - --timescale-config={{ env "SLO_EXPORTER_TIMESCALE_CONFIG" | default "/slo_exporter/conf/examples/timescale.yaml" }}
-        - --regexp-classification-file={{ env "SLO_EXPORTER_REGEXP_CLASSIFICATION_FILE" | default "/slo_exporter/conf/examples/userportal.csv" }}
-        {{ $exluded_http_status_codes := env "SLO_EXPORTER_DROPPED_HTTP_STATUSES" | default "301 302 404" | split " " -}}
-        {{- range $exluded_http_status_codes }}
-            {{- if . }}
-        - --drop-with-status={{ . }}
-            {{- end -}}
-        {{- end }}
-        {{ $exluded_http_headers := env "SLO_EXPORTER_DROPPED_HTTP_HEADERS" | default "" | split " " -}}
-        {{- range $exluded_http_headers }}
-            {{- if . }}
-        - --drop-with-header={{ . }}
-            {{- end -}}
-        {{- end }}
-        {{ $optional_args := env "SLO_EXPORTER_OPTIONAL_ARGS" | default "" | split " " -}}
-        {{- range $optional_args }}
-            {{- if . }}
-        - {{ . }}
-            {{- end -}}
-        {{- end }}
-        - /logs/htail.log
+        - --config-file={{ env "SLO_EXPORTER_CONFIG" | default "/slo_exporter/conf/slo_exporter.yaml" }}
+        - --disable-timescale-exporter
         ports:
         - containerPort: 8080
           protocol: TCP
         env:
-        - name: KUBERNETES_NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        - name: KUBERNETES_POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
+        - name: SLO_EXPORTER_TAILER_TAILEDFILE
+          value: "/logs/htail.log"
         {{ if env "KUBERNETES_ENV_CONFIG_MAP" }}
         envFrom:
         - configMapRef:

@@ -5,6 +5,7 @@ package slo_event_producer
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -52,8 +53,20 @@ func (se *SloEvent) String() string {
 	return fmt.Sprintf("SloEvent %v", se.SloMetadata)
 }
 
-func NewSloEventProducer(configPath string) (*SloEventProducer, error) {
-	eventEvaluator, err := NewEventEvaluatorFromConfigFile(configPath)
+type sloEventProducerConfig struct {
+	RulesFiles []string
+}
+
+func NewFromViper(viperConfig *viper.Viper) (*SloEventProducer, error) {
+	var config sloEventProducerConfig
+	if err := viperConfig.UnmarshalExact(&config); err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+	return New(config)
+}
+
+func New(config sloEventProducerConfig) (*SloEventProducer, error) {
+	eventEvaluator, err := NewEventEvaluatorFromConfigFiles(config.RulesFiles)
 	if err != nil {
 		return nil, err
 	}

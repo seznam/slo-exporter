@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -71,29 +72,19 @@ func multiplexToChannels(srcChannel chan *slo_event_producer.SloEvent, dstChanne
 }
 
 func main() {
-	logLevel := kingpin.Flag("log-level", "Set log level").Default("info").String()
-	webServerListenAddr := kingpin.Flag("listen-address", "Listen address to listen on for web server.").Short('l').Default("0.0.0.0:8080").String()
-	follow := kingpin.Flag("follow", "Follow the given log file.").Short('f').Bool()
-	gracefulShutdownTimeout := kingpin.Flag("graceful-shutdown-timeout", "How long to wait for graceful shutdown.").Default("20s").Short('g').Duration()
-	sloDomain := kingpin.Flag("slo-domain", "slo domain name").Required().String()
-	regexpClassificationFiles := kingpin.Flag("regexp-classification-file", "Path to regexp classification file.").ExistingFiles()
-	exactClassificationFiles := kingpin.Flag("exact-classification-file", "Path to exact classification file.").ExistingFiles()
-	sloRulesFile := kingpin.Flag("slo-rules-config", "Path to config with SLO rules for evaluation.").Required().ExistingFile()
-	persistPositionFile := kingpin.Flag("persist-position-file", "File to be used to persist tailer position. Defaults to <logFile>.pos arg if not set.").Default("").String()
-	persistPositionInterval := kingpin.Flag("persist-position-interval", "Interval for persisting the file offset persistence").Default("2s").Duration()
-	timescaleConfig := kingpin.Flag("timescale-config", "Path to config with TimescaleDB configuration.").ExistingFile()
-	dropWithStatuses := kingpin.Flag("drop-with-status", "Drop request events with this HTTP status code").Ints()
-	dropWithHeaders := kingpin.Flag("drop-with-header", "Drop request events with matching HTTP headers and its value (both case insensitive). eg --drop-with-header key=value").StringMap()
+	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
 	disableTimescale := kingpin.Flag("disable-timescale-exporter", "Do not start timescale exporter").Bool()
 	disablePrometheus := kingpin.Flag("disable-prometheus-exporter", "Do not start prometheus exporter. (App runtime metrics are still exposed)").Bool()
-	instanceName := kingpin.Flag("instance-name", "Name of the instance propagated to some metadata. Defaults to HOSTNAME").Default(os.Getenv("HOSTNAME")).String()
-
-	logFile := kingpin.Arg("logFile", "Path to log file to process").Required().ExistingFile()
 
 	kingpin.Parse()
 
-	if err := setupLogging(*logLevel); err != nil {
-		log.Fatalf("invalid specified log level %v, error: %v", logLevel, err)
+	config := config.New()
+	if err := config.LoadFromFile(*configFilePath); err != nil {
+		log.Fatalf("failed to load configuration file: %w", err)
+	}
+
+	if err := setupLogging(config.LogLevel); err != nil {
+		log.Fatalf("invalid specified log level %v, error: %v", config.LogLevel, err)
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -107,11 +98,14 @@ func main() {
 	gracefulShutdownChan := make(chan struct{}, 10)
 
 	// Classify event by dynamic classifier
-	dynamicClassifier := dynamic_classifier.NewDynamicClassifier(*sloDomain)
+	dynamicClassifier, err := dynamic_classifier.NewFromViper(config.MustModuleConfig("dynamicClassifier"))
+	if err != nil {
+		log.Fatalf("failed to initialize dynamic classifier: %v", err)
+	}
 	dynamicClassifierHandler := handler.NewDynamicClassifierHandler(dynamicClassifier)
 
 	// Start default server
-	defaultServer := setupDefaultServer(*webServerListenAddr, liveness, readiness, dynamicClassifierHandler)
+	defaultServer := setupDefaultServer(config.WebServerListenAddress, liveness, readiness, dynamicClassifierHandler)
 	go func() {
 		log.Infof("HTTP server listening on %v", defaultServer.Addr)
 		if err := defaultServer.ListenAndServe(); err != nil {
@@ -121,7 +115,7 @@ func main() {
 	}()
 
 	// Tail nginx logs and parse them to RequestEvent
-	nginxTailer, err := tailer.New(*logFile, *follow, *follow, *persistPositionFile, *persistPositionInterval)
+	nginxTailer, err := tailer.NewFromViper(config.MustModuleConfig("tailer"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,24 +123,18 @@ func main() {
 	// Add the EntityKey to all RequestEvents
 	requestNormalizer := normalizer.NewForRequestEvent()
 
-	eventFilter := event_filter.New(*dropWithStatuses, *dropWithHeaders)
-
-	// load regexp matches
-	if err := dynamicClassifier.LoadExactMatchesFromMultipleCSV(*exactClassificationFiles); err != nil {
-		log.Fatalf("Failed to load classification: %v", err)
-	}
-	// load regex matches
-	if err := dynamicClassifier.LoadRegexpMatchesFromMultipleCSV(*regexpClassificationFiles); err != nil {
-		log.Fatalf("Failed to load classification: %v", err)
+	eventFilter, err := event_filter.NewFromViper(config.MustModuleConfig("eventFilter"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	sloEventProducer, err := slo_event_producer.NewSloEventProducer(*sloRulesFile)
+	sloEventProducer, err := slo_event_producer.NewFromViper(config.MustModuleConfig("sloEventProducer"))
 	if err != nil {
 		log.Fatalf("failed to load SLO rules config: %v", err)
 	}
 
 	//-- start enabled exporters
-	exporterChannels := []chan *slo_event_producer.SloEvent{}
+	var exporterChannels []chan *slo_event_producer.SloEvent
 
 	if !*disablePrometheus {
 		sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults)
@@ -156,7 +144,7 @@ func main() {
 	}
 
 	if !*disableTimescale {
-		timescaleExporter, err := timescale_exporter.NewFromFile(*instanceName, *timescaleConfig)
+		timescaleExporter, err := timescale_exporter.NewFromViper(config.MustModuleConfig("timescaleExporter"))
 		if err != nil {
 			log.Fatalf("failed to initialize timescale exporter: %v", err)
 		}
@@ -200,12 +188,12 @@ func main() {
 		case <-gracefulShutdownChan:
 			log.Info("gracefully shutting down")
 			readiness.NotOk(fmt.Errorf("shutting down"))
-			shutdownCtx, _ := context.WithTimeout(ctx, *gracefulShutdownTimeout)
+			shutdownCtx, _ := context.WithTimeout(ctx, config.GracefulShutdownTimeout)
 			cancelFunc()
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
 				log.Errorf("failed to gracefully shutdown HTTP server %v. ", err)
 			}
-			log.Infof("waiting configured graceful shutdown timeout %v", gracefulShutdownTimeout)
+			log.Infof("waiting configured graceful shutdown timeout %s", config.GracefulShutdownTimeout)
 			shutdownCtx.Done()
 			return
 		case sig := <-sigChan:

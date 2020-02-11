@@ -1,0 +1,88 @@
+
+# Every configuration key can be configured using ENV variables.
+# To set root level keys use pattern `SLO_EXPORTER_<KEYNAME>` eg `SLO_EXPORTER_WEBSERVERLISTENADDRESS="0.0.0.0:8080"`.
+# To set module level keys use pattern `SLO_EXPORTER_<MODULENAME>_<KEYNAME>` eg `SLO_EXPORTER_EVENTFILTER_FILTEREDHTTPSTATUSCODES="404,301"`.
+
+
+# Sets logging level (trace,debug,info,error)
+logLevel: "info"
+# Address where the web interface should listen on.
+webServerListenAddress: "0.0.0.0:8080"
+# Maximum time to wait for all events to be processed after receiving SIGTERM or SIGINT.
+gracefulShutdownTimeout: "1m"
+
+# TODO
+# Defines architecture of the pipeline.
+pipeline: []
+
+# Contains configuration for distinct pipeline module.
+modules:
+
+  # PRODUCER Module which follows Nginx access log in specific format and generates events from it.
+  tailer:
+    # Path to file to be processed.
+    tailedFile: "/tmp/szn-logy/access_log"
+    # If tailed file should be followed for new lines once all current lines are processed.
+    follow: true
+    # If tailed file should be reopened.
+    reopen: true
+    # Path to file where to persist position of tailing.
+    positionFile: ""
+    # How often current position should be persisted to the position file.
+    positionPersistenceInterval: "2s"
+
+  # PROCESSOR Module allowing to filter HTTP requests.
+  eventFilter:
+    # List of HTTP status codes to filter out.
+    filteredHttpStatusCodes: [404, 301, 302]
+    # Map of HTTP headers to to filter out (either key either value are checked ignoring case).
+    filteredHttpHeaders: {}
+
+  # PROCESSOR Module doing sanitization of HTTP request path anf generating unique key for the event.
+  normalizer:
+
+  # PROCESSOR Module which classifies the events if not already into SLO domain, class and app according to it's key.
+  dynamicClassifier:
+    # Name of the SLO domain of all events.
+    sloDomain: "userportal"
+    # Paths to CSV files containing exact match classification rules.
+    exactMatchesCsvFiles: []
+    # Paths to CSV files containing regexp match classification rules.
+    regexpMatchesCsvFiles:
+      - "conf/userportal.csv"
+
+  # PROCESSOR Module which generated SLO events out of HTTP request events.
+  sloEventProducer:
+    # Paths to files containing rules for evaluation of SLO event result and it's metadata.
+    rulesFiles:
+      - "conf/slo_rules.yaml"
+
+  # EXPORTER Module allowing to expose SLO metrics for Prometheus.
+  prometheusExporter:
+
+  # EXPORTER Module allowing to write SLO metrics to TimescaleDB.
+  timescaleExporter:
+    # TimescaleDB host.
+    host: "postgresql"
+    # TimescaleDB port.
+    port: 5432
+    # TimescaleDB user.
+    user: "postgres"
+    # TimescaleDB password.
+    password: "postgres"
+    # TimescaleDB database to use.
+    dbname: "postgres"
+    # How long to wait for TimescaleDB to be ready on startup.
+    dbInitTimeout: "1m"
+    # How often tu check if TimescaleDB is ready on startup.
+    dbInitCheckInterval: "1s"
+    # How often should be metric value reported to TimescaleDB if it changed recently.
+    updatedMetricPushInterval: "5m"
+    # How often should be all metric values reported to TimescaleDB regardless if it changed.
+    maximumPushInterval: "1h"
+    # How many inserts to batch into one write.
+    dbBatchWriteSize: 3000
+    # How often to write to TimescaleDB.
+    dbWriteInterval: "30s"
+    # How many times to retry failed inserts before dropping them completely.
+    dbWriteRetryInterval: "3m"

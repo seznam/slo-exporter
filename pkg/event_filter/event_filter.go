@@ -1,8 +1,10 @@
 package event_filter
 
 import (
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"strings"
 )
@@ -26,6 +28,11 @@ func init() {
 	prometheus.MustRegister(filteredEventsTotal)
 }
 
+type eventFilterConfig struct {
+	FilteredHttpStatusCodes []int
+	FilteredHttpHeaders     map[string]string
+}
+
 type RequestEventFilter struct {
 	statuses []int
 	headers  map[string]string
@@ -39,10 +46,18 @@ func headersToLowercase(headers map[string]string) map[string]string {
 	return lowercaseHeaders
 }
 
-func New(dropStatuses []int, dropHeaders map[string]string) *RequestEventFilter {
+func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
+	var config eventFilterConfig
+	if err := viperConfig.UnmarshalExact(&config); err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+	return New(config), nil
+}
+
+func New(config eventFilterConfig) *RequestEventFilter {
 	return &RequestEventFilter{
-		dropStatuses,
-		headersToLowercase(dropHeaders),
+		config.FilteredHttpStatusCodes,
+		headersToLowercase(config.FilteredHttpHeaders),
 	}
 }
 
