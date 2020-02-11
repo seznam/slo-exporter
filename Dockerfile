@@ -1,7 +1,8 @@
 FROM docker.dev.dszn.cz/debian:stretch
 
-COPY /slo_exporter /slo_exporter/
-
+RUN mkdir -p /slo_exporter/conf/examples
+COPY slo_exporter  /slo_exporter/
+COPY examples/ /slo_exporter/conf/examples/
 COPY Dockerfile /
 
 WORKDIR /slo_exporter

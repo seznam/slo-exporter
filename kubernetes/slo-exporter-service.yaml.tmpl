@@ -1,0 +1,16 @@
+{{ $slo_domain := (env "SLO_EXPORTER_SLO_DOMAIN" | default "unknown") }}
+{{ $upstream_proxy := (env "SLO_EXPORTER_UPSTREAM_PROXY_SHORT_NAME" | default "unknown") }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+  name: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+  selector:
+    app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}

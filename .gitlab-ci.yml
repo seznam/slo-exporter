@@ -2,6 +2,7 @@ stages:
   - check
   - build
   - build-ci-release-docker
+  - kubernetes-config
   - pages
 
 image: docker.dev.dszn.cz/golang-build:stretch
@@ -44,6 +45,28 @@ build-ci-release-docker:
     expire_in: 1 mos
     paths:
       - docker-release-ci.uri
+
+# kubernetes configuration
+# ---------------------------------------------------------------------------
+kubernetes-config-production:
+  stage: kubernetes-config
+  image: docker.dev.dszn.cz/generic/ci-scripts:1
+  variables:
+    ENVIRONMENT: production
+  environment:
+    name: production-config
+  script: |
+    export DOCKER_IMAGE=$(/ci/production-docker-image-name.sh "$(cat docker-release.uri docker-release-ci.uri 2>/dev/null | head -1)")
+    /ci/kubernetes-ci-init.sh
+
+    for i_slo_exporter_instance in skweb{1,2}-{ko,ng}; do
+      /ci/kubernetes-config-custom.sh --app slo-exporter-userportal-${i_slo_exporter_instance} --destination-dir kubernetes/${ENVIRONMENT}-slo-exporter-userportal-${i_slo_exporter_instance} --env-file conf/${ENVIRONMENT}-userportal.env --env-file conf/${i_slo_exporter_instance}.include.env --no-configmap
+    done
+  artifacts:
+    expire_in: 3 mo
+    name: kubernetes-config-production
+    paths:
+      - ./kubernetes/${ENVIRONMENT}*/*.yaml
 
 pages:
   stage: pages
