@@ -1,7 +1,6 @@
 package dynamic_classifier
 
 import (
-	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -177,33 +176,24 @@ func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.Re
 }
 
 // Run event normalizer receiving events and filling their EventKey if not already filled.
-func (dc *DynamicClassifier) Run(ctx context.Context, inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
+func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
-		defer log.Info("stopping dynamic classifier")
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case event, ok := <-inputEventsChan:
-				if !ok {
-					log.Info("input channel closed, finishing")
-					return
-				}
-				classified, err := dc.Classify(event)
-				if err != nil {
-					log.Error(err)
-					errorsTotal.WithLabelValues(err.Error()).Inc()
-				}
-				if !classified {
-					log.Warnf("unable to classify %s", event.EventKey)
-				} else {
-					log.Debugf("processed event with EventKey: %s", event.EventKey)
-				}
-				outputEventsChan <- event
+		for event := range inputEventsChan {
+			classified, err := dc.Classify(event)
+			if err != nil {
+				log.Error(err)
+				errorsTotal.WithLabelValues(err.Error()).Inc()
 			}
+			if !classified {
+				log.Warnf("unable to classify %s", event.EventKey)
+			} else {
+				log.Debugf("processed event with EventKey: %s", event.EventKey)
+			}
+			outputEventsChan <- event
 		}
+		log.Info("input channel closed, finishing")
 	}()
 }
 

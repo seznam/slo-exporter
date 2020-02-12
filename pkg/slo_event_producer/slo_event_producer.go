@@ -4,7 +4,6 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -74,21 +73,13 @@ func (sep *SloEventProducer) generateSLOEvents(event *producer.RequestEvent, slo
 }
 
 // TODO move to interfaces in channels, those cannot be mixed so we have to stick to one type now
-func (sep *SloEventProducer) Run(ctx context.Context, inputEventChan <-chan *producer.RequestEvent, outputSLOEventChan chan<- *SloEvent) {
+func (sep *SloEventProducer) Run(inputEventChan <-chan *producer.RequestEvent, outputSLOEventChan chan<- *SloEvent) {
 	go func() {
 		defer close(outputSLOEventChan)
-		defer log.Info("stopping slo_event_producer")
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case event, ok := <-inputEventChan:
-				if !ok {
-					log.Info("input channel closed, finishing")
-					return
-				}
-				sep.generateSLOEvents(event, outputSLOEventChan)
-			}
+
+		for event := range inputEventChan {
+			sep.generateSLOEvents(event, outputSLOEventChan)
 		}
+		log.Info("input channel closed, finishing")
 	}()
 }

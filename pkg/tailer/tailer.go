@@ -145,7 +145,7 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 			select {
 			case line, ok := <-t.tail.Lines:
 				if !ok {
-					log.Info("tail lines channel has been closed")
+					log.Info("input channel closed, finishing")
 					return
 				}
 				if line.Err != nil {
@@ -173,6 +173,7 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 					if err := t.markOffsetPosition(); err != nil {
 						log.Error(err)
 					}
+					// keep this in goroutine as this may block on tail's goroutine trying to write into t.tail.Lines
 					go t.tail.Stop()
 				}
 			}

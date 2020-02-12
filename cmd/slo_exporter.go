@@ -177,16 +177,16 @@ func main() {
 	nginxTailer.Run(ctx, nginxEventsChan, errChan)
 
 	normalizedEventsChan := make(chan *producer.RequestEvent)
-	requestNormalizer.Run(ctx, nginxEventsChan, normalizedEventsChan)
+	requestNormalizer.Run(nginxEventsChan, normalizedEventsChan)
 
 	filteredEventsChan := make(chan *producer.RequestEvent)
 	eventFilter.Run(normalizedEventsChan, filteredEventsChan)
 
 	classifiedEventsChan := make(chan *producer.RequestEvent)
-	dynamicClassifier.Run(ctx, filteredEventsChan, classifiedEventsChan)
+	dynamicClassifier.Run(filteredEventsChan, classifiedEventsChan)
 
 	sloEventsChan := make(chan *slo_event_producer.SloEvent)
-	sloEventProducer.Run(ctx, classifiedEventsChan, sloEventsChan)
+	sloEventProducer.Run(classifiedEventsChan, sloEventsChan)
 
 	// Replicate events to multiple channels
 	go multiplexToChannels(sloEventsChan, exporterChannels)

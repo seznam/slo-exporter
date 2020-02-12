@@ -83,19 +83,13 @@ func (ef *RequestEventFilter) headersMatch(testedHeaders map[string]string) bool
 
 func (ef *RequestEventFilter) Run(in <-chan *producer.RequestEvent, out chan<- *producer.RequestEvent) {
 	go func() {
-		defer log.Info("stopping...")
 		defer close(out)
-		for {
-			select {
-			case event, ok := <-in:
-				if !ok {
-					log.Info("input channel closed, finishing")
-					return
-				}
-				if !ef.matches(event) {
-					out <- event
-				}
+
+		for event := range in {
+			if !ef.matches(event) {
+				out <- event
 			}
 		}
+		log.Info("input channel closed, finishing")
 	}()
 }
