@@ -86,6 +86,7 @@ kubernetes-production-config:
 
 
 kubernetes-deploy:
+  <<: *ci_scripts_image
   stage: kubernetes-deploy
   variables:
     ENVIRONMENT: development
