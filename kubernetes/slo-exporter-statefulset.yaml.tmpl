@@ -9,7 +9,7 @@ metadata:
 spec:
   replicas: 1
   updateStrategy:
-    type: OnDelete
+    type: RollingUpdate
   selector:
     matchLabels:
       app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
