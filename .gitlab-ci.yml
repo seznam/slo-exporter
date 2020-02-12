@@ -3,12 +3,18 @@ stages:
   - build
   - build-ci-release-docker
   - kubernetes-config
+  - kubernetes-deploy
   - pages
+  - release-docker-production
 
 image: docker.dev.dszn.cz/golang-build:stretch
 
+.ci_scripts_image: &ci_scripts_image
+  image: docker.dev.dszn.cz/generic/ci-scripts:1
+
 variables:
   DOCKER_NAMESPACE: sklik-devops
+  KUBERNETES_NAMESPACE: sklik-devops-sandbox
 
 lint:
   stage: check
@@ -34,7 +40,7 @@ build:
     expire_in: 1 week
 
 build-ci-release-docker:
-  image: docker.dev.dszn.cz/generic/ci-scripts:1
+  <<: *ci_scripts_image
   stage: build-ci-release-docker
   script: |
     /ci/docker-build.sh --namespace $DOCKER_NAMESPACE
@@ -48,25 +54,53 @@ build-ci-release-docker:
 
 # kubernetes configuration
 # ---------------------------------------------------------------------------
-kubernetes-config-production:
+.kubernetes-config: &kubernetes-config
+  <<: *ci_scripts_image
   stage: kubernetes-config
-  image: docker.dev.dszn.cz/generic/ci-scripts:1
-  variables:
-    ENVIRONMENT: production
   environment:
-    name: production-config
+    name: kubernetes-config
   script: |
-    export DOCKER_IMAGE=$(/ci/production-docker-image-name.sh "$(cat docker-release.uri docker-release-ci.uri 2>/dev/null | head -1)")
     /ci/kubernetes-ci-init.sh
-
     for i_slo_exporter_instance in skweb{1,2}-{ko,ng}; do
       /ci/kubernetes-config-custom.sh --app slo-exporter-userportal-${i_slo_exporter_instance} --destination-dir kubernetes/${ENVIRONMENT}-slo-exporter-userportal-${i_slo_exporter_instance} --env-file conf/${ENVIRONMENT}-userportal.env --env-file conf/${i_slo_exporter_instance}.include.env --no-configmap
     done
   artifacts:
     expire_in: 3 mo
-    name: kubernetes-config-production
+    name: kubernetes-config
     paths:
       - ./kubernetes/${ENVIRONMENT}*/*.yaml
+
+kubernetes-development-config:
+  <<: *kubernetes-config
+  variables:
+    ENVIRONMENT: development
+  before_script:
+    - export DOCKER_IMAGE=$(cat docker-release.uri docker-release-ci.uri 2>/dev/null | head -1)
+
+kubernetes-production-config:
+  <<: *kubernetes-config
+  variables:
+    ENVIRONMENT: production
+  before_script:
+    - export DOCKER_IMAGE=$(/ci/production-docker-image-name.sh "$(cat docker-release.uri docker-release-ci.uri 2>/dev/null | head -1)")
+
+
+kubernetes-deploy:
+  stage: kubernetes-deploy
+  variables:
+    ENVIRONMENT: development
+  environment:
+    name: tt-k8s1.ko
+  script: |
+    /ci/kubernetes-ci-init.sh
+    for i_env in ${ENVIRONMENT}-slo-exporter-userportal-skweb{1,2}-{ko,ng}; do
+      /ci/kubernetes-deploy.sh --namespace "${KUBERNETES_NAMESPACE}" --env "${i_env}"
+    done
+  dependencies:
+    - kubernetes-development-config
+  only:
+    - master
+    - /^v[0-9]+\.[0-9]+\.[0-9]+/
 
 pages:
   stage: pages
@@ -81,3 +115,15 @@ pages:
     expire_in: 1 mos
     paths:
       - public
+
+
+# Release docker image to production registry
+# ---------------------------------------------------------------------------
+release-docker-production:
+  stage: release-docker-production
+  except:
+    - branches
+  only:
+    - /^v[0-9]+\.[0-9]+\.[0-9]+/
+  script: |
+    /ci/docker-release-to-production-registry-dirt.sh --docker-image-name-file docker-release.uri --docker-image-digest-file docker-release.digest
