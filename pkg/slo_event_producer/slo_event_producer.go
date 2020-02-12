@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
@@ -20,18 +19,11 @@ const (
 
 var (
 	log                     *logrus.Entry
-	generatedSloEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "slo_exporter",
-		Subsystem: "slo_event_producer",
-		Name:      "generated_slo_events_total",
-		Help:      "Total number of generated SLO events per type.",
-	}, []string{"type"})
 	EventResults = []SloEventResult{SloEventResultSuccess, SloEventResultFail}
 )
 
 func init() {
 	log = logrus.WithField("component", "slo_event_producer")
-	prometheus.MustRegister(generatedSloEventsTotal)
 }
 
 type ClassifiableEvent interface {

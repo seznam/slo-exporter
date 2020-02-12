@@ -25,7 +25,6 @@ func (dc *DynamicClassifierHandler) DumpCSV(w http.ResponseWriter, req *http.Req
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=%s.csv", matcherType))
 	err := dc.classifier.DumpCSV(w, matcherType)
 	if err != nil {
-		errorsTotal.WithLabelValues(err.Error()).Inc()
 		http.Error(w, "Failed to dump matcher '"+matcherType+"': "+err.Error(), http.StatusInternalServerError)
 	}
 

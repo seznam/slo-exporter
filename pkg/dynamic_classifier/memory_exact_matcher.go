@@ -62,7 +62,8 @@ func (c *memoryExactMatcher) dumpCSV(w io.Writer) error {
 	for k, v := range c.exactMatches {
 		err := buffer.Write([]string{v.App, v.Class, k})
 		if err != nil {
-			return fmt.Errorf("Failed to dump csv: %w", err)
+			errorsTotal.WithLabelValues("dumpExactMatchersToCSV").Inc()
+			return fmt.Errorf("failed to dump csv: %w", err)
 		}
 		buffer.Flush()
 	}

@@ -99,7 +99,7 @@ func (rm *regexpMatcher) dumpCSV(w io.Writer) error {
 	for _, v := range rm.matchers {
 		err := buffer.Write([]string{v.classification.App, v.classification.Class, v.regexpCompiled.String()})
 		if err != nil {
-			errorsTotal.WithLabelValues(err.Error()).Inc()
+			errorsTotal.WithLabelValues("dumpRegexpMatchersToCSV").Inc()
 			return fmt.Errorf("Failed to dump csv: %w", err)
 		}
 		buffer.Flush()
