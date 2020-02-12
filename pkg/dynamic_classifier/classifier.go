@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"os"
 
@@ -38,6 +39,12 @@ var (
 	)
 )
 
+type classifierConfig struct {
+	SloDomain             string
+	ExactMatchesCsvFiles  []string
+	RegexpMatchesCsvFiles []string
+}
+
 // DynamicClassifier is classifier based on cache and regexp matches
 type DynamicClassifier struct {
 	exactMatches  matcher
@@ -45,13 +52,28 @@ type DynamicClassifier struct {
 	sloDomain     string
 }
 
-// NewDynamicClassifier returns new instance of DynamicClassifier
-func NewDynamicClassifier(sloDomain string) *DynamicClassifier {
-	return &DynamicClassifier{
+func NewFromViper(viperConfig *viper.Viper) (*DynamicClassifier, error) {
+	var config classifierConfig
+	if err := viperConfig.UnmarshalExact(&config); err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+	return New(config)
+}
+
+// New returns new instance of DynamicClassifier
+func New(conf classifierConfig) (*DynamicClassifier, error) {
+	classifier := DynamicClassifier{
 		exactMatches:  newMemoryExactMatcher(),
 		regexpMatches: newRegexpMatcher(),
-		sloDomain:     sloDomain,
+		sloDomain:     conf.SloDomain,
 	}
+	if err := classifier.LoadExactMatchesFromMultipleCSV(conf.ExactMatchesCsvFiles); err != nil {
+		return nil, fmt.Errorf("failed to load exact matches from CSV: %w", err)
+	}
+	if err := classifier.LoadRegexpMatchesFromMultipleCSV(conf.RegexpMatchesCsvFiles); err != nil {
+		return nil, fmt.Errorf("failed to load regexp matches from CSV: %w", err)
+	}
+	return &classifier, nil
 }
 
 // LoadExactMatchesFromMultipleCSV loads exact matches from csv

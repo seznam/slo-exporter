@@ -9,10 +9,10 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/sqlwriter"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -41,7 +41,7 @@ type TimescaleExporter struct {
 	statisticsMutex sync.Mutex
 	lastPushTime    time.Time
 	pushTicker      *time.Ticker
-	config          TimescaleConfig
+	config          Config
 	db              *sql.DB
 	sqlWriter       sqlwriter.SqlWriter
 }
@@ -73,20 +73,21 @@ func checkDatabase(db *sql.DB, checkTimeout time.Duration, checkInterval time.Du
 	return checkFailed
 }
 
-func NewFromFile(instanceName string, path string) (*TimescaleExporter, error) {
-	newConfig := TimescaleConfig{}
-	yamlFile, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load configuration file: %w", err)
-	}
-	err = yaml.UnmarshalStrict(yamlFile, &newConfig)
-	if err != nil {
+func NewFromViper(viperConfig *viper.Viper) (*TimescaleExporter, error) {
+	viperConfig.SetDefault("Instance", os.Getenv("HOSTNAME"))
+	viperConfig.SetDefault("DbInitCheckInterval", time.Minute)
+	viperConfig.SetDefault("DbBatchWriteSize", 1000)
+	viperConfig.SetDefault("DbWriteInterval", 30*time.Second)
+	viperConfig.SetDefault("DbWriteRetryInterval", time.Minute)
+	viperConfig.SetDefault("DbWriteRetryLimit", 3)
+	var config Config
+	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshall configuration file: %w", err)
 	}
-	return NewFromConfig("test", newConfig)
+	return New(config)
 }
 
-func NewFromConfig(instanceName string, config TimescaleConfig) (*TimescaleExporter, error) {
+func New(config Config) (*TimescaleExporter, error) {
 	db, err := sql.Open("postgres", config.psqlInfo())
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to timescale db: %w", err)
@@ -96,7 +97,7 @@ func NewFromConfig(instanceName string, config TimescaleConfig) (*TimescaleExpor
 		return nil, err
 	}
 	return &TimescaleExporter{
-		instanceName:    instanceName,
+		instanceName:    config.Instance,
 		statisticsMutex: sync.Mutex{},
 		statistics:      map[string]*timescaleMetric{},
 		lastPushTime:    time.Time{},

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"net"
 	"net/url"
@@ -65,6 +66,19 @@ func init() {
 	prometheus.MustRegister(linesReadTotal, malformedLinesTotal, fileSizeBytes, fileOffsetBytes)
 }
 
+type tailerConfig struct {
+	TailedFile                  string
+	Follow                      bool
+	Reopen                      bool
+	PositionFile                string
+	PositionPersistenceInterval time.Duration
+}
+
+// getDefaultPositionsFilePath derives positions file path for given tailed filename
+func (c *tailerConfig) getDefaultPositionsFilePath() string {
+	return c.TailedFile + ".pos"
+}
+
 // Tailer is an instance of github.com/hpcloud/tail dedicated to a single file
 type Tailer struct {
 	filename                string
@@ -73,45 +87,50 @@ type Tailer struct {
 	persistPositionInterval time.Duration
 }
 
-// getDefaultPositionsFilePath derives positions file path for given tailed filename
-func getDefaultPositionsFilePath(filename string) string {
-	return filename + ".pos"
+func NewFromViper(viperConfig *viper.Viper) (*Tailer, error) {
+	viperConfig.SetDefault("Follow", true)
+	viperConfig.SetDefault("Reopen", true)
+	viperConfig.SetDefault("PositionPersistenceInterval", 2*time.Second)
+	var config tailerConfig
+	if err := viperConfig.UnmarshalExact(&config); err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+	return New(config)
 }
 
 // New returns an instance of Tailer
-func New(filename string, follow bool, reopen bool, persistPositionFile string, persistPositionInterval time.Duration) (*Tailer, error) {
-
+func New(config tailerConfig) (*Tailer, error) {
 	var (
 		offset int64
 		err    error
 		pos    *positions.Positions
 	)
 
-	if persistPositionFile == "" {
-		persistPositionFile = getDefaultPositionsFilePath(filename)
+	if config.PositionFile == "" {
+		config.PositionFile = config.getDefaultPositionsFilePath()
 	}
-	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{persistPositionInterval, persistPositionFile})
+	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{SyncPeriod: config.PositionPersistenceInterval, PositionsFile: config.PositionFile})
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize file position persister: %v", err)
 	}
 	// check that loaded position for a file is valid
-	fstat, err := os.Stat(filename)
+	fstat, err := os.Stat(config.TailedFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not check that loaded offset is valid: %w", err)
 	}
-	offset, err = pos.Get(filename)
+	offset, err = pos.Get(config.TailedFile)
 	if err != nil {
 		return nil, err
 	}
 	if fstat.Size() < offset {
-		pos.Remove(filename)
+		pos.Remove(config.TailedFile)
 		offset = 0
 		log.Warnf("Loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
 	}
 
-	tailFile, err := tail.TailFile(filename, tail.Config{
-		Follow:    follow,
-		ReOpen:    reopen,
+	tailFile, err := tail.TailFile(config.TailedFile, tail.Config{
+		Follow:    config.Follow,
+		ReOpen:    config.Reopen,
 		MustExist: true,
 		Location:  &tail.SeekInfo{Offset: offset, Whence: io.SeekStart},
 		// tail library has claimed problems with inotify: https://github.com/grafana/loki/commit/c994823369d65785e72c4247fd50c656801e429a
@@ -121,7 +140,7 @@ func New(filename string, follow bool, reopen bool, persistPositionFile string, 
 		return nil, err
 	}
 
-	return &Tailer{filename, tailFile, pos, persistPositionInterval}, nil
+	return &Tailer{config.TailedFile, tailFile, pos, config.PositionPersistenceInterval}, nil
 }
 
 // Run starts to tail the associated file, feeding RequestEvents, errors into separated channels.

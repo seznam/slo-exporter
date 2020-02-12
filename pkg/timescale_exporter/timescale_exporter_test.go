@@ -60,7 +60,7 @@ func TestTimescaleExporter_shouldBeMetricPushed(t *testing.T) {
 		{metric: &timescaleMetric{lastPushTime: getTime(0), lastEventTime: getTime(0)}, evaluationTime: getTime(10), shouldBePushed: false},
 	}
 	te := TimescaleExporter{
-		config: TimescaleConfig{
+		config: Config{
 			MaximumPushInterval: 30 * time.Second,
 		},
 	}
@@ -105,7 +105,7 @@ var testStatistics = map[string]*timescaleMetric{
 func TestTimescaleExporter_pushMetricsWithTimestamp(t *testing.T) {
 	te := TimescaleExporter{
 		statistics: testStatistics,
-		config: TimescaleConfig{
+		config: Config{
 			MaximumPushInterval: 30 * time.Second,
 		},
 	}
@@ -118,7 +118,7 @@ func TestTimescaleExporter_pushMetricsWithTimestamp(t *testing.T) {
 func TestTimescaleExporter_pushAllWithOffset(t *testing.T) {
 	te := TimescaleExporter{
 		statistics: testStatistics,
-		config: TimescaleConfig{
+		config: Config{
 			MaximumPushInterval: 30 * time.Second,
 		},
 	}

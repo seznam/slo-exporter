@@ -14,10 +14,22 @@ type EventEvaluator interface {
 	PossibleMetadataKeys() []string
 }
 
-func NewEventEvaluatorFromConfigFile(path string) (EventEvaluator, error) {
+func configFromFile(path string) (*rulesConfig, error) {
 	var config rulesConfig
 	if _, err := config.loadFromFile(path); err != nil {
 		return nil, err
+	}
+	return &config, nil
+}
+
+func NewEventEvaluatorFromConfigFiles(paths []string) (EventEvaluator, error) {
+	var config rulesConfig
+	for _, path := range paths {
+		tmpConfig, err := configFromFile(path)
+		if err != nil {
+			return nil, err
+		}
+		config.Rules = append(config.Rules, tmpConfig.Rules...)
 	}
 	evaluator, err := NewEventEvaluatorFromConfig(&config)
 	if err != nil {

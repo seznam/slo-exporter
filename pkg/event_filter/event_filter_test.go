@@ -14,6 +14,9 @@ type ShouldDropTestCase struct {
 }
 
 func TestEventFilter_statusMatch(t *testing.T) {
+	config := eventFilterConfig{
+		FilteredHttpStatusCodes: []int{301, 404},
+	}
 	testCases := []struct {
 		statusCode  int
 		shouldMatch bool
@@ -23,13 +26,16 @@ func TestEventFilter_statusMatch(t *testing.T) {
 		{statusCode: 404, shouldMatch: true},
 		{statusCode: 500, shouldMatch: false},
 	}
-	eventFilter := New([]int{301, 404}, map[string]string{})
+	eventFilter := New(config)
 	for _, tc := range testCases {
 		assert.Equal(t, tc.shouldMatch, eventFilter.statusMatch(tc.statusCode))
 	}
 }
 
 func TestEventFilter_headersMatch(t *testing.T) {
+	config := eventFilterConfig{
+		FilteredHttpHeaders: map[string]string{"User-Agent": "Firefox"},
+	}
 	testCases := []struct {
 		headers     map[string]string
 		shouldMatch bool
@@ -39,7 +45,7 @@ func TestEventFilter_headersMatch(t *testing.T) {
 		{headers: map[string]string{"user-agent": "firefox"}, shouldMatch: true},
 		{headers: map[string]string{"User-Agent": "Firefox"}, shouldMatch: true},
 	}
-	eventFilter := New([]int{}, map[string]string{"User-Agent": "Firefox"})
+	eventFilter := New(config)
 	for _, tc := range testCases {
 		assert.Equal(t, tc.shouldMatch, eventFilter.headersMatch(tc.headers))
 	}
@@ -65,7 +71,11 @@ func TestEventFilter_headersToLowercase(t *testing.T) {
 }
 
 func TestEventFilter_shouldDrop(t *testing.T) {
-	eventFilter := New([]int{301, 404}, map[string]string{"name": "value"})
+	config := eventFilterConfig{
+		FilteredHttpStatusCodes: []int{301, 404},
+		FilteredHttpHeaders: map[string]string{"name": "value"},
+	}
+	eventFilter := New(config)
 	testCases := []ShouldDropTestCase{
 		// no match
 		{
@@ -117,7 +127,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		},
 		// header match, name normalization (->lower case)
 		{
-			New([]int{}, map[string]string{"NAME": "value"}),
+			New(eventFilterConfig{FilteredHttpHeaders: map[string]string{"NAME": "value"}}, ),
 			&producer.RequestEvent{
 				StatusCode: 200,
 				Headers:    map[string]string{"name": "value"},

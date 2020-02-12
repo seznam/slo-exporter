@@ -201,7 +201,14 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
 	}
 
-	tailer, err := New(fname, true, true, positionsFname, persistPositionInterval)
+	config := tailerConfig{
+		TailedFile:                  fname,
+		Follow:                      true,
+		Reopen:                      true,
+		PositionFile:                positionsFname,
+		PositionPersistenceInterval: persistPositionInterval,
+	}
+	tailer, err := New(config)
 	if err != nil {
 		return err
 	}
@@ -231,7 +238,8 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 	eventsChan = make(chan *producer.RequestEvent)
 	errChan = make(chan error, 10)
 	ctx, cancelFunc = context.WithCancel(context.Background())
-	tailer, err = New(fname, true, true, positionsFname, persistPositionInterval)
+
+	tailer, err = New(config)
 	if err != nil {
 		return err
 	}
@@ -273,9 +281,11 @@ func TestOffsetPersistence(t *testing.T) {
 func TestGetDefaultPositionsFilePath(t *testing.T) {
 	testData := map[string]string{
 		"/tmp/access_log":  "/tmp/access_log.pos",
-		"./access_log.pos":     "./access_log.pos.pos",
+		"./access_log.pos": "./access_log.pos.pos",
 	}
+
 	for logFile, posFile := range testData {
-		assert.Equal(t, posFile, getDefaultPositionsFilePath(logFile))
+		config := tailerConfig{TailedFile: logFile}
+		assert.Equal(t, posFile, config.getDefaultPositionsFilePath())
 	}
 }
