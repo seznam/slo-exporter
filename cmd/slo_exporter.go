@@ -121,7 +121,10 @@ func main() {
 	}
 
 	// Add the EntityKey to all RequestEvents
-	requestNormalizer := normalizer.NewForRequestEvent()
+	requestNormalizer, err := normalizer.NewFromViper(config.MustModuleConfig("normalizer"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	eventFilter, err := event_filter.NewFromViper(config.MustModuleConfig("eventFilter"))
 	if err != nil {
