@@ -88,22 +88,6 @@ func (e *PrometheusSloEventExporter) Run(input <-chan *slo_event_producer.SloEve
 	}()
 }
 
-// checkEventKeyCardinality returns masked value of eventKey in case that e.eventKeyLimit is exceeded)
-func (e *PrometheusSloEventExporter) checkEventKeyCardinality(eventKey string) string {
-	if e.eventKeyLimit == 0 {
-		// unlimited, do not even maintain the cache
-		return eventKey
-	}
-
-	_, ok := e.eventKeyCache[eventKey]
-	if !ok && len(e.eventKeyCache)+1 > e.eventKeyLimit {
-		return eventKeyCardinalityLimitReplacement
-	} else {
-		e.eventKeyCache[eventKey]++
-		return eventKey
-	}
-}
-
 // make sure that eventMetadata contains exactly the expected set, so that it passed Prometheus library sanity checks
 func normalizeEventMetadata(knownMetadata []string, eventMetadata map[string]string) map[string]string {
 	normalized := make(map[string]string)
@@ -112,6 +96,21 @@ func normalizeEventMetadata(knownMetadata []string, eventMetadata map[string]str
 		normalized[k] = v
 	}
 	return normalized
+}
+
+func (e *PrometheusSloEventExporter) isCardinalityExceeded(eventKey string) bool {
+	if e.eventKeyLimit == 0 {
+		// unlimited
+		return false
+	}
+
+	_, ok := e.eventKeyCache[eventKey]
+	if !ok && len(e.eventKeyCache)+1 > e.eventKeyLimit {
+		return true
+	} else {
+		e.eventKeyCache[eventKey]++
+		return false
+	}
 }
 
 func (e *PrometheusSloEventExporter) isValidResult(result slo_event_producer.SloEventResult) bool {
@@ -143,11 +142,11 @@ func (e *PrometheusSloEventExporter) processEvent(event *slo_event_producer.SloE
 		return &InvalidSloEventResult{string(event.Result), e.validEventResults}
 	}
 
-	originalEventKey := normalizedMetadata[e.eventKeyLabel]
-	normalizedMetadata[e.eventKeyLabel] = e.checkEventKeyCardinality(normalizedMetadata[e.eventKeyLabel])
-	if normalizedMetadata[e.eventKeyLabel] != originalEventKey {
-		log.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", originalEventKey, e.eventKeyLimit, eventKeyCardinalityLimitReplacement)
+	if e.isCardinalityExceeded(normalizedMetadata[e.eventKeyLabel]) {
+		log.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", normalizedMetadata[e.eventKeyLabel], e.eventKeyLimit, eventKeyCardinalityLimitReplacement)
+		normalizedMetadata[e.eventKeyLabel] = eventKeyCardinalityLimitReplacement
 	}
+
 	e.initializeMetricForGivenMetadata(normalizedMetadata)
 
 	// add result to metadata

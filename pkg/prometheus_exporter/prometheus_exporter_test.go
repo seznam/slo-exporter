@@ -112,11 +112,10 @@ func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
 	eventKeyLimit := 2
 	exporter := New([]string{}, slo_event_producer.EventResults, eventKeyLabel, eventKeyLimit)
 	for i := 0; i < 5; i++ {
-		maskedEventKey := exporter.checkEventKeyCardinality(string(i))
-		if string(i) != maskedEventKey && i+1 <= eventKeyLimit {
+		if exporter.isCardinalityExceeded(string(i)) && i+1 <= eventKeyLimit {
 			t.Errorf("Event key '%d' masked while it the total count '%d' is under given limit '%d'", i, len(exporter.eventKeyCache), eventKeyLimit)
 		}
-		if string(i) == maskedEventKey && i+1 > eventKeyLimit {
+		if !exporter.isCardinalityExceeded(string(i)) && i+1 > eventKeyLimit {
 			t.Errorf("Event key '%d' should have been masked as the total count '%d' is above given limit '%d'", i, len(exporter.eventKeyCache), eventKeyLimit)
 		}
 
