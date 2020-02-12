@@ -96,7 +96,7 @@ func NewFromConfig(instanceName string, config TimescaleConfig) (*TimescaleExpor
 		return nil, err
 	}
 	return &TimescaleExporter{
-		instanceName: instanceName,
+		instanceName:    instanceName,
 		statisticsMutex: sync.Mutex{},
 		statistics:      map[string]*timescaleMetric{},
 		lastPushTime:    time.Time{},
@@ -163,7 +163,6 @@ func (ts *TimescaleExporter) pushAllMetricsWithOffset(offset time.Duration) {
 func (ts *TimescaleExporter) Run(input <-chan *slo_event_producer.SloEvent) {
 	go func() {
 		defer ts.Close(context.Background())
-		defer log.Info("stopping...")
 		for {
 			select {
 			case event, ok := <-input:

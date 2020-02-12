@@ -130,23 +130,16 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent)
 func (rn *requestNormalizer) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
-		defer log.Info("stopping...")
 
-		for {
-			select {
-			case event, ok := <-inputEventsChan:
-				if !ok {
-					log.Info("input channel closed, finishing")
-					return
-				}
-				if event.EventKey != "" {
-					log.Debugf("skipping event normalization, already has EventKey: %s", event.EventKey)
-					continue
-				}
-				event.EventKey = rn.getNormalizedEventKey(event)
-				log.Debugf("processed event with EventKey: %s", event.EventKey)
-				outputEventsChan <- event
+		for event := range inputEventsChan {
+			if event.EventKey != "" {
+				log.Debugf("skipping event normalization, already has EventKey: %s", event.EventKey)
+				continue
 			}
+			event.EventKey = rn.getNormalizedEventKey(event)
+			log.Debugf("processed event with EventKey: %s", event.EventKey)
+			outputEventsChan <- event
 		}
+		log.Info("input channel closed, finishing")
 	}()
 }

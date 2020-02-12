@@ -61,26 +61,19 @@ func (e *PrometheusSloEventExporter) Run(input <-chan *slo_event_producer.SloEve
 	prometheus.MustRegister(e.eventsCount)
 
 	go func() {
-		defer log.Info("stopping...")
-		for {
-			select {
-			case event, ok := <-input:
-				if !ok {
-					log.Info("input channel closed, finishing")
-					return
-				}
-				err := e.processEvent(event)
-				if err != nil {
-					log.Errorf("unable to process slo event: %v", err)
-					switch err.(type) {
-					case *InvalidSloEventResult:
-						errorsTotal.With(prometheus.Labels{"type": "InvalidResult"}).Inc()
-					default:
-						errorsTotal.With(prometheus.Labels{"type": "Unknown"}).Inc()
-					}
+		for event := range input {
+			err := e.processEvent(event)
+			if err != nil {
+				log.Errorf("unable to process slo event: %v", err)
+				switch err.(type) {
+				case *InvalidSloEventResult:
+					errorsTotal.With(prometheus.Labels{"type": "InvalidResult"}).Inc()
+				default:
+					errorsTotal.With(prometheus.Labels{"type": "Unknown"}).Inc()
 				}
 			}
 		}
+		log.Info("input channel closed, finishing")
 	}()
 }
 

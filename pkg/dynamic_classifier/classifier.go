@@ -179,28 +179,21 @@ func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.Re
 func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
-		defer log.Info("stopping...")
 
-		for {
-			select {
-			case event, ok := <-inputEventsChan:
-				if !ok {
-					log.Info("input channel closed, finishing")
-					return
-				}
-				classified, err := dc.Classify(event)
-				if err != nil {
-					log.Error(err)
-					errorsTotal.WithLabelValues(err.Error()).Inc()
-				}
-				if !classified {
-					log.Warnf("unable to classify %s", event.EventKey)
-				} else {
-					log.Debugf("processed event with EventKey: %s", event.EventKey)
-				}
-				outputEventsChan <- event
+		for event := range inputEventsChan {
+			classified, err := dc.Classify(event)
+			if err != nil {
+				log.Error(err)
+				errorsTotal.WithLabelValues(err.Error()).Inc()
 			}
+			if !classified {
+				log.Warnf("unable to classify %s", event.EventKey)
+			} else {
+				log.Debugf("processed event with EventKey: %s", event.EventKey)
+			}
+			outputEventsChan <- event
 		}
+		log.Info("input channel closed, finishing")
 	}()
 }
 

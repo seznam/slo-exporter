@@ -76,17 +76,10 @@ func (sep *SloEventProducer) generateSLOEvents(event *producer.RequestEvent, slo
 func (sep *SloEventProducer) Run(inputEventChan <-chan *producer.RequestEvent, outputSLOEventChan chan<- *SloEvent) {
 	go func() {
 		defer close(outputSLOEventChan)
-		defer log.Info("stopping...")
 
-		for {
-			select {
-			case event, ok := <-inputEventChan:
-				if !ok {
-					log.Info("input channel closed, finishing")
-					return
-				}
-				sep.generateSLOEvents(event, outputSLOEventChan)
-			}
+		for event := range inputEventChan {
+			sep.generateSLOEvents(event, outputSLOEventChan)
 		}
+		log.Info("input channel closed, finishing")
 	}()
 }

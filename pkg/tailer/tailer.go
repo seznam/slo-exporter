@@ -139,7 +139,6 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 		ticker := time.NewTicker(t.persistPositionInterval)
 		defer ticker.Stop()
 		defer t.positions.Stop()
-		defer log.Info("stopping...")
 
 		quitting := false
 		for {
