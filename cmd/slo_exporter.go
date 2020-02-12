@@ -29,7 +29,7 @@ import (
 const (
 	// global limit for unique eventKeys
 	// TODO add to config once https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/merge_requests/50 is merged
-	prometheusExporterLimit int = 5000
+	prometheusExporterLimit int = 1000
 	// same as above, but also duplicit with slo_event_producer/rule:eventKeyMetadataKey
 	eventKeyLabel string = "event_key"
 )
