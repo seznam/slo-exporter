@@ -46,6 +46,9 @@ spec:
             secretKeyRef:
               name: slo-exporter-htail
               key: ldap-password
+        # custom htail entrypoint log file rotation speed
+        - name: HTAIL_EP_LOG_FILE_MAX_SIZE
+          value: 200000000
         livenessProbe:
           exec:
             command:
