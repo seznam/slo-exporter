@@ -28,12 +28,12 @@ var (
 			ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
 		},
 		[]string{"type"})
-	eventKeysTotal = prometheus.NewCounter(
-		prometheus.CounterOpts{
+	eventKeys = prometheus.NewGauge(
+		prometheus.GaugeOpts{
 			Namespace:   "slo_exporter",
 			Subsystem:   component,
-			Name:        "event_keys_total",
-			Help:        "Total number of unique event keys",
+			Name:        "event_keys",
+			Help:        "Number of known unique event keys",
 			ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
 		})
 	eventKeyCardinalityLimit = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -78,7 +78,7 @@ func New(metricRegistry prometheus.Registerer, labels []string, results []slo_ev
 		Help:        "Total number of SLO events exported with it's result and metadata.",
 		ConstLabels: nil,
 	}, append(labels, sloEventResultLabel))
-	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeysTotal, eventsCount)
+	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeys, eventsCount)
 
 	return &PrometheusSloEventExporter{
 		eventsCount:       eventsCount,
@@ -140,11 +140,8 @@ func (e *PrometheusSloEventExporter) isCardinalityExceeded(eventKey string) bool
 	if !ok && len(e.eventKeyCache)+1 > e.eventKeyLimit {
 		return true
 	} else {
-		if !ok {
-			// new event key
-			eventKeysTotal.Inc()
-		}
 		e.eventKeyCache[eventKey]++
+		eventKeys.Set(float64(len(e.eventKeyCache)))
 		return false
 	}
 }
