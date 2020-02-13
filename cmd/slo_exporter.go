@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 
 	"github.com/gorilla/mux"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
@@ -36,19 +37,20 @@ const (
 )
 
 var (
+	prometheusRegistry             = prometheus.DefaultRegisterer
 	eventProcessingDurationSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "slo_exporter",
-			Name:        "event_processing_duration_seconds",
-			Help:        "Duration histogram of event processing per module.",
-			Buckets:     prometheus.ExponentialBuckets(0.0005, 5, 6),
+			Namespace: "slo_exporter",
+			Name:      "event_processing_duration_seconds",
+			Help:      "Duration histogram of event processing per module.",
+			Buckets:   prometheus.ExponentialBuckets(0.0005, 5, 6),
 		},
 		[]string{"module"},
 	)
 )
 
 func init() {
-	prometheus.MustRegister(eventProcessingDurationSeconds)
+	prometheusRegistry.MustRegister(eventProcessingDurationSeconds)
 }
 
 func setupLogging(logLevel string) error {
@@ -170,7 +172,7 @@ func main() {
 	var exporterChannels []chan *slo_event_producer.SloEvent
 
 	if !*disablePrometheus {
-		sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults, eventKeyLabel, prometheusExporterLimit)
+		sloEventExporter := prometheus_exporter.New(prometheusRegistry, sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults, eventKeyLabel, prometheusExporterLimit)
 		sloEventExporter.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("prometheus_exporter"))
 		prometheusSloEventsChan := make(chan *slo_event_producer.SloEvent)
 		exporterChannels = append(exporterChannels, prometheusSloEventsChan)
