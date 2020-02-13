@@ -13,8 +13,11 @@ const (
 	eventKeyCardinalityLimitReplacement = "cardinalityLimitExceeded"
 )
 
+const (
+	component = "prometheus_exporter"
+)
+
 var (
-	component   string
 	log         *logrus.Entry
 	errorsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -22,18 +25,30 @@ var (
 			Subsystem:   component,
 			Name:        "errors_total",
 			Help:        "Errors occurred during application runtime",
-			ConstLabels: prometheus.Labels{"app": "slo_exporter", "subsystem": component},
+			ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
 		},
 		[]string{"type"})
+	eventKeys = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace:   "slo_exporter",
+			Subsystem:   component,
+			Name:        "event_keys",
+			Help:        "Number of known unique event keys",
+			ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
+		})
+	eventKeyCardinalityLimit = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace:   "slo_exporter",
+		Subsystem:   component,
+		Name:        "event_keys_limit",
+		Help:        "Event keys cardinality limit",
+		ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
+	})
 	sloEventResultLabel = "result"
 	metricName          = "slo_events_total"
 )
 
 func init() {
-	const component = "prometheus_exporter"
 	log = logrus.WithField("component", component)
-	prometheus.MustRegister(errorsTotal)
-
 }
 
 type PrometheusSloEventExporter struct {
@@ -55,13 +70,18 @@ func (e *InvalidSloEventResult) Error() string {
 	return fmt.Sprintf("result '%s' is not valid. Expected one of: %v", e.result, e.validResults)
 }
 
-func New(labels []string, results []slo_event_producer.SloEventResult, eventKeyLabel string, eventKeyLimit int) *PrometheusSloEventExporter {
+func New(metricRegistry prometheus.Registerer, labels []string, results []slo_event_producer.SloEventResult, eventKeyLabel string, eventKeyLimit int) *PrometheusSloEventExporter {
+	// initialize and register Prometheus metrics
+	eventKeyCardinalityLimit.Set(float64(eventKeyLimit))
+	eventsCount := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name:        metricName,
+		Help:        "Total number of SLO events exported with it's result and metadata.",
+		ConstLabels: nil,
+	}, append(labels, sloEventResultLabel))
+	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeys, eventsCount)
+
 	return &PrometheusSloEventExporter{
-		eventsCount: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name:        metricName,
-			Help:        "Total number of SLO events exported with it's result and metadata.",
-			ConstLabels: nil,
-		}, append(labels, sloEventResultLabel)),
+		eventsCount:       eventsCount,
 		knownLabels:       append(labels, sloEventResultLabel),
 		validEventResults: results,
 		eventKeyLabel:     eventKeyLabel,
@@ -71,8 +91,6 @@ func New(labels []string, results []slo_event_producer.SloEventResult, eventKeyL
 }
 
 func (e *PrometheusSloEventExporter) Run(input <-chan *slo_event_producer.SloEvent) {
-	prometheus.MustRegister(e.eventsCount)
-
 	go func() {
 		for event := range input {
 			start := time.Now()
@@ -123,6 +141,7 @@ func (e *PrometheusSloEventExporter) isCardinalityExceeded(eventKey string) bool
 		return true
 	} else {
 		e.eventKeyCache[eventKey]++
+		eventKeys.Set(float64(len(e.eventKeyCache)))
 		return false
 	}
 }

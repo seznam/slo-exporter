@@ -2,6 +2,7 @@ package prometheus_exporter
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"strings"
@@ -89,7 +90,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		exporter := New(labels, slo_event_producer.EventResults, eventKeyLabel, 0)
+		exporter := New(prometheus.NewPedanticRegistry(), labels, slo_event_producer.EventResults, eventKeyLabel, 0)
 		exporter.processEvent(test.event)
 		if err := testutil.CollectAndCompare(exporter.eventsCount, strings.NewReader(test.expectedMetrics), metricName); err != nil {
 			t.Errorf("unexpected collecting result:\n%s", err)
@@ -98,7 +99,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
-	exporter := New([]string{}, slo_event_producer.EventResults, eventKeyLabel, 0)
+	exporter := New(prometheus.NewPedanticRegistry(), []string{}, slo_event_producer.EventResults, eventKeyLabel, 0)
 	testCases := map[slo_event_producer.SloEventResult]bool{
 		slo_event_producer.EventResults[0]:                     true,
 		slo_event_producer.SloEventResult("nonexistingresult"): false,
@@ -110,7 +111,7 @@ func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
 
 func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
 	eventKeyLimit := 2
-	exporter := New([]string{}, slo_event_producer.EventResults, eventKeyLabel, eventKeyLimit)
+	exporter := New(prometheus.NewPedanticRegistry(), []string{}, slo_event_producer.EventResults, eventKeyLabel, eventKeyLimit)
 	for i := 0; i < 5; i++ {
 		if exporter.isCardinalityExceeded(string(i)) && i+1 <= eventKeyLimit {
 			t.Errorf("Event key '%d' masked while it the total count '%d' is under given limit '%d'", i, len(exporter.eventKeyCache), eventKeyLimit)
