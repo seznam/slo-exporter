@@ -63,6 +63,7 @@ build-ci-release-docker:
       - docker-release-ci.uri
 
 release-docker-development:
+  <<: *ci_scripts_image
   stage: release-docker-development
   only:
     - /^v[0-9]+\.[0-9]+\.[0-9]+/
