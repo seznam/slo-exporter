@@ -7,6 +7,11 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 )
 
+const (
+	// used to replace the event's eventKey (for all previously unknown) in case that eventKeyLimit is exceeded
+	eventKeyCardinalityLimitReplacement = "cardinalityLimitExceeded"
+)
+
 var (
 	component   string
 	log         *logrus.Entry
@@ -34,6 +39,9 @@ type PrometheusSloEventExporter struct {
 	eventsCount       *prometheus.CounterVec
 	knownLabels       []string
 	validEventResults []slo_event_producer.SloEventResult
+	eventKeyLabel     string
+	eventKeyLimit     int
+	eventKeyCache     map[string]int
 }
 
 type InvalidSloEventResult struct {
@@ -45,15 +53,18 @@ func (e *InvalidSloEventResult) Error() string {
 	return fmt.Sprintf("result '%s' is not valid. Expected one of: %v", e.result, e.validResults)
 }
 
-func New(labels []string, results []slo_event_producer.SloEventResult) *PrometheusSloEventExporter {
+func New(labels []string, results []slo_event_producer.SloEventResult, eventKeyLabel string, eventKeyLimit int) *PrometheusSloEventExporter {
 	return &PrometheusSloEventExporter{
-		prometheus.NewCounterVec(prometheus.CounterOpts{
+		eventsCount: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name:        metricName,
 			Help:        "Total number of SLO events exported with it's result and metadata.",
 			ConstLabels: nil,
 		}, append(labels, sloEventResultLabel)),
-		append(labels, sloEventResultLabel),
-		results,
+		knownLabels:       append(labels, sloEventResultLabel),
+		validEventResults: results,
+		eventKeyLabel:     eventKeyLabel,
+		eventKeyLimit:     eventKeyLimit,
+		eventKeyCache:     map[string]int{},
 	}
 }
 
@@ -87,6 +98,21 @@ func normalizeEventMetadata(knownMetadata []string, eventMetadata map[string]str
 	return normalized
 }
 
+func (e *PrometheusSloEventExporter) isCardinalityExceeded(eventKey string) bool {
+	if e.eventKeyLimit == 0 {
+		// unlimited
+		return false
+	}
+
+	_, ok := e.eventKeyCache[eventKey]
+	if !ok && len(e.eventKeyCache)+1 > e.eventKeyLimit {
+		return true
+	} else {
+		e.eventKeyCache[eventKey]++
+		return false
+	}
+}
+
 func (e *PrometheusSloEventExporter) isValidResult(result slo_event_producer.SloEventResult) bool {
 	for _, validEventResult := range e.validEventResults {
 		if validEventResult == result {
@@ -115,6 +141,12 @@ func (e *PrometheusSloEventExporter) processEvent(event *slo_event_producer.SloE
 	if !e.isValidResult(event.Result) {
 		return &InvalidSloEventResult{string(event.Result), e.validEventResults}
 	}
+
+	if e.isCardinalityExceeded(normalizedMetadata[e.eventKeyLabel]) {
+		log.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", normalizedMetadata[e.eventKeyLabel], e.eventKeyLimit, eventKeyCardinalityLimitReplacement)
+		normalizedMetadata[e.eventKeyLabel] = eventKeyCardinalityLimitReplacement
+	}
+
 	e.initializeMetricForGivenMetadata(normalizedMetadata)
 
 	// add result to metadata

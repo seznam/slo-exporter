@@ -26,6 +26,14 @@ import (
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
+const (
+	// global limit for unique eventKeys
+	// TODO add to config once https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/merge_requests/50 is merged
+	prometheusExporterLimit int = 1000
+	// same as above, but also duplicit with slo_event_producer/rule:eventKeyMetadataKey
+	eventKeyLabel string = "event_key"
+)
+
 func setupLogging(logLevel string) error {
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&log.TextFormatter{
@@ -140,7 +148,7 @@ func main() {
 	var exporterChannels []chan *slo_event_producer.SloEvent
 
 	if !*disablePrometheus {
-		sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults)
+		sloEventExporter := prometheus_exporter.New(sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults, eventKeyLabel, prometheusExporterLimit)
 		prometheusSloEventsChan := make(chan *slo_event_producer.SloEvent)
 		exporterChannels = append(exporterChannels, prometheusSloEventsChan)
 		sloEventExporter.Run(prometheusSloEventsChan)

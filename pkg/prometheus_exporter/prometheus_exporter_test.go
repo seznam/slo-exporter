@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	eventKeyLabel = "event_key"
+)
+
 type testNormalizeEventMetadata struct {
 	knownMetadata  []string
 	input          map[string]string
@@ -50,7 +54,7 @@ var (
 		# HELP %s Total number of SLO events exported with it's result and metadata.
 		# TYPE %s counter
 	`, metricName, metricName)
-	labels = []string{"a", "b"}
+	labels = []string{"a", "b", eventKeyLabel}
 )
 
 type testProcessEvent struct {
@@ -63,29 +67,29 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 		{
 			event: &slo_event_producer.SloEvent{
 				TimeOccurred: time.Time{},
-				SloMetadata:  map[string]string{"a": "a1", "b": "b1"},
+				SloMetadata:  map[string]string{"a": "a1", "b": "b1", eventKeyLabel: ""},
 				Result:       slo_event_producer.SloEventResultFail,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%s{ a = "a1" , b = "b1", result="fail"} 1
-				%s{ a = "a1" , b = "b1", result="success"} 0
-				`, metricName, metricName),
+				%s{ a = "a1" , b = "b1", %s = "", result="fail"} 1
+				%s{ a = "a1" , b = "b1", %s = "", result="success"} 0
+				`, metricName, eventKeyLabel, metricName, eventKeyLabel),
 		},
 		{
 			event: &slo_event_producer.SloEvent{
 				TimeOccurred: time.Time{},
-				SloMetadata:  map[string]string{"a": "a1", "b": "b1"},
+				SloMetadata:  map[string]string{"a": "a1", "b": "b1", eventKeyLabel: ""},
 				Result:       slo_event_producer.SloEventResultSuccess,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%s{ a = "a1" , b = "b1", result="success"} 1
-				%s{ a = "a1" , b = "b1", result="fail"} 0
-				`, metricName, metricName),
+				%s{ a = "a1" , b = "b1", %s = "", result="success"} 1
+				%s{ a = "a1" , b = "b1", %s = "", result="fail"} 0
+				`, metricName, eventKeyLabel, metricName, eventKeyLabel),
 		},
 	}
 
 	for _, test := range testCases {
-		exporter := New(labels, slo_event_producer.EventResults)
+		exporter := New(labels, slo_event_producer.EventResults, eventKeyLabel, 0)
 		exporter.processEvent(test.event)
 		if err := testutil.CollectAndCompare(exporter.eventsCount, strings.NewReader(test.expectedMetrics), metricName); err != nil {
 			t.Errorf("unexpected collecting result:\n%s", err)
@@ -94,12 +98,26 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
-	exporter := New([]string{}, slo_event_producer.EventResults)
+	exporter := New([]string{}, slo_event_producer.EventResults, eventKeyLabel, 0)
 	testCases := map[slo_event_producer.SloEventResult]bool{
 		slo_event_producer.EventResults[0]:                     true,
 		slo_event_producer.SloEventResult("nonexistingresult"): false,
 	}
 	for eventResult, valid := range testCases {
 		assert.Equal(t, valid, exporter.isValidResult(eventResult))
+	}
+}
+
+func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
+	eventKeyLimit := 2
+	exporter := New([]string{}, slo_event_producer.EventResults, eventKeyLabel, eventKeyLimit)
+	for i := 0; i < 5; i++ {
+		if exporter.isCardinalityExceeded(string(i)) && i+1 <= eventKeyLimit {
+			t.Errorf("Event key '%d' masked while it the total count '%d' is under given limit '%d'", i, len(exporter.eventKeyCache), eventKeyLimit)
+		}
+		if !exporter.isCardinalityExceeded(string(i)) && i+1 > eventKeyLimit {
+			t.Errorf("Event key '%d' should have been masked as the total count '%d' is above given limit '%d'", i, len(exporter.eventKeyCache), eventKeyLimit)
+		}
+
 	}
 }
