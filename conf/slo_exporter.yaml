@@ -1,4 +1,3 @@
-
 # Every configuration key can be configured using ENV variables.
 # To set root level keys use pattern `SLO_EXPORTER_<KEYNAME>` eg `SLO_EXPORTER_WEBSERVERLISTENADDRESS="0.0.0.0:8080"`.
 # To set module level keys use pattern `SLO_EXPORTER_<MODULENAME>_<KEYNAME>` eg `SLO_EXPORTER_EVENTFILTER_FILTEREDHTTPSTATUSCODES="404,301"`.
@@ -40,6 +39,29 @@ modules:
 
   # PROCESSOR Module doing sanitization of HTTP request path anf generating unique key for the event.
   normalizer:
+    getParamWithEventIdentifier: "operationName"
+    # List of replace rules to be applied on the HTTP request path
+    replaceRules:
+      # Regular expression to match the path
+      - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
+        # Replacement of the matched path
+        replacement: "/api/v1/ppchit/rule/0"
+      - regexp: '/campaigns/\\d+/groups/\\d+/placements/automatic/(\\w[\\w-]+\\.)+\w{2,}/urls'
+        replacement: "/campaigns/0/groups/0/placements/automatic/:domain/urls"
+      - regexp: "/api/v1/captchas/\\w+"
+        replacement: "/api/v1/captchas/:hash"
+    # If hashes in the path should be replaced (MD5, SHA1, ...).
+    sanitizeHashes: true
+    # If number sequences in the path should be replaced eg `/foo/123/bar`.
+    sanitizeNumbers: true
+    # If UIDs in the path should be replaced.
+    sanitizeUids: true
+    # If IPs in the path should be replaced (v4, v6).
+    sanitizeIps:     true
+    # If image names should be masked (.png, .jpg, .gif ...).
+    sanitizeImages:  true
+    # If font file names in the path should be replaced (.ttf, .woff, ...)
+    sanitizeFonts:   true
 
   # PROCESSOR Module which classifies the events if not already into SLO domain, class and app according to it's key.
   dynamicClassifier:
