@@ -5,6 +5,7 @@ package slo_event_producer
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"time"
 
@@ -18,7 +19,7 @@ const (
 )
 
 var (
-	log                     *logrus.Entry
+	log          *logrus.Entry
 	EventResults = []SloEventResult{SloEventResultSuccess, SloEventResultFail}
 )
 
@@ -67,6 +68,17 @@ func New(config sloEventProducerConfig) (*SloEventProducer, error) {
 
 type SloEventProducer struct {
 	eventEvaluator EventEvaluator
+	observer       prometheus.Observer
+}
+
+func (sep *SloEventProducer) SetPrometheusObserver(observer prometheus.Observer) {
+	sep.observer = observer
+}
+
+func (sep *SloEventProducer) observeDuration(start time.Time) {
+	if sep.observer != nil {
+		sep.observer.Observe(time.Since(start).Seconds())
+	}
 }
 
 func (sep *SloEventProducer) PossibleMetadataKeys() []string {
@@ -83,7 +95,9 @@ func (sep *SloEventProducer) Run(inputEventChan <-chan *producer.RequestEvent, o
 		defer close(outputSLOEventChan)
 
 		for event := range inputEventChan {
+			start := time.Now()
 			sep.generateSLOEvents(event, outputSLOEventChan)
+			sep.observeDuration(start)
 		}
 		log.Info("input channel closed, finishing")
 	}()

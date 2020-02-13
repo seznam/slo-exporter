@@ -1,4 +1,7 @@
+//revive:disable:var-naming
 package dynamic_classifier
+
+//revive:enable:var-naming
 
 import (
 	"encoding/csv"
