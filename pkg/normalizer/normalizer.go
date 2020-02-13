@@ -2,10 +2,12 @@ package normalizer
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ const (
 	imagePlaceholder       = ":image"
 	fontPlaceholder        = ":font"
 	pathItemsSeparator     = "/"
+	component              = "normalizer"
 )
 
 var (
@@ -31,7 +34,7 @@ var (
 )
 
 func init() {
-	log = logrus.WithField("component", "normalizer")
+	log = logrus.WithField("component", component)
 }
 
 type replacer struct {
@@ -75,6 +78,17 @@ type requestNormalizer struct {
 	SanitizeIps                 bool
 	SanitizeImages              bool
 	SanitizeFonts               bool
+	observer                    prometheus.Observer
+}
+
+func (rn *requestNormalizer) SetPrometheusObserver(observer prometheus.Observer) {
+	rn.observer = observer
+}
+
+func (rn *requestNormalizer) observeDuration(start time.Time) {
+	if rn.observer != nil {
+		rn.observer.Observe(time.Since(start).Seconds())
+	}
 }
 
 func (rn *requestNormalizer) precompileRegexps() error {
@@ -157,8 +171,8 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent)
 func (rn *requestNormalizer) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
-
 		for event := range inputEventsChan {
+			start := time.Now()
 			if event.EventKey != "" {
 				log.Debugf("skipping event normalization, already has EventKey: %s", event.EventKey)
 				continue
@@ -166,6 +180,7 @@ func (rn *requestNormalizer) Run(inputEventsChan <-chan *producer.RequestEvent, 
 			event.EventKey = rn.getNormalizedEventKey(event)
 			log.Debugf("processed event with EventKey: %s", event.EventKey)
 			outputEventsChan <- event
+			rn.observeDuration(start)
 		}
 		log.Info("input channel closed, finishing")
 	}()

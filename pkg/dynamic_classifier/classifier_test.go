@@ -1,4 +1,7 @@
+//revive:disable:var-naming
 package dynamic_classifier
+
+//revive:enable:var-naming
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -39,7 +42,7 @@ func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 
 func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 	config := classifierConfig{
-		SloDomain:            "test-domain",
+		SloDomain:             "test-domain",
 		RegexpMatchesCsvFiles: goldenFile(t),
 	}
 	classifier := newClassifier(t, config)
@@ -93,7 +96,7 @@ func TestClassificationByExactMatches(t *testing.T) {
 
 func TestClassificationByRegexpMatches(t *testing.T) {
 	config := classifierConfig{
-		SloDomain:            "test-domain",
+		SloDomain:             "test-domain",
 		RegexpMatchesCsvFiles: goldenFile(t),
 	}
 	classifier := newClassifier(t, config)

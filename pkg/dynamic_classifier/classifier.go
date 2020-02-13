@@ -1,4 +1,7 @@
+//revive:disable:var-naming
 package dynamic_classifier
+
+//revive:enable:var-naming
 
 import (
 	"encoding/csv"
@@ -7,8 +10,9 @@ import (
 	"github.com/spf13/viper"
 	"io"
 	"os"
+	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 
@@ -50,6 +54,7 @@ type DynamicClassifier struct {
 	exactMatches  matcher
 	regexpMatches matcher
 	sloDomain     string
+	observer prometheus.Observer
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*DynamicClassifier, error) {
@@ -76,6 +81,16 @@ func New(conf classifierConfig) (*DynamicClassifier, error) {
 	return &classifier, nil
 }
 
+func (dc *DynamicClassifier) SetPrometheusObserver(observer prometheus.Observer) {
+	dc.observer = observer
+}
+
+func (dc *DynamicClassifier) observeDuration(start time.Time) {
+	if dc.observer != nil {
+		dc.observer.Observe(time.Since(start).Seconds())
+	}
+}
+
 // LoadExactMatchesFromMultipleCSV loads exact matches from csv
 func (dc *DynamicClassifier) LoadExactMatchesFromMultipleCSV(paths []string) error {
 	return dc.loadMatchesFromMultipleCSV(dc.exactMatches, paths)
@@ -87,13 +102,13 @@ func (dc *DynamicClassifier) LoadRegexpMatchesFromMultipleCSV(paths []string) er
 }
 
 func (dc *DynamicClassifier) loadMatchesFromMultipleCSV(matcher matcher, paths []string) error {
-	var errors error
+	var errs error
 	for _, p := range paths {
 		if err := dc.loadMatchesFromCSV(matcher, p); err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 	}
-	return errors
+	return errs
 }
 
 func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) error {
@@ -203,6 +218,7 @@ func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, 
 		defer close(outputEventsChan)
 
 		for event := range inputEventsChan {
+			start := time.Now()
 			classified, err := dc.Classify(event)
 			if err != nil {
 				log.Error(err)
@@ -214,6 +230,7 @@ func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, 
 				log.Debugf("processed event with EventKey: %s", event.EventKey)
 			}
 			outputEventsChan <- event
+			dc.observeDuration(start)
 		}
 		log.Info("input channel closed, finishing")
 	}()

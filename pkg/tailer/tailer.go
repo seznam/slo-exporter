@@ -84,6 +84,7 @@ type Tailer struct {
 	tail                    *tail.Tail
 	positions               *positions.Positions
 	persistPositionInterval time.Duration
+	observer                prometheus.Observer
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*Tailer, error) {
@@ -139,7 +140,17 @@ func New(config tailerConfig) (*Tailer, error) {
 		return nil, err
 	}
 
-	return &Tailer{config.TailedFile, tailFile, pos, config.PositionPersistenceInterval}, nil
+	return &Tailer{filename: config.TailedFile, tail: tailFile, positions: pos, persistPositionInterval: config.PositionPersistenceInterval}, nil
+}
+
+func (t *Tailer) SetPrometheusObserver(observer prometheus.Observer) {
+	t.observer = observer
+}
+
+func (t *Tailer) observeDuration(start time.Time) {
+	if t.observer != nil {
+		t.observer.Observe(time.Since(start).Seconds())
+	}
 }
 
 // Run starts to tail the associated file, feeding RequestEvents, errors into separated channels.
@@ -149,7 +160,7 @@ func New(config tailerConfig) (*Tailer, error) {
 // - RequestEvent.IP may be nil in case invalid IP address is given in logline
 // - Slo* fields may not be filled at all
 // - Content of RequestEvent.Headers may vary
-func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent, errChan chan error) {
+func (t *Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent, errChan chan error) {
 
 	go func() {
 		defer close(eventsChan)
@@ -166,6 +177,7 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 					log.Info("input channel closed, finishing")
 					return
 				}
+				start := time.Now()
 				if line.Err != nil {
 					log.Error(line.Err)
 				}
@@ -177,6 +189,7 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 				} else {
 					eventsChan <- event
 				}
+				t.observeDuration(start)
 			case <-ticker.C:
 				if !quitting {
 					// get current offset from tail.TailFile instance

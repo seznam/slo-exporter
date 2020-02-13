@@ -5,6 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
+	"time"
 )
 
 const (
@@ -42,6 +43,7 @@ type PrometheusSloEventExporter struct {
 	eventKeyLabel     string
 	eventKeyLimit     int
 	eventKeyCache     map[string]int
+	observer          prometheus.Observer
 }
 
 type InvalidSloEventResult struct {
@@ -73,6 +75,7 @@ func (e *PrometheusSloEventExporter) Run(input <-chan *slo_event_producer.SloEve
 
 	go func() {
 		for event := range input {
+			start := time.Now()
 			err := e.processEvent(event)
 			if err != nil {
 				log.Errorf("unable to process slo event: %v", err)
@@ -83,9 +86,20 @@ func (e *PrometheusSloEventExporter) Run(input <-chan *slo_event_producer.SloEve
 					errorsTotal.With(prometheus.Labels{"type": "Unknown"}).Inc()
 				}
 			}
+			e.observeDuration(start)
 		}
 		log.Info("input channel closed, finishing")
 	}()
+}
+
+func (e *PrometheusSloEventExporter) SetPrometheusObserver(observer prometheus.Observer) {
+	e.observer = observer
+}
+
+func (e *PrometheusSloEventExporter) observeDuration(start time.Time) {
+	if e.observer != nil {
+		e.observer.Observe(time.Since(start).Seconds())
+	}
 }
 
 // make sure that eventMetadata contains exactly the expected set, so that it passed Prometheus library sanity checks

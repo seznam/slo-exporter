@@ -1,4 +1,7 @@
+//revive:disable:var-naming
 package dynamic_classifier
+
+//revive:enable:var-naming
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

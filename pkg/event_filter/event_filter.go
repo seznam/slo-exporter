@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"strings"
+	"time"
 )
 
 const (
@@ -36,6 +37,7 @@ type eventFilterConfig struct {
 type RequestEventFilter struct {
 	statuses []int
 	headers  map[string]string
+	observer prometheus.Observer
 }
 
 func headersToLowercase(headers map[string]string) map[string]string {
@@ -56,8 +58,8 @@ func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
 
 func New(config eventFilterConfig) *RequestEventFilter {
 	return &RequestEventFilter{
-		config.FilteredHttpStatusCodes,
-		headersToLowercase(config.FilteredHttpHeaders),
+		statuses: config.FilteredHttpStatusCodes,
+		headers:  headersToLowercase(config.FilteredHttpHeaders),
 	}
 }
 
@@ -96,14 +98,25 @@ func (ef *RequestEventFilter) headersMatch(testedHeaders map[string]string) bool
 	return false
 }
 
+func (ef *RequestEventFilter) SetPrometheusObserver(observer prometheus.Observer) {
+	ef.observer = observer
+}
+
+func (ef *RequestEventFilter) observeDuration(start time.Time) {
+	if ef.observer != nil {
+		ef.observer.Observe(time.Since(start).Seconds())
+	}
+}
+
 func (ef *RequestEventFilter) Run(in <-chan *producer.RequestEvent, out chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(out)
-
 		for event := range in {
+			start := time.Now()
 			if !ef.matches(event) {
 				out <- event
 			}
+			ef.observeDuration(start)
 		}
 		log.Info("input channel closed, finishing")
 	}()
