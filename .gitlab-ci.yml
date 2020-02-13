@@ -30,6 +30,15 @@ test:
       - coverage.out
     expire_in: 1 week
 
+test-tag-version:
+  <<: *ci_scripts_image
+  stage: check
+  script: |
+    /ci/test-version-match.sh
+  only:
+    - /^v[0-9]+\.[0-9]+\.[0-9]+/
+
+
 build:
   stage: build
   script: |
