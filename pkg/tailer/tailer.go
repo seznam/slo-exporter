@@ -38,14 +38,13 @@ var (
 		Name:      "lines_read_total",
 		Help:      "Total number of lines tailed from the file.",
 	})
-	malformedLinesTotal = prometheus.NewCounterVec(
+	malformedLinesTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "slo_exporter",
 			Subsystem: component,
 			Name:      "malformed_lines_total",
 			Help:      "Total number of invalid lines that failed to parse.",
 		},
-		[]string{"reason"},
 	)
 	fileSizeBytes = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "slo_exporter",
@@ -173,7 +172,7 @@ func (t Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent,
 				linesReadTotal.Inc()
 				event, err := parseLine(line.Text)
 				if err != nil {
-					malformedLinesTotal.WithLabelValues(err.Error()).Inc()
+					malformedLinesTotal.Inc()
 					reportErrLine(line.Text, err)
 				} else {
 					eventsChan <- event

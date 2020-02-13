@@ -206,7 +206,7 @@ func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, 
 			classified, err := dc.Classify(event)
 			if err != nil {
 				log.Error(err)
-				errorsTotal.WithLabelValues(err.Error()).Inc()
+				errorsTotal.WithLabelValues("failedToCLassify").Inc()
 			}
 			if !classified {
 				log.Warnf("unable to classify %s", event.EventKey)
