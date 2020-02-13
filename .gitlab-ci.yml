@@ -130,6 +130,7 @@ pages:
 # Release docker image to production registry
 # ---------------------------------------------------------------------------
 release-docker-production:
+  <<: *ci_scripts_image
   stage: release-docker-production
   except:
     - branches
