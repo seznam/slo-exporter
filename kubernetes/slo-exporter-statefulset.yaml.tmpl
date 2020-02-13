@@ -56,6 +56,8 @@ spec:
             - -c
             - -e
             - find /log -newermt '2 minute ago' -name htail.log | grep htail.log$
+          failureThreshold: 5
+          timeoutSeconds: 3
         resources:
           requests:
             cpu: "{{ env "HTAIL_KUBERNETES_RESOURCES_REQUESTS_CPU" | default "0.1" }}"
