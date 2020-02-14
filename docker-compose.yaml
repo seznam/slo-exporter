@@ -47,16 +47,15 @@ services:
               {"targets":["slo-exporter:8080"]},
               ],
             }],
-          "remote_read": [
-                 {"url": "http://prometheus_postgresql_adapter:9201/read"}
-            ]
         }
     entrypoint: ["sh"]
-#    volumes:
-#      - ./prometheus/data:/prometheus/data
     command:
       - "-c"
       - 'echo $$PROMETHEUS_CONFIG > /etc/prometheus/prometheus.yml; prometheus --config.file=/etc/prometheus/prometheus.yml'
+#    volumes:
+#      - ./prometheus/data:/prometheus/data
+
+
 #
 #  postgresql:
 #    environment:
@@ -96,3 +95,4 @@ services:
 
 volumes:
   log-volume:
+  grafana_data:

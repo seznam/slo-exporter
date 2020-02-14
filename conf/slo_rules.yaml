@@ -1,6 +1,4 @@
-
 rules:
-
   - event_type: request
     matcher:
       slo_domain: userportal
@@ -9,24 +7,113 @@ rules:
         value: 499
     additional_metadata:
       slo_type: availability
-      slo_version: 1
+      slo_version: 5
 
   - event_type: request
     matcher:
+      slo_domain: userportal
+      slo_class: critical
     failure_criteria:
       - criterium: requestDurationHigherThan
-        value: 1s
+        value: 0.8s
     additional_metadata:
+      slo_version: 5
       slo_type: latency90
-      quantile: 90
-      le: 1
+      percentile: 90
+      le: 0.8
+
 
   - event_type: request
     matcher:
+      slo_domain: userportal
+      slo_class: critical
     failure_criteria:
       - criterium: requestDurationHigherThan
-        value: 2s
+        value: 6.0s
     additional_metadata:
+      slo_version: 5
       slo_type: latency99
-      quantile: 99
-      le: 2
+      percentile: 99
+      le: 6.0
+
+
+  - event_type: request
+    matcher:
+      slo_domain: userportal
+      slo_class: high_fast
+    failure_criteria:
+      - criterium: requestDurationHigherThan
+        value: 8.0s
+    additional_metadata:
+      slo_version: 5
+      slo_type: latency90
+      percentile: 90
+      le: 8.0
+
+
+  - event_type: request
+    matcher:
+      slo_domain: userportal
+      slo_class: high_fast
+    failure_criteria:
+      - criterium: requestDurationHigherThan
+        value: 12.0s
+    additional_metadata:
+      slo_version: 5
+      slo_type: latency99
+      percentile: 99
+      le: 12.0
+
+  - event_type: request
+    matcher:
+      slo_domain: userportal
+      slo_class: high_slow
+    failure_criteria:
+      - criterium: requestDurationHigherThan
+        value: 8.0s
+    additional_metadata:
+      slo_version: 5
+      slo_type: latency90
+      percentile: 90
+      le: 8.0
+
+  - event_type: request
+    matcher:
+      slo_domain: userportal
+      slo_class: high_slow
+    failure_criteria:
+      - criterium: requestDurationHigherThan
+        value: 32.0s
+    additional_metadata:
+      slo_version: 5
+      slo_type: latency99
+      percentile: 99
+      le: 32.0
+
+
+  - event_type: request
+    matcher:
+      slo_domain: userportal
+      slo_class: low
+    failure_criteria:
+      - criterium: requestDurationHigherThan
+        value: 16.0s
+    additional_metadata:
+      slo_version: 5
+      slo_type: latency90
+      percentile: 90
+      le: 16.0
+
+
+  - event_type: request
+    matcher:
+      slo_domain: userportal
+      slo_class: low
+    failure_criteria:
+      - criterium: requestDurationHigherThan
+        value: 32.0s
+    additional_metadata:
+      slo_version: 5
+      slo_type: latency99
+      percentile: 99
+      le: 32.0

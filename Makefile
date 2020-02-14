@@ -22,5 +22,6 @@ compose: build clean-compose
 
 clean-compose:
 	$(DOCKER_COMPOSE) rm --force --stop -v
+	docker volume rm slo-exporter_log-volume || true
 
 .PHONY: build lint test test-and-coverage compose
