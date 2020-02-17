@@ -81,6 +81,24 @@ modules:
 
   # EXPORTER Module allowing to expose SLO metrics for Prometheus.
   prometheusExporter:
+    # Name of the resulting counter metric to be exposed representing counter of slo events by it's classification and result.
+    metricName: "slo_events_total"
+    # Limit of unique event keys, when exceeded, the event key in the label is replaced with placeholder.
+    maximumUniqueEventKeys: 1000
+    # Placeholder to replace new event keys when the limit is hit.
+    ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
+    # Names of labels to be used for specific event information.
+    labelNames:
+      # Contains information about the event result (success, fail, ...).
+      result: "result"
+      # Domain of the SLO event.
+      sloDomain: "slo_domain"
+      # SLO class of the event.
+      sloClass: "slo_class"
+      # Application, to which the event belongs.
+      sloApp: "slo_app"
+      # Unique identifier of the event.
+      eventKey: "event_key"
 
   # EXPORTER Module allowing to write SLO metrics to TimescaleDB.
   timescaleExporter:

@@ -5,14 +5,10 @@ package slo_event_producer
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
-
-const (
-	eventKeyMetadataKey = "event_key"
-)
-
-type eventMetadata map[string]string
 
 var (
 	unclassifiedEventsTotal = prometheus.NewCounter(prometheus.CounterOpts{
@@ -27,30 +23,6 @@ func init() {
 	prometheus.MustRegister(unclassifiedEventsTotal)
 }
 
-func (e *eventMetadata) matches(otherMetadata eventMetadata) bool {
-	for k, v := range *e {
-		otherV, ok := otherMetadata[k]
-		if !ok {
-			return false
-		}
-		if otherV != v {
-			return false
-		}
-	}
-	return true
-}
-
-func mergeMetadata(a, b map[string]string) map[string]string {
-	newMetadata := map[string]string{}
-	for k, v := range a {
-		newMetadata[k] = v
-	}
-	for k, v := range b {
-		newMetadata[k] = v
-	}
-	return newMetadata
-}
-
 func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 	var failureCriteria []criterium
 	for _, criteriumOpts := range opts.FailureCriteriaOptions {
@@ -61,74 +33,65 @@ func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 		failureCriteria = append(failureCriteria, criterium)
 	}
 	return &evaluationRule{
-		matcher:            opts.Matcher,
+		sloMatcher: producer.SloClassification{
+			Domain: opts.SloMatcher.Domain,
+			App:    opts.SloMatcher.App,
+			Class:  opts.SloMatcher.Class,
+		},
 		failureCriteria:    failureCriteria,
 		additionalMetadata: opts.AdditionalMetadata,
 	}, nil
 }
 
 type evaluationRule struct {
-	matcher            eventMetadata
+	sloMatcher         producer.SloClassification
 	failureCriteria    []criterium
-	additionalMetadata eventMetadata
+	additionalMetadata stringmap.StringMap
 }
 
 func (er *evaluationRule) PossibleMetadataKeys() []string {
-	sloClassification := producer.SloClassification{}
-	resultingMetadata := mergeMetadata(sloClassification.GetMap(), er.additionalMetadata)
-	resultingMetadata = mergeMetadata(resultingMetadata, map[string]string{eventKeyMetadataKey: ""})
-	var keys []string
-	for k := range resultingMetadata {
-		keys = append(keys, k)
-	}
-	return keys
+	return er.additionalMetadata.Keys()
 }
 
-func (er *evaluationRule) markEventResult(failed bool, event *SloEvent) {
+func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
 	if failed {
-		event.Result = SloEventResultFail
+		newEvent.Result = event.Fail
 	} else {
-		event.Result = SloEventResultSuccess
+		newEvent.Result = event.Success
 	}
 }
 
-func (er *evaluationRule) setEventKey(event *producer.RequestEvent, newEvent *SloEvent) {
-	newEvent.SloMetadata[eventKeyMetadataKey] = event.GetEventKey()
-}
-
-func (er *evaluationRule) evaluateEvent(event *producer.RequestEvent) (*SloEvent, bool) {
-	eventMetadata := event.GetSloMetadata()
-	if !event.IsClassified() || eventMetadata == nil {
+func (er *evaluationRule) evaluateEvent(newEvent *producer.RequestEvent) (*event.Slo, bool) {
+	eventSloClassification := newEvent.GetSloClassification()
+	if !newEvent.IsClassified() || eventSloClassification == nil {
 		unclassifiedEventsTotal.Inc()
-		log.Warnf("dropping event %v with no classification", event)
+		log.Warnf("dropping event %v with no classification", newEvent)
 		return nil, false
 	}
-	// Check if rule matches the event
-	if er.matcher != nil {
-		if !er.matcher.matches(*eventMetadata) {
-			return nil, false
-		}
+	// Check if rule matches the newEvent
+	if !er.sloMatcher.Matches(*eventSloClassification) {
+		return nil, false
 	}
 	// Evaluate all criteria and if matches any, mark it as failed.
 	failed := false
 	for _, criterium := range er.failureCriteria {
-		log.Tracef("evaluating criterium %v", criterium)
-		if criterium.Evaluate(event) {
+		log.Tracef("evaluating criterium %+v", criterium)
+		if criterium.Evaluate(newEvent) {
 			failed = true
 			break
 		}
 	}
-	finalMetadata := map[string]string{}
-	if er.additionalMetadata != nil {
-		finalMetadata = mergeMetadata(er.additionalMetadata, *eventMetadata)
-	} else {
-		finalMetadata = *eventMetadata
-	}
 
-	newSloEvent := &SloEvent{TimeOccurred: event.GetTimeOccurred(), SloMetadata: finalMetadata}
+	newSloEvent := &event.Slo{
+		Key:      newEvent.GetEventKey(),
+		Occurred: newEvent.GetTimeOccurred(),
+		Domain:   eventSloClassification.Domain,
+		Class:    eventSloClassification.Class,
+		App:      eventSloClassification.App,
+		Metadata: er.additionalMetadata,
+	}
 	er.markEventResult(failed, newSloEvent)
-	er.setEventKey(event, newSloEvent)
-	log.Debugf("generated SLO event: %v", newSloEvent)
+	log.Debugf("generated SLO newEvent: %+v", newSloEvent)
 	return newSloEvent, true
 
 }

@@ -1,7 +1,7 @@
 rules:
   - event_type: request
-    matcher:
-      slo_domain: userportal
+    slo_matcher:
+      domain: userportal
     failure_criteria:
       - criterium: requestStatusHigherThan
         value: 499
@@ -10,9 +10,9 @@ rules:
       slo_version: 5
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: critical
+    slo_matcher:
+      domain: userportal
+      class: critical
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 0.8s
@@ -24,9 +24,9 @@ rules:
 
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: critical
+    slo_matcher:
+      domain: userportal
+      class: critical
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 6.0s
@@ -38,9 +38,9 @@ rules:
 
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: high_fast
+    slo_matcher:
+      domain: userportal
+      class: high_fast
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 8.0s
@@ -52,9 +52,9 @@ rules:
 
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: high_fast
+    slo_matcher:
+      domain: userportal
+      class: high_fast
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 12.0s
@@ -65,9 +65,9 @@ rules:
       le: 12.0
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: high_slow
+    slo_matcher:
+      domain: userportal
+      class: high_slow
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 8.0s
@@ -78,9 +78,9 @@ rules:
       le: 8.0
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: high_slow
+    slo_matcher:
+      domain: userportal
+      class: high_slow
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 32.0s
@@ -92,9 +92,9 @@ rules:
 
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: low
+    slo_matcher:
+      domain: userportal
+      class: low
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 16.0s
@@ -106,9 +106,9 @@ rules:
 
 
   - event_type: request
-    matcher:
-      slo_domain: userportal
-      slo_class: low
+    slo_matcher:
+      domain: userportal
+      class: low
     failure_criteria:
       - criterium: requestDurationHigherThan
         value: 32.0s

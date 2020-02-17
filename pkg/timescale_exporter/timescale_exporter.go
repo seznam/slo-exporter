@@ -10,21 +10,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/sqlwriter"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"os"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 )
 
 const (
 	component             = "timescale_exporter"
-	sloEventsMetricName   = "timescale_slo_events_total"
 	timescaleMetricsTable = "metrics"
-	sloResultLabel        = "result"
-	instanceLabel         = "instance"
 )
 
 var (
@@ -37,6 +33,8 @@ func init() {
 
 type TimescaleExporter struct {
 	instanceName    string
+	metricName      string
+	labelNames      labelsNamesConfig
 	statistics      map[string]*timescaleMetric
 	statisticsMutex sync.Mutex
 	lastPushTime    time.Time
@@ -98,6 +96,8 @@ func New(config Config) (*TimescaleExporter, error) {
 	}
 	return &TimescaleExporter{
 		instanceName:    config.Instance,
+		metricName:      config.metricName,
+		labelNames:      config.LabelNames,
 		statisticsMutex: sync.Mutex{},
 		statistics:      map[string]*timescaleMetric{},
 		lastPushTime:    time.Time{},
@@ -119,9 +119,9 @@ func (ts *TimescaleExporter) Close(ctx context.Context) error {
 	return errs
 }
 
-func encodePrometheusMetric(labels string, value float64, metricTime time.Time) string {
+func (ts *TimescaleExporter) encodePrometheusMetric(labels string, value float64, metricTime time.Time) string {
 	timestamp := metricTime.UnixNano() / int64(time.Millisecond)
-	return fmt.Sprintf("%s%s %g %d", sloEventsMetricName, labels, value, timestamp)
+	return fmt.Sprintf("%s{%s} %g %d", ts.metricName, labels, value, timestamp)
 }
 
 func (ts *TimescaleExporter) shouldBeMetricPushed(evaluationTime time.Time, metric *timescaleMetric) bool {
@@ -136,8 +136,8 @@ func newerTime(original, new time.Time) time.Time {
 	return original
 }
 
-func renderSqlInsert(labels string, value float64, eventTime time.Time) string {
-	metricString := encodePrometheusMetric(labels, value, eventTime)
+func (ts *TimescaleExporter) renderSqlInsert(labels string, value float64, eventTime time.Time) string {
+	metricString := ts.encodePrometheusMetric(labels, value, eventTime)
 	return fmt.Sprintf("INSERT INTO %s VALUES ('%s');", timescaleMetricsTable, metricString)
 }
 
@@ -146,7 +146,7 @@ func (ts *TimescaleExporter) pushMetricsWithTimestamp(eventTime time.Time) {
 		if !ts.shouldBeMetricPushed(eventTime, metric) {
 			continue
 		}
-		preparedSql := renderSqlInsert(labels, metric.value, eventTime)
+		preparedSql := ts.renderSqlInsert(labels, metric.value, eventTime)
 		ts.sqlWriter.Write(preparedSql)
 		metric.lastPushTime = newerTime(metric.lastPushTime, eventTime)
 	}
@@ -155,27 +155,27 @@ func (ts *TimescaleExporter) pushMetricsWithTimestamp(eventTime time.Time) {
 func (ts *TimescaleExporter) pushAllMetricsWithOffset(offset time.Duration) {
 	for labels, metric := range ts.statistics {
 		newPushTime := metric.lastPushTime.Add(offset)
-		preparedSql := renderSqlInsert(labels, metric.value, newPushTime)
+		preparedSql := ts.renderSqlInsert(labels, metric.value, newPushTime)
 		ts.sqlWriter.Write(preparedSql)
 		metric.lastPushTime = newerTime(metric.lastPushTime, newPushTime)
 	}
 }
 
-func (ts *TimescaleExporter) Run(input <-chan *slo_event_producer.SloEvent) {
+func (ts *TimescaleExporter) Run(input <-chan *event.Slo) {
 	go func() {
 		defer ts.Close(context.Background())
 		for {
 			select {
-			case event, ok := <-input:
+			case newEvent, ok := <-input:
 				if !ok {
 					log.Info("input channel closed, finishing")
 					return
 				}
-				log.Debugf("processing event %s", event)
-				ts.processEvent(event)
-				if event.TimeOccurred.Sub(ts.lastPushTime) > ts.config.UpdatedMetricPushInterval {
-					ts.pushMetricsWithTimestamp(event.TimeOccurred)
-					ts.lastPushTime = newerTime(ts.lastPushTime, event.TimeOccurred)
+				log.Debugf("processing newEvent %s", newEvent)
+				ts.processEvent(newEvent)
+				if newEvent.Occurred.Sub(ts.lastPushTime) > ts.config.UpdatedMetricPushInterval {
+					ts.pushMetricsWithTimestamp(newEvent.Occurred)
+					ts.lastPushTime = newerTime(ts.lastPushTime, newEvent.Occurred)
 				}
 			case <-ts.pushTicker.C:
 				log.Debugf("full sync push")
@@ -186,17 +186,8 @@ func (ts *TimescaleExporter) Run(input <-chan *slo_event_producer.SloEvent) {
 	}()
 }
 
-func metadataToString(metadata map[string]string) string {
-	var labelValuePairs []string
-	for k, v := range metadata {
-		labelValuePairs = append(labelValuePairs, fmt.Sprintf("%s=%q", k, v))
-	}
-	sort.Strings(labelValuePairs)
-	return "{" + strings.Join(labelValuePairs, ",") + "}"
-}
-
-func (ts *TimescaleExporter) initializeMetricsIfNotExist(metadata map[string]string) {
-	key := metadataToString(metadata)
+func (ts *TimescaleExporter) initializeMetricsIfNotExist(metadata stringmap.StringMap) {
+	key := metadata.String()
 	newCounter, ok := ts.statistics[key]
 	if !ok {
 		newCounter = &timescaleMetric{
@@ -208,17 +199,27 @@ func (ts *TimescaleExporter) initializeMetricsIfNotExist(metadata map[string]str
 	}
 }
 
-func (ts *TimescaleExporter) processEvent(event *slo_event_producer.SloEvent) {
+func (ts *TimescaleExporter) labelsFromEvent(sloEvent *event.Slo) stringmap.StringMap {
+	return sloEvent.Metadata.Merge(stringmap.StringMap{
+		ts.labelNames.Result:    string(sloEvent.Result),
+		ts.labelNames.SloDomain: sloEvent.Domain,
+		ts.labelNames.SloClass:  sloEvent.Class,
+		ts.labelNames.SloApp:    sloEvent.App,
+		ts.labelNames.EventKey:  sloEvent.Key,
+		ts.labelNames.Instance:  ts.instanceName,
+	})
+}
+
+func (ts *TimescaleExporter) processEvent(newEvent *event.Slo) {
 	ts.statisticsMutex.Lock()
 	defer ts.statisticsMutex.Unlock()
-	event.SloMetadata[instanceLabel] = ts.instanceName
-	for _, possibleResult := range slo_event_producer.EventResults {
-		newMetadata := event.SloMetadata
-		newMetadata[sloResultLabel] = string(possibleResult)
-		ts.initializeMetricsIfNotExist(newMetadata)
+	labels := ts.labelsFromEvent(newEvent)
+
+	for _, possibleResult := range event.PossibleResults {
+		ts.initializeMetricsIfNotExist(labels.NewWith(ts.labelNames.Result, possibleResult.String()))
 	}
-	event.SloMetadata[sloResultLabel] = string(event.Result)
-	counter := ts.statistics[metadataToString(event.SloMetadata)]
+	labels[ts.labelNames.Result] = newEvent.Result.String()
+	counter := ts.statistics[labels.String()]
 	counter.value++
-	counter.lastEventTime = event.TimeOccurred
+	counter.lastEventTime = newEvent.Occurred
 }

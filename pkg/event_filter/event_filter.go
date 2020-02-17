@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-	"strings"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"time"
 )
 
@@ -31,21 +31,13 @@ func init() {
 
 type eventFilterConfig struct {
 	FilteredHttpStatusCodes []int
-	FilteredHttpHeaders     map[string]string
+	FilteredHttpHeaders     stringmap.StringMap
 }
 
 type RequestEventFilter struct {
 	statuses []int
-	headers  map[string]string
+	headers  stringmap.StringMap
 	observer prometheus.Observer
-}
-
-func headersToLowercase(headers map[string]string) map[string]string {
-	lowercaseHeaders := map[string]string{}
-	for k, v := range headers {
-		lowercaseHeaders[strings.ToLower(k)] = strings.ToLower(v)
-	}
-	return lowercaseHeaders
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
@@ -59,7 +51,7 @@ func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
 func New(config eventFilterConfig) *RequestEventFilter {
 	return &RequestEventFilter{
 		statuses: config.FilteredHttpStatusCodes,
-		headers:  headersToLowercase(config.FilteredHttpHeaders),
+		headers:  config.FilteredHttpHeaders.Lowercase(),
 	}
 }
 
@@ -87,8 +79,8 @@ func (ef *RequestEventFilter) statusMatch(testedStatus int) bool {
 	return false
 }
 
-func (ef *RequestEventFilter) headersMatch(testedHeaders map[string]string) bool {
-	lowerTestedHeaders := headersToLowercase(testedHeaders)
+func (ef *RequestEventFilter) headersMatch(testedHeaders stringmap.StringMap) bool {
+	lowerTestedHeaders := testedHeaders.Lowercase()
 	for k, v := range ef.headers {
 		value, ok := lowerTestedHeaders[k]
 		if ok && value == v {

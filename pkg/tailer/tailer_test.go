@@ -3,6 +3,7 @@ package tailer
 import (
 	"context"
 	"fmt"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io/ioutil"
 	"net"
 	"net/url"
@@ -149,7 +150,7 @@ func TestParseLine(t *testing.T) {
 				URL:        uri,
 				StatusCode: statusCode,
 				EventKey:   "",
-				Headers:    make(map[string]string),
+				Headers:    stringmap.StringMap{},
 				Method:     method,
 			}
 			if !reflect.DeepEqual(expectedEvent, parsedEvent) {

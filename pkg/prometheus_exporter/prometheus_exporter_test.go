@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"strings"
 	"testing"
 	"time"
@@ -12,41 +13,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	eventKeyLabel = "event_key"
-)
+var conf = prometheusExporterConfig{
+	MetricName: "slo_events_total",
+	LabelNames: labelsNamesConfig{
+		Result:    "result",
+		SloDomain: "slo_domain",
+		SloClass:  "slo_class",
+		SloApp:    "app",
+		EventKey:  "event_key",
+	},
+	MaximumUniqueEventKeys: 2,
+}
 
 type testNormalizeEventMetadata struct {
-	knownMetadata  []string
-	input          map[string]string
-	expectedOutput map[string]string
+	knownLabels    []string
+	input          stringmap.StringMap
+	expectedOutput stringmap.StringMap
 }
 
 func Test_normalizeEventMetadata(t *testing.T) {
 	testCases := []testNormalizeEventMetadata{
 		testNormalizeEventMetadata{
-			knownMetadata:  []string{"b", "c"},
-			input:          map[string]string{"b": "b", "c": "c"},
-			expectedOutput: map[string]string{"b": "b", "c": "c"},
+			knownLabels:    []string{"b", "c"},
+			input:          stringmap.StringMap{"b": "b", "c": "c"},
+			expectedOutput: stringmap.StringMap{"b": "b", "c": "c", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
 		},
 		testNormalizeEventMetadata{
-			knownMetadata:  []string{"b", "c"},
-			input:          map[string]string{"a": "a", "b": "b", "c": "c"},
-			expectedOutput: map[string]string{"b": "b", "c": "c"},
+			knownLabels:    []string{"b", "c"},
+			input:          stringmap.StringMap{"a": "a", "b": "b", "c": "c"},
+			expectedOutput: stringmap.StringMap{"b": "b", "c": "c", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
 		},
 		testNormalizeEventMetadata{
-			knownMetadata:  []string{"b", "c"},
-			input:          map[string]string{"c": "c", "d": "d"},
-			expectedOutput: map[string]string{"b": "", "c": "c"},
+			knownLabels:    []string{"b", "c"},
+			input:          stringmap.StringMap{"c": "c", "d": "d"},
+			expectedOutput: stringmap.StringMap{"b": "", "c": "c", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
 		},
 		testNormalizeEventMetadata{
-			knownMetadata:  []string{"b", "c"},
-			input:          map[string]string{"d": "d", "e": "e"},
-			expectedOutput: map[string]string{"b": "", "c": ""},
+			knownLabels:    []string{"b", "c"},
+			input:          stringmap.StringMap{"d": "d", "e": "e"},
+			expectedOutput: stringmap.StringMap{"b": "", "c": "", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
 		},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.expectedOutput, normalizeEventMetadata(testCase.knownMetadata, testCase.input))
+		p := New(prometheus.NewRegistry(), testCase.knownLabels, event.PossibleResults, conf)
+		assert.Equal(t, testCase.expectedOutput, p.normalizeEventMetadata(testCase.input))
 	}
 }
 
@@ -54,55 +64,59 @@ var (
 	metricMetadata = fmt.Sprintf(`
 		# HELP %s Total number of SLO events exported with it's result and metadata.
 		# TYPE %s counter
-	`, metricName, metricName)
-	labels = []string{"a", "b", eventKeyLabel}
+	`, conf.MetricName, conf.MetricName)
+	labels = []string{"a", "b"}
 )
 
 type testProcessEvent struct {
-	event           *slo_event_producer.SloEvent
+	ev              *event.Slo
 	expectedMetrics string
 }
 
 func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 	testCases := []testProcessEvent{
 		{
-			event: &slo_event_producer.SloEvent{
-				TimeOccurred: time.Time{},
-				SloMetadata:  map[string]string{"a": "a1", "b": "b1", eventKeyLabel: ""},
-				Result:       slo_event_producer.SloEventResultFail,
+			ev: &event.Slo{
+				Occurred: time.Time{},
+				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
+				Key: "foo",
+				Domain: "domain",
+				Result:   event.Fail,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%s{ a = "a1" , b = "b1", %s = "", result="fail"} 1
-				%s{ a = "a1" , b = "b1", %s = "", result="success"} 0
-				`, metricName, eventKeyLabel, metricName, eventKeyLabel),
+				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="fail", %[5]s = "", %[6]s = "domain"} 1
+				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="success", %[5]s = "", %[6]s = "domain"} 0
+				`, conf.MetricName, conf.LabelNames.SloApp, conf.LabelNames.EventKey, conf.LabelNames.Result, conf.LabelNames.SloClass, conf.LabelNames.SloDomain),
 		},
 		{
-			event: &slo_event_producer.SloEvent{
-				TimeOccurred: time.Time{},
-				SloMetadata:  map[string]string{"a": "a1", "b": "b1", eventKeyLabel: ""},
-				Result:       slo_event_producer.SloEventResultSuccess,
+			ev: &event.Slo{
+				Occurred: time.Time{},
+				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
+				Key: "foo",
+				Domain: "domain",
+				Result:   event.Success,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%s{ a = "a1" , b = "b1", %s = "", result="success"} 1
-				%s{ a = "a1" , b = "b1", %s = "", result="fail"} 0
-				`, metricName, eventKeyLabel, metricName, eventKeyLabel),
+				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="success", %[5]s = "", %[6]s = "domain"} 1
+				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="fail", %[5]s = "", %[6]s = "domain"} 0
+				`, conf.MetricName, conf.LabelNames.SloApp, conf.LabelNames.EventKey, conf.LabelNames.Result, conf.LabelNames.SloClass, conf.LabelNames.SloDomain),
 		},
 	}
 
 	for _, test := range testCases {
-		exporter := New(prometheus.NewPedanticRegistry(), labels, slo_event_producer.EventResults, eventKeyLabel, 0)
-		exporter.processEvent(test.event)
-		if err := testutil.CollectAndCompare(exporter.eventsCount, strings.NewReader(test.expectedMetrics), metricName); err != nil {
+		exporter := New(prometheus.NewPedanticRegistry(), labels, event.PossibleResults, conf)
+		exporter.processEvent(test.ev)
+		if err := testutil.CollectAndCompare(exporter.eventsCount, strings.NewReader(test.expectedMetrics), conf.MetricName); err != nil {
 			t.Errorf("unexpected collecting result:\n%s", err)
 		}
 	}
 }
 
 func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
-	exporter := New(prometheus.NewPedanticRegistry(), []string{}, slo_event_producer.EventResults, eventKeyLabel, 0)
-	testCases := map[slo_event_producer.SloEventResult]bool{
-		slo_event_producer.EventResults[0]:                     true,
-		slo_event_producer.SloEventResult("nonexistingresult"): false,
+	exporter := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
+	testCases := map[event.Result]bool{
+		event.PossibleResults[0]:          true,
+		event.Result("nonexistingresult"): false,
 	}
 	for eventResult, valid := range testCases {
 		assert.Equal(t, valid, exporter.isValidResult(eventResult))
@@ -110,14 +124,13 @@ func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
-	eventKeyLimit := 2
-	exporter := New(prometheus.NewPedanticRegistry(), []string{}, slo_event_producer.EventResults, eventKeyLabel, eventKeyLimit)
+	exporter := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
 	for i := 0; i < 5; i++ {
-		if exporter.isCardinalityExceeded(string(i)) && i+1 <= eventKeyLimit {
-			t.Errorf("Event key '%d' masked while it the total count '%d' is under given limit '%d'", i, len(exporter.eventKeyCache), eventKeyLimit)
+		if exporter.isCardinalityExceeded(string(i)) && i+1 <= conf.MaximumUniqueEventKeys {
+			t.Errorf("Event key '%d' masked while it the total count '%d' is under given limit '%d'", i, len(exporter.eventKeyCache), conf.MaximumUniqueEventKeys)
 		}
-		if !exporter.isCardinalityExceeded(string(i)) && i+1 > eventKeyLimit {
-			t.Errorf("Event key '%d' should have been masked as the total count '%d' is above given limit '%d'", i, len(exporter.eventKeyCache), eventKeyLimit)
+		if !exporter.isCardinalityExceeded(string(i)) && i+1 > conf.MaximumUniqueEventKeys {
+			t.Errorf("Event key '%d' should have been masked as the total count '%d' is above given limit '%d'", i, len(exporter.eventKeyCache), conf.MaximumUniqueEventKeys)
 		}
 
 	}

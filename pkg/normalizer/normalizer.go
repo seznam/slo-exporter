@@ -64,7 +64,7 @@ func NewFromViper(viperConfig *viper.Viper) (*requestNormalizer, error) {
 	return normalizer, nil
 }
 
-// New returns requestNormalizer which allows to add EventKey to RequestEvent
+// New returns requestNormalizer which allows to add Key to RequestEvent
 func New() *requestNormalizer {
 	return &requestNormalizer{}
 }
@@ -167,18 +167,18 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent)
 	return strings.Join(eventIdentifiers, eventKeyFieldSeparator)
 }
 
-// Run event replacer receiving events and filling their EventKey if not already filled.
+// Run event replacer receiving events and filling their Key if not already filled.
 func (rn *requestNormalizer) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
 		for event := range inputEventsChan {
 			start := time.Now()
 			if event.EventKey != "" {
-				log.Debugf("skipping event normalization, already has EventKey: %s", event.EventKey)
+				log.Debugf("skipping event normalization, already has Key: %s", event.EventKey)
 				continue
 			}
 			event.EventKey = rn.getNormalizedEventKey(event)
-			log.Debugf("processed event with EventKey: %s", event.EventKey)
+			log.Debugf("processed event with Key: %s", event.EventKey)
 			outputEventsChan <- event
 			rn.observeDuration(start)
 		}

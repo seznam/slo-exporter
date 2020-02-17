@@ -1,7 +1,7 @@
 rules:
   - event_type: request
-    matcher:
-        slo_domain: domain
+    slo_matcher:
+        domain: domain
     failure_criteria:
       - criterium: requestStatusHigherThan
         value: 500

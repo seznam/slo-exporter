@@ -3,6 +3,7 @@ package event_filter
 import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
 )
 
@@ -34,16 +35,16 @@ func TestEventFilter_statusMatch(t *testing.T) {
 
 func TestEventFilter_headersMatch(t *testing.T) {
 	config := eventFilterConfig{
-		FilteredHttpHeaders: map[string]string{"User-Agent": "Firefox"},
+		FilteredHttpHeaders: stringmap.StringMap{"User-Agent": "Firefox"},
 	}
 	testCases := []struct {
-		headers     map[string]string
+		headers     stringmap.StringMap
 		shouldMatch bool
 	}{
-		{headers: map[string]string{"foo": "bar"}, shouldMatch: false},
-		{headers: map[string]string{"useragent": "firefox"}, shouldMatch: false},
-		{headers: map[string]string{"user-agent": "firefox"}, shouldMatch: true},
-		{headers: map[string]string{"User-Agent": "Firefox"}, shouldMatch: true},
+		{headers: stringmap.StringMap{"foo": "bar"}, shouldMatch: false},
+		{headers: stringmap.StringMap{"useragent": "firefox"}, shouldMatch: false},
+		{headers: stringmap.StringMap{"user-agent": "firefox"}, shouldMatch: true},
+		{headers: stringmap.StringMap{"User-Agent": "Firefox"}, shouldMatch: true},
 	}
 	eventFilter := New(config)
 	for _, tc := range testCases {
@@ -51,29 +52,11 @@ func TestEventFilter_headersMatch(t *testing.T) {
 	}
 }
 
-func TestEventFilter_headersToLowercase(t *testing.T) {
-	testCases := []struct {
-		in  map[string]string
-		out map[string]string
-	}{
-		{
-			in:  map[string]string{"foo": "bar"},
-			out: map[string]string{"foo": "bar"},
-		},
-		{
-			in:  map[string]string{"Foo": "Bar"},
-			out: map[string]string{"foo": "bar"},
-		},
-	}
-	for _, tc := range testCases {
-		assert.Equal(t, tc.out, headersToLowercase(tc.in))
-	}
-}
 
 func TestEventFilter_shouldDrop(t *testing.T) {
 	config := eventFilterConfig{
 		FilteredHttpStatusCodes: []int{301, 404},
-		FilteredHttpHeaders: map[string]string{"name": "value"},
+		FilteredHttpHeaders: stringmap.StringMap{"name": "value"},
 	}
 	eventFilter := New(config)
 	testCases := []ShouldDropTestCase{
@@ -100,7 +83,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 			eventFilter,
 			&producer.RequestEvent{
 				StatusCode: 200,
-				Headers:    map[string]string{"name1": "somevalue"},
+				Headers:    stringmap.StringMap{"name1": "somevalue"},
 			},
 			false,
 			"",
@@ -110,7 +93,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 			eventFilter,
 			&producer.RequestEvent{
 				StatusCode: 200,
-				Headers:    map[string]string{"name": "somevalue"},
+				Headers:    stringmap.StringMap{"name": "somevalue"},
 			},
 			false,
 			"",
@@ -120,17 +103,17 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 			eventFilter,
 			&producer.RequestEvent{
 				StatusCode: 200,
-				Headers:    map[string]string{"name": "value"},
+				Headers:    stringmap.StringMap{"name": "value"},
 			},
 			true,
 			"header:name",
 		},
 		// header match, name normalization (->lower case)
 		{
-			New(eventFilterConfig{FilteredHttpHeaders: map[string]string{"NAME": "value"}}, ),
+			New(eventFilterConfig{FilteredHttpHeaders: stringmap.StringMap{"NAME": "value"}}, ),
 			&producer.RequestEvent{
 				StatusCode: 200,
-				Headers:    map[string]string{"name": "value"},
+				Headers:    stringmap.StringMap{"name": "value"},
 			},
 			true,
 			"header:name",
@@ -140,7 +123,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 			eventFilter,
 			&producer.RequestEvent{
 				StatusCode: 404,
-				Headers:    map[string]string{"name": "value"},
+				Headers:    stringmap.StringMap{"name": "value"},
 			},
 			true,
 			"status:404",

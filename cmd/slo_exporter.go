@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"net/http"
 	"os"
 	"os/signal"
@@ -78,19 +79,11 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 }
 
 // TODO FUSAKLA temporary workaround to multiplex one event to multiple channels, we should think if we can do better
-func multiplexToChannels(srcChannel chan *slo_event_producer.SloEvent, dstChannels []chan *slo_event_producer.SloEvent) {
+func multiplexToChannels(srcChannel chan *event.Slo, dstChannels []chan *event.Slo) {
 	for e := range srcChannel {
 		for _, ch := range dstChannels {
-			// Needs copy because we are not concurrent safe (probably accessing metadata).
-			newE := slo_event_producer.SloEvent{
-				TimeOccurred: e.TimeOccurred,
-				SloMetadata:  map[string]string{},
-				Result:       e.Result,
-			}
-			for k, v := range e.SloMetadata {
-				newE.SloMetadata[k] = v
-			}
-			ch <- &newE
+			newEvent := e.Copy()
+			ch <- &newEvent
 		}
 	}
 	for _, ch := range dstChannels {
@@ -169,12 +162,15 @@ func main() {
 	sloEventProducer.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("slo_event_producer"))
 
 	//-- start enabled exporters
-	var exporterChannels []chan *slo_event_producer.SloEvent
+	var exporterChannels []chan *event.Slo
 
 	if !*disablePrometheus {
-		sloEventExporter := prometheus_exporter.New(prometheusRegistry, sloEventProducer.PossibleMetadataKeys(), slo_event_producer.EventResults, eventKeyLabel, prometheusExporterLimit)
+		sloEventExporter, err := prometheus_exporter.NewFromViper(prometheusRegistry, sloEventProducer.PossibleMetadataKeys(), event.PossibleResults, conf.MustModuleConfig("prometheusExporter"))
+		if err != nil {
+			log.Fatalf("failed to load SLO rules conf: %v", err)
+		}
 		sloEventExporter.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("prometheus_exporter"))
-		prometheusSloEventsChan := make(chan *slo_event_producer.SloEvent)
+		prometheusSloEventsChan := make(chan *event.Slo)
 		exporterChannels = append(exporterChannels, prometheusSloEventsChan)
 		sloEventExporter.Run(prometheusSloEventsChan)
 	}
@@ -184,7 +180,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to initialize timescale exporter: %v", err)
 		}
-		timescaleSloEventsChan := make(chan *slo_event_producer.SloEvent)
+		timescaleSloEventsChan := make(chan *event.Slo)
 		exporterChannels = append(exporterChannels, timescaleSloEventsChan)
 		timescaleExporter.Run(timescaleSloEventsChan)
 	}
@@ -209,7 +205,7 @@ func main() {
 	classifiedEventsChan := make(chan *producer.RequestEvent)
 	dynamicClassifier.Run(filteredEventsChan, classifiedEventsChan)
 
-	sloEventsChan := make(chan *slo_event_producer.SloEvent)
+	sloEventsChan := make(chan *event.Slo)
 	sloEventProducer.Run(classifiedEventsChan, sloEventsChan)
 
 	// Replicate events to multiple channels

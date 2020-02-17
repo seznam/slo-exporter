@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"net"
 	"net/url"
 	"time"
@@ -12,8 +13,22 @@ type SloClassification struct {
 	Class  string
 }
 
-func (sc *SloClassification) GetMap() map[string]string {
-	return map[string]string{
+func (sc *SloClassification) Matches(other SloClassification) bool {
+	if sc.Domain != "" && (sc.Domain != other.Domain) {
+		return false
+	}
+	if sc.Class != "" && (sc.Class != other.Class) {
+		return false
+	}
+	if sc.App != "" && (sc.App != other.App) {
+		return false
+	}
+	return true
+}
+
+
+func (sc *SloClassification) GetMetadata() stringmap.StringMap {
+	return stringmap.StringMap{
 		"slo_domain": sc.Domain,
 		"slo_class":  sc.Class,
 		"app":        sc.App,
@@ -28,7 +43,7 @@ type RequestEvent struct {
 	Duration          time.Duration
 	URL               *url.URL
 	EventKey          string
-	Headers           map[string]string // name:value, header name is in lower-case
+	Headers           stringmap.StringMap // name:value, header name is in lower-case
 	Method            string
 	SloEndpoint       string
 	SloClassification *SloClassification
@@ -51,12 +66,16 @@ func (e *RequestEvent) IsClassified() bool {
 	return false
 }
 
-func (e RequestEvent) GetSloMetadata() *map[string]string {
+func (e RequestEvent) GetSloMetadata() *stringmap.StringMap {
 	if e.SloClassification == nil {
 		return nil
 	}
-	metadata := e.SloClassification.GetMap()
+	metadata := e.SloClassification.GetMetadata()
 	return &metadata
+}
+
+func (e RequestEvent) GetSloClassification() *SloClassification {
+	return e.SloClassification
 }
 
 func (e RequestEvent) GetTimeOccurred() time.Time {
