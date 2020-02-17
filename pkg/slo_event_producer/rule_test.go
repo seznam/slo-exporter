@@ -6,17 +6,14 @@ package slo_event_producer
 import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
 	"time"
 )
 
-
-
 type ruleTestCase struct {
 	rule           evaluationRule
-	inputEvent     producer.RequestEvent
+	inputEvent     event.HttpRequest
 	outputSloEvent *event.Slo
 	ok             bool
 }
@@ -25,19 +22,19 @@ func TestEvaluateEvent(t *testing.T) {
 	testCases := []ruleTestCase{
 		{
 			rule:           evaluationRule{additionalMetadata: stringmap.StringMap{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
-			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
-			outputSloEvent: &event.Slo{Domain:"domain", Class:"class", App:"app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
+			inputEvent:     event.HttpRequest{Duration: time.Second, StatusCode: 200, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
 			ok:             true,
 		},
 		{
 			rule:           evaluationRule{additionalMetadata: stringmap.StringMap{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
-			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: nil},
+			inputEvent:     event.HttpRequest{Duration: time.Second, StatusCode: 200, SloClassification: nil},
 			outputSloEvent: nil,
 			ok:             false,
 		},
 		{
-			rule:           evaluationRule{sloMatcher: producer.SloClassification{Domain:"foo"}, additionalMetadata: stringmap.StringMap{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
-			inputEvent:     producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			rule:           evaluationRule{sloMatcher: event.SloClassification{Domain: "foo"}, additionalMetadata: stringmap.StringMap{}, failureCriteria: []criterium{&requestStatusHigherThan{statusThreshold: 500}}},
+			inputEvent:     event.HttpRequest{Duration: time.Second, StatusCode: 200, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			outputSloEvent: nil,
 			ok:             false,
 		},

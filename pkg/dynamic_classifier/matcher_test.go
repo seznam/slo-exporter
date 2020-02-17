@@ -5,6 +5,7 @@ package dynamic_classifier
 
 import (
 	"bytes"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
@@ -12,11 +13,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
-func newSloClassification(domain string, app string, class string) *producer.SloClassification {
-	return &producer.SloClassification{
+func newSloClassification(domain string, app string, class string) *event.SloClassification {
+	return &event.SloClassification{
 		Domain: domain,
 		App:    app,
 		Class:  class,
@@ -27,9 +27,9 @@ func TestMatcher(t *testing.T) {
 	cases := []struct {
 		matcher     matcher
 		key         string
-		value       *producer.SloClassification
+		value       *event.SloClassification
 		wantedKey   string
-		wantedValue *producer.SloClassification
+		wantedValue *event.SloClassification
 		setErr      string
 		getErr      string
 	}{

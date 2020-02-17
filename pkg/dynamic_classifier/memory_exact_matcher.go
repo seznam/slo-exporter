@@ -6,24 +6,24 @@ package dynamic_classifier
 import (
 	"encoding/csv"
 	"fmt"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 const exactMatcherType = "exact"
 
 type memoryExactMatcher struct {
-	exactMatches  map[string]*producer.SloClassification
+	exactMatches  map[string]*event.SloClassification
 	matchersCount prometheus.Counter
 	mtx           sync.RWMutex
 }
 
 // newMemoryExactMatcher returns instance of memoryCache
 func newMemoryExactMatcher() *memoryExactMatcher {
-	exactMatches := map[string]*producer.SloClassification{}
+	exactMatches := map[string]*event.SloClassification{}
 	return &memoryExactMatcher{
 		exactMatches: exactMatches,
 		mtx:          sync.RWMutex{},
@@ -31,7 +31,7 @@ func newMemoryExactMatcher() *memoryExactMatcher {
 }
 
 // set sets endpoint classification in cache
-func (c *memoryExactMatcher) set(key string, classification *producer.SloClassification) error {
+func (c *memoryExactMatcher) set(key string, classification *event.SloClassification) error {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("set", exactMatcherType))
 	defer timer.ObserveDuration()
 	c.mtx.Lock()
@@ -42,7 +42,7 @@ func (c *memoryExactMatcher) set(key string, classification *producer.SloClassif
 }
 
 // get gets endpoint classification from cache
-func (c *memoryExactMatcher) get(key string) (*producer.SloClassification, error) {
+func (c *memoryExactMatcher) get(key string) (*event.SloClassification, error) {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("get", exactMatcherType))
 	defer timer.ObserveDuration()
 	c.mtx.RLock()

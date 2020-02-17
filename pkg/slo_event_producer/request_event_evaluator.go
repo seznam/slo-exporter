@@ -6,7 +6,6 @@ package slo_event_producer
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
@@ -49,7 +48,7 @@ func (re *requestEventEvaluator) PossibleMetadataKeys() []string {
 	return possibleMetadata.Keys()
 }
 
-func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan chan<- *event.Slo) {
+func (re *requestEventEvaluator) Evaluate(event *event.HttpRequest, outChan chan<- *event.Slo) {
 	timer := prometheus.NewTimer(evaluationDurationSeconds)
 	defer timer.ObserveDuration()
 	matchedRulesCount := 0

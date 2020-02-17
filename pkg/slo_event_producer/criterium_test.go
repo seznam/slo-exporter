@@ -5,7 +5,7 @@ package slo_event_producer
 
 import (
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"testing"
 	"time"
 )
@@ -37,17 +37,17 @@ func TestCriteria_newCriterium(t *testing.T) {
 }
 
 type testEvent struct {
-	event     producer.RequestEvent
+	event     event.HttpRequest
 	criterium criterium
 	failed    bool
 }
 
 func TestCriteria_requestStatusHigherThan(t *testing.T) {
 	testCases := []testEvent{
-		{event: producer.RequestEvent{StatusCode: 200}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: false},
-		{event: producer.RequestEvent{StatusCode: 500}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: false},
-		{event: producer.RequestEvent{StatusCode: 503}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: true},
-		{event: producer.RequestEvent{}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: false},
+		{event: event.HttpRequest{StatusCode: 200}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: false},
+		{event: event.HttpRequest{StatusCode: 500}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: false},
+		{event: event.HttpRequest{StatusCode: 503}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: true},
+		{event: event.HttpRequest{}, criterium: &requestStatusHigherThan{statusThreshold: 500}, failed: false},
 	}
 	for _, c := range testCases {
 		assert.Equal(t, c.failed, c.criterium.Evaluate(&c.event))
@@ -56,10 +56,10 @@ func TestCriteria_requestStatusHigherThan(t *testing.T) {
 
 func TestCriteria_requestDurationHigherThan(t *testing.T) {
 	testCases := []testEvent{
-		{event: producer.RequestEvent{Duration: time.Millisecond}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: false},
-		{event: producer.RequestEvent{Duration: time.Second}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: false},
-		{event: producer.RequestEvent{Duration: 2 * time.Second}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: true},
-		{event: producer.RequestEvent{}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: false},
+		{event: event.HttpRequest{Duration: time.Millisecond}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: false},
+		{event: event.HttpRequest{Duration: time.Second}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: false},
+		{event: event.HttpRequest{Duration: 2 * time.Second}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: true},
+		{event: event.HttpRequest{}, criterium: &requestDurationHigherThan{thresholdDuration: time.Second}, failed: false},
 	}
 	for _, c := range testCases {
 		assert.Equal(t, c.failed, c.criterium.Evaluate(&c.event))

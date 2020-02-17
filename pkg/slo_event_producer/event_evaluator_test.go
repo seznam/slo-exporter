@@ -7,14 +7,13 @@ import (
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
 	"time"
 )
 
 type sloEventTestCase struct {
-	inputEvent        producer.RequestEvent
+	inputEvent        event.HttpRequest
 	expectedSloEvents []event.Slo
 	rulesConfig       rulesConfig
 }
@@ -22,7 +21,7 @@ type sloEventTestCase struct {
 func TestSloEventProducer(t *testing.T) {
 	testCases := []sloEventTestCase{
 		{
-			inputEvent: producer.RequestEvent{Duration: time.Second, StatusCode: 500, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			inputEvent: event.HttpRequest{Duration: time.Second, StatusCode: 500, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
 					EventType:  "request",
@@ -35,11 +34,11 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []event.Slo{
-				{Domain:"domain", Class:"class", App:"app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Success},
+				{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Success},
 			},
 		},
 		{
-			inputEvent: producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			inputEvent: event.HttpRequest{Duration: time.Second, StatusCode: 200, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
 					EventType:  "request",
@@ -52,7 +51,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []event.Slo{
-				{Domain:"domain", Class:"class", App:"app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Fail},
+				{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Fail},
 			},
 		},
 	}

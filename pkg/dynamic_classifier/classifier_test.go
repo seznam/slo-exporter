@@ -5,7 +5,7 @@ package dynamic_classifier
 
 import (
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -69,7 +69,7 @@ func TestClassificationByExactMatches(t *testing.T) {
 
 	data := []struct {
 		endpoint               string
-		expectedClassification *producer.SloClassification
+		expectedClassification *event.SloClassification
 		expectedOk             bool
 	}{
 		{"GET:/testing-endpoint", newSloClassification("test-domain", "test-app", "test-class"), true},
@@ -77,7 +77,7 @@ func TestClassificationByExactMatches(t *testing.T) {
 	}
 
 	for _, ec := range data {
-		event := &producer.RequestEvent{
+		event := &event.HttpRequest{
 			EventKey:          ec.endpoint,
 			SloClassification: ec.expectedClassification,
 		}
@@ -103,7 +103,7 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 
 	data := []struct {
 		endpoint               string
-		expectedClassification *producer.SloClassification
+		expectedClassification *event.SloClassification
 		expectedOk             bool
 	}{
 		{"/api/test/asdf", newSloClassification("test-domain", "test-app", "test-class"), true},
@@ -112,7 +112,7 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 	}
 
 	for _, ec := range data {
-		event := &producer.RequestEvent{
+		event := &event.HttpRequest{
 			EventKey:          ec.endpoint,
 			SloClassification: ec.expectedClassification,
 		}

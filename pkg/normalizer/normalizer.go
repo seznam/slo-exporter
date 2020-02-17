@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"path"
 	"regexp"
 	"strings"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 const (
@@ -152,7 +152,7 @@ func (rn *requestNormalizer) normalizePath(rawPath string) string {
 	return strings.Join(pathItems, pathItemsSeparator)
 }
 
-func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent) string {
+func (rn *requestNormalizer) getNormalizedEventKey(event *event.HttpRequest) string {
 	var eventIdentifiers = []string{event.Method}
 	eventIdentifiers = append(eventIdentifiers, rn.normalizePath(event.URL.Path))
 	if rn.GetParamWithEventIdentifier != "" {
@@ -168,7 +168,7 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *producer.RequestEvent)
 }
 
 // Run event replacer receiving events and filling their Key if not already filled.
-func (rn *requestNormalizer) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
+func (rn *requestNormalizer) Run(inputEventsChan <-chan *event.HttpRequest, outputEventsChan chan<- *event.HttpRequest) {
 	go func() {
 		defer close(outputEventsChan)
 		for event := range inputEventsChan {

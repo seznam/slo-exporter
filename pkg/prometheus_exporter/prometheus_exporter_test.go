@@ -79,8 +79,8 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 			ev: &event.Slo{
 				Occurred: time.Time{},
 				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
-				Key: "foo",
-				Domain: "domain",
+				Key:      "foo",
+				Domain:   "domain",
 				Result:   event.Fail,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
@@ -92,8 +92,8 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 			ev: &event.Slo{
 				Occurred: time.Time{},
 				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
-				Key: "foo",
-				Domain: "domain",
+				Key:      "foo",
+				Domain:   "domain",
 				Result:   event.Success,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`

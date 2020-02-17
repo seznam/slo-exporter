@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io"
 	"os"
 	"time"
@@ -15,8 +16,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 var (
@@ -54,7 +53,7 @@ type DynamicClassifier struct {
 	exactMatches  matcher
 	regexpMatches matcher
 	sloDomain     string
-	observer prometheus.Observer
+	observer      prometheus.Observer
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*DynamicClassifier, error) {
@@ -132,7 +131,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 		sloApp := line[0]
 		sloClass := line[1]
 		sloEndpoint := line[2]
-		classification := &producer.SloClassification{
+		classification := &event.SloClassification{
 			Domain: dc.sloDomain,
 			App:    sloApp,
 			Class:  sloClass,
@@ -148,14 +147,14 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 }
 
 // Classify classifies endpoint by updating its Classification field
-func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error) {
+func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error) {
 	var (
 		classificationErrors error
-		classification       *producer.SloClassification
+		classification       *event.SloClassification
 		classifiedBy         matcherType
 	)
-	if event.IsClassified() {
-		if err := dc.exactMatches.set(event.EventKey, classification); err != nil {
+	if newEvent.IsClassified() {
+		if err := dc.exactMatches.set(newEvent.EventKey, classification); err != nil {
 			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 		return true, nil
@@ -164,7 +163,7 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 	classifiers := []matcher{dc.exactMatches, dc.regexpMatches}
 	for _, classifier := range classifiers {
 		var err error
-		classification, err = dc.classifyByMatch(classifier, event)
+		classification, err = dc.classifyByMatch(classifier, newEvent)
 		if err != nil {
 			log.Errorf("error while classifying event: %v", err)
 			classificationErrors = multierror.Append(classificationErrors, err)
@@ -180,13 +179,13 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 		return false, classificationErrors
 	}
 
-	log.Debugf("event '%s' matched by %s matcher", event.EventKey, classifiedBy)
-	event.UpdateSLOClassification(classification)
+	log.Debugf("event '%s' matched by %s matcher", newEvent.EventKey, classifiedBy)
+	newEvent.UpdateSLOClassification(classification)
 	eventsTotal.WithLabelValues("classified", string(classifiedBy)).Inc()
 
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
-		if err := dc.exactMatches.set(event.EventKey, classification); err != nil {
+		if err := dc.exactMatches.set(newEvent.EventKey, classification); err != nil {
 			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 	}
@@ -208,12 +207,12 @@ func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
 	return matcher.dumpCSV(w)
 }
 
-func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.RequestEvent) (*producer.SloClassification, error) {
+func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *event.HttpRequest) (*event.SloClassification, error) {
 	return matcher.get(event.EventKey)
 }
 
 // Run event normalizer receiving events and filling their Key if not already filled.
-func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
+func (dc *DynamicClassifier) Run(inputEventsChan <-chan *event.HttpRequest, outputEventsChan chan<- *event.HttpRequest) {
 	go func() {
 		defer close(outputEventsChan)
 

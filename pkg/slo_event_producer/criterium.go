@@ -5,7 +5,7 @@ package slo_event_producer
 
 import (
 	"fmt"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"strconv"
 	"time"
 )
@@ -18,7 +18,7 @@ var criteriumFactoryRegistry = map[string]criteriumFactory{
 type criteriumFactory func() criterium
 
 type criterium interface {
-	Evaluate(*producer.RequestEvent) bool
+	Evaluate(*event.HttpRequest) bool
 	LoadOptions(criteriumOptions) error
 }
 
@@ -56,7 +56,7 @@ func (r *requestStatusHigherThan) LoadOptions(options criteriumOptions) error {
 	return nil
 }
 
-func (r *requestStatusHigherThan) Evaluate(request *producer.RequestEvent) bool {
+func (r *requestStatusHigherThan) Evaluate(request *event.HttpRequest) bool {
 	return request.StatusCode > r.statusThreshold
 }
 
@@ -78,6 +78,6 @@ func (r *requestDurationHigherThan) LoadOptions(options criteriumOptions) error 
 	return nil
 }
 
-func (r *requestDurationHigherThan) Evaluate(request *producer.RequestEvent) bool {
+func (r *requestDurationHigherThan) Evaluate(request *event.HttpRequest) bool {
 	return request.Duration > r.thresholdDuration
 }

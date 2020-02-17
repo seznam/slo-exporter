@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 var (
@@ -27,7 +26,7 @@ type ClassifiableEvent interface {
 	GetEventKey() string
 	IsClassified() bool
 	GetSloMetadata() *stringmap.StringMap
-	GetSloClassification() *producer.SloClassification
+	GetSloClassification() *event.SloClassification
 	GetTimeOccurred() time.Time
 }
 
@@ -70,12 +69,12 @@ func (sep *SloEventProducer) PossibleMetadataKeys() []string {
 	return sep.eventEvaluator.PossibleMetadataKeys()
 }
 
-func (sep *SloEventProducer) generateSLOEvents(event *producer.RequestEvent, sloEventsChan chan<- *event.Slo) {
+func (sep *SloEventProducer) generateSLOEvents(event *event.HttpRequest, sloEventsChan chan<- *event.Slo) {
 	sep.eventEvaluator.Evaluate(event, sloEventsChan)
 }
 
 // TODO move to interfaces in channels, those cannot be mixed so we have to stick to one type now
-func (sep *SloEventProducer) Run(inputEventChan <-chan *producer.RequestEvent, outputSLOEventChan chan<- *event.Slo) {
+func (sep *SloEventProducer) Run(inputEventChan <-chan *event.HttpRequest, outputSLOEventChan chan<- *event.Slo) {
 	go func() {
 		defer close(outputSLOEventChan)
 

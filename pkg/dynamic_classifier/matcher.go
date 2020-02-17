@@ -5,7 +5,7 @@ package dynamic_classifier
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io"
 )
 
@@ -29,7 +29,7 @@ func init() {
 
 type matcher interface {
 	getType() matcherType
-	set(key string, classification *producer.SloClassification) error
-	get(key string) (*producer.SloClassification, error)
+	set(key string, classification *event.SloClassification) error
+	get(key string) (*event.SloClassification, error)
 	dumpCSV(w io.Writer) error
 }

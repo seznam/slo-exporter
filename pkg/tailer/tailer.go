@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io"
 	"net"
 	"net/url"
@@ -14,13 +15,11 @@ import (
 	"strings"
 	"time"
 
+	logrusAdapter "github.com/go-kit/kit/log/logrus"
 	"github.com/grafana/loki/pkg/promtail/positions"
 	"github.com/hpcloud/tail"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
-
-	logrusAdapter "github.com/go-kit/kit/log/logrus"
 )
 
 const (
@@ -160,7 +159,7 @@ func (t *Tailer) observeDuration(start time.Time) {
 // - RequestEvent.IP may be nil in case invalid IP address is given in logline
 // - Slo* fields may not be filled at all
 // - Content of RequestEvent.Headers may vary
-func (t *Tailer) Run(ctx context.Context, eventsChan chan *producer.RequestEvent, errChan chan error) {
+func (t *Tailer) Run(ctx context.Context, eventsChan chan *event.HttpRequest, errChan chan error) {
 
 	go func() {
 		defer close(eventsChan)
@@ -273,7 +272,7 @@ func parseRequestLine(requestLine string) (method string, uri string, protocol s
 // parseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
 // - RequestEvent.IP may
-func parseLine(line string) (*producer.RequestEvent, error) {
+func parseLine(line string) (*event.HttpRequest, error) {
 	lineData := make(map[string]string)
 
 	match := lineParseRegexp.FindStringSubmatch(line)
@@ -312,7 +311,7 @@ func parseLine(line string) (*producer.RequestEvent, error) {
 		return nil, fmt.Errorf("unable to parse url '%s': %w", requestURI, err)
 	}
 
-	return &producer.RequestEvent{
+	return &event.HttpRequest{
 		Time:       t,
 		IP:         net.ParseIP(lineData["ip"]),
 		Duration:   duration,
