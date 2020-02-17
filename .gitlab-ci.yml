@@ -138,7 +138,15 @@ pages:
     - master
   script: |
     mkdir public
-    go tool cover -html coverage.out -o public/index.html
+    ./scripts/generate_godoc.sh public/godoc
+    go tool cover -html coverage.out -o public/coverage.html
+    cat > public/index.html <<EOF
+    <h1>SLO exporter</h1>
+    <ul>
+      <li><a href="godoc/pkg/gitlab.seznam.net/sklik-devops/slo-exporter">GoDoc</a></li>
+      <li><a href="coverage.html">Code coverage</a></li>
+    </ul>
+    EOF
   artifacts:
     expire_in: 1 mos
     paths:
