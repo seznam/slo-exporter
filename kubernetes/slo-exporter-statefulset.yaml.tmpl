@@ -5,19 +5,22 @@ kind: StatefulSet
 metadata:
   name: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
   labels:
-    app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+    app: slo-exporter
+    instance: {{ $slo_domain }}-{{ $upstream_proxy }}
 spec:
   replicas: 1
   updateStrategy:
     type: RollingUpdate
   selector:
     matchLabels:
-      app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+      app: slo-exporter
+      instance: {{ $slo_domain }}-{{ $upstream_proxy }}
   serviceName: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
   template:
     metadata:
       labels:
-        app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
+        app: slo-exporter
+        instance: {{ $slo_domain }}-{{ $upstream_proxy }}
       annotations:
         app: slo-exporter-{{ $slo_domain }}-{{ $upstream_proxy }}
         team: sklik.devops@firma.seznam.cz
