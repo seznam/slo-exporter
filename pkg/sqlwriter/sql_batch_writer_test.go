@@ -2,7 +2,6 @@ package sqlwriter
 
 import (
 	"errors"
-	"fmt"
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -12,15 +11,14 @@ import (
 )
 
 var (
-	testError   = errors.New("test error")
-	interval    = time.Millisecond
-	retryLimit  = 3
-	queryResult = sqlmock.NewResult(1, 1)
+	testError     = errors.New("test error")
+	interval      = time.Millisecond
+	retryLimit    = 3
+	queryResult   = sqlmock.NewResult(1, 1)
 	waitForQueues = time.Second
 )
 
-
-func waitForZero(t *testing.T,f func() int, timeout time.Duration) {
+func waitForZero(t *testing.T, f func() int, timeout time.Duration) {
 	for _ = range time.NewTimer(timeout).C {
 		if f() == 0 {
 			return
@@ -47,9 +45,8 @@ func TestBatchedSqlWriter_Write_AllOk(t *testing.T) {
 	mock.ExpectCommit().WillReturnError(nil)
 	w.Write("INSERT INTO metrics VALUES (1)")
 
-	waitForZero(t, w.WriteQueueSize,waitForQueues)
-	waitForZero(t, w.RetryQueueSize,waitForQueues)
-	fmt.Printf("write queue: %v, retry queue: %v\n", w.WriteQueueSize(), w.RetryQueueSize())
+	waitForZero(t, w.WriteQueueSize, waitForQueues)
+	waitForZero(t, w.RetryQueueSize, waitForQueues)
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Error(err)
 		return
@@ -70,9 +67,8 @@ func TestBatchedSqlWriter_Write_SuccessfulRetry(t *testing.T) {
 
 	w.Write("INSERT INTO metrics VALUES (1)")
 
-	waitForZero(t, w.WriteQueueSize,waitForQueues)
-	waitForZero(t, w.RetryQueueSize,waitForQueues)
-	fmt.Printf("write queue: %v, retry queue: %v\n", w.WriteQueueSize(), w.RetryQueueSize())
+	waitForZero(t, w.WriteQueueSize, waitForQueues)
+	waitForZero(t, w.RetryQueueSize, waitForQueues)
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Error(err)
 		return
@@ -82,7 +78,7 @@ func TestBatchedSqlWriter_Write_SuccessfulRetry(t *testing.T) {
 func TestBatchedSqlWriter_Write_FailedRetry(t *testing.T) {
 	w, mock := newMockedBatchWriter(t)
 
-		// First failed write
+	// First failed write
 	mock.ExpectBegin().WillReturnError(nil)
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO metrics VALUES (1)")).WillReturnResult(queryResult).WillReturnError(testError)
 	mock.ExpectCommit().WillReturnError(nil)
@@ -94,8 +90,7 @@ func TestBatchedSqlWriter_Write_FailedRetry(t *testing.T) {
 	}
 	w.Write("INSERT INTO metrics VALUES (1)")
 
-	waitForZero(t, w.WriteQueueSize,waitForQueues)
-	fmt.Printf("write queue: %v, retry queue: %v\n", w.WriteQueueSize(), w.RetryQueueSize())
+	waitForZero(t, w.WriteQueueSize, waitForQueues)
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Error(err)
 		return
@@ -116,9 +111,8 @@ func TestBatchedSqlWriter_Write_FailedCommit(t *testing.T) {
 
 	w.Write("INSERT INTO metrics VALUES (1)")
 
-	waitForZero(t, w.WriteQueueSize,waitForQueues)
-	waitForZero(t, w.RetryQueueSize,waitForQueues)
-	fmt.Printf("write queue: %v, retry queue: %v\n", w.WriteQueueSize(), w.RetryQueueSize())
+	waitForZero(t, w.WriteQueueSize, waitForQueues)
+	waitForZero(t, w.RetryQueueSize, waitForQueues)
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Error(err)
 		return

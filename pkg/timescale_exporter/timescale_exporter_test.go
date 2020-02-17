@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
 	"time"
 )
+
+
+
 
 type eventToRender struct {
 	l   string
@@ -17,35 +21,31 @@ type eventToRender struct {
 }
 
 func TestTimescaleExporter_encodePrometheusMetric(t *testing.T) {
+	te := TimescaleExporter{
+		config: Config{
+			metricName: "slo_events_total",
+		},
+	}
 	cases := []eventToRender{
-		{l: `{label="value"}`, v: 1, t: getTime(0), res: sloEventsMetricName + `{label="value"} 1 0`},
-		{l: `{label="value", another="value"}`, v: 258.45, t: getTime(5000), res: sloEventsMetricName + `{label="value", another="value"} 258.45 5000000`},
+		{l: `label="value"`, v: 1, t: getTime(0), res: te.metricName + `{label="value"} 1 0`},
+		{l: `label="value", another="value"`, v: 258.45, t: getTime(5000), res: te.metricName + `{label="value", another="value"} 258.45 5000000`},
 	}
 	for _, c := range cases {
-		assert.Equal(t, encodePrometheusMetric(c.l, c.v, c.t), c.res)
+		assert.Equal(t, te.encodePrometheusMetric(c.l, c.v, c.t), c.res)
 	}
 }
 
 func TestTimescaleExporter_renderSqlInsert(t *testing.T) {
+	te := TimescaleExporter{
+		config: Config{
+			metricName: "slo_events_total",
+		},
+	}
 	cases := []eventToRender{
-		{l: `{label="value"}`, v: 1, t: getTime(0), res: "INSERT INTO " + timescaleMetricsTable + " VALUES ('" + sloEventsMetricName + `{label="value"} 1 0');`},
+		{l: `label="value"`, v: 1, t: getTime(0), res: "INSERT INTO " + timescaleMetricsTable + " VALUES ('" + te.metricName + `{label="value"} 1 0');`},
 	}
 	for _, c := range cases {
-		assert.Equal(t, renderSqlInsert(c.l, c.v, c.t), c.res)
-	}
-}
-
-func TestTimescaleExporter_metadataToString(t *testing.T) {
-	cases := []struct {
-		l   map[string]string
-		res string
-	}{
-		{l: map[string]string{"b": "1", "a": "2"}, res: `{a="2",b="1"}`},
-		{l: map[string]string{"a": "1", "b": "2"}, res: `{a="1",b="2"}`},
-		{l: map[string]string{}, res: `{}`},
-	}
-	for _, c := range cases {
-		assert.Equal(t, metadataToString(c.l), c.res)
+		assert.Equal(t, te.renderSqlInsert(c.l, c.v, c.t), c.res)
 	}
 }
 
@@ -95,11 +95,11 @@ func (m *sqlWriterMock) Close(ctx context.Context) error {
 
 var testStatistics = map[string]*timescaleMetric{
 	// Should be pushed because the last push is past the MaximumPushInterval.
-	"{label=1}": &timescaleMetric{value: 0, lastPushTime: getTime(0), lastEventTime: getTime(0)},
+	"label=1": &timescaleMetric{value: 0, lastPushTime: getTime(0), lastEventTime: getTime(0)},
 	// Should not be pushed since it was pushed more recently than MaximumPushInterval and last event was the same time so was not updated.
-	"{label=2}": &timescaleMetric{value: 0, lastPushTime: getTime(35), lastEventTime: getTime(35)},
+	"label=2": &timescaleMetric{value: 0, lastPushTime: getTime(35), lastEventTime: getTime(35)},
 	// Should be pushed because the last event happened after last push so the value changed.
-	"{label=3}": &timescaleMetric{value: 0, lastPushTime: getTime(35), lastEventTime: getTime(40)},
+	"label=3": &timescaleMetric{value: 0, lastPushTime: getTime(35), lastEventTime: getTime(40)},
 }
 
 func TestTimescaleExporter_pushMetricsWithTimestamp(t *testing.T) {
@@ -129,14 +129,19 @@ func TestTimescaleExporter_pushAllWithOffset(t *testing.T) {
 }
 
 func TestTimescaleExporter_processEvent(t *testing.T) {
-	testedResult := slo_event_producer.SloEventResultSuccess
-	testEvent := slo_event_producer.SloEvent{
-		TimeOccurred: time.Time{},
-		SloMetadata:  map[string]string{},
-		Result:       testedResult,
+	testedResult := event.Success
+	testEvent := event.Slo{
+		Occurred: time.Time{},
+		Metadata: stringmap.StringMap{},
+		Result:   testedResult,
+	}
+	te := TimescaleExporter{
+		instanceName: "test",
+		labelNames:labelsNamesConfig{Instance:"instance", Result:"result"},
+		statistics:   map[string]*timescaleMetric{},
 	}
 	expectedStatistics := map[string]*timescaleMetric{}
-	for _, v := range slo_event_producer.EventResults {
+	for _, v := range event.PossibleResults {
 		newMetric := &timescaleMetric{
 			value:         0,
 			lastPushTime:  time.Time{},
@@ -145,19 +150,16 @@ func TestTimescaleExporter_processEvent(t *testing.T) {
 		if v == testedResult {
 			newMetric.value = 1
 		}
-		expectedStatistics[fmt.Sprintf("{%s=%q,%s=%q}", instanceLabel, "test",sloResultLabel, v)] = newMetric
+		expectedStatistics[fmt.Sprintf("%s=%q,%s=%q", te.labelNames.Instance, "test", te.labelNames.Result, v)] = newMetric
 	}
-	te := TimescaleExporter{
-		instanceName: "test",
-		statistics: map[string]*timescaleMetric{},
-	}
+
 
 	te.processEvent(&testEvent)
 	assert.Equal(t, len(expectedStatistics), len(te.statistics))
 	for k, v := range expectedStatistics {
 		value, ok := te.statistics[k]
 		if !ok {
-			t.Errorf("did not find key %v", k)
+			t.Errorf("did not find key %v in map %v", k, te.statistics)
 			continue
 		}
 		assert.Equal(t, v.value, value.value)

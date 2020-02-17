@@ -5,11 +5,12 @@ package slo_event_producer
 
 import (
 	"github.com/hashicorp/go-multierror"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 type EventEvaluator interface {
-	Evaluate(event *producer.RequestEvent, outChan chan<- *SloEvent)
+	Evaluate(event *producer.RequestEvent, outChan chan<- *event.Slo)
 	AddEvaluationRule(*evaluationRule)
 	PossibleMetadataKeys() []string
 }

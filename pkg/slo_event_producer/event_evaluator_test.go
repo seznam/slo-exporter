@@ -6,14 +6,16 @@ package slo_event_producer
 import (
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
 	"time"
 )
 
 type sloEventTestCase struct {
 	inputEvent        producer.RequestEvent
-	expectedSloEvents []SloEvent
+	expectedSloEvents []event.Slo
 	rulesConfig       rulesConfig
 }
 
@@ -23,49 +25,49 @@ func TestSloEventProducer(t *testing.T) {
 			inputEvent: producer.RequestEvent{Duration: time.Second, StatusCode: 500, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					EventType: "request",
-					Matcher:   eventMetadata{"slo_domain": "domain"},
+					EventType:  "request",
+					SloMatcher: sloMatcher{Domain: "domain"},
 					FailureCriteriaOptions: []criteriumOptions{
 						{Criterium: "requestStatusHigherThan", Value: "500"},
 					},
-					AdditionalMetadata: eventMetadata{"slo_type": "availability"},
+					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},
 			},
 			},
-			expectedSloEvents: []SloEvent{
-				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Result: SloEventResultSuccess},
+			expectedSloEvents: []event.Slo{
+				{Domain:"domain", Class:"class", App:"app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Success},
 			},
 		},
 		{
 			inputEvent: producer.RequestEvent{Duration: time.Second, StatusCode: 200, SloClassification: &producer.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					EventType: "request",
-					Matcher:   eventMetadata{"slo_domain": "domain"},
+					EventType:  "request",
+					SloMatcher: sloMatcher{Domain: "domain"},
 					FailureCriteriaOptions: []criteriumOptions{
 						{Criterium: "requestDurationHigherThan", Value: "0.5s"},
 					},
-					AdditionalMetadata: eventMetadata{"slo_type": "availability"},
+					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},
 			},
 			},
-			expectedSloEvents: []SloEvent{
-				{SloMetadata: map[string]string{"slo_type": "availability", "slo_domain": "domain", "slo_class": "class", "app": "app", "event_key": ""}, Result: SloEventResultFail},
+			expectedSloEvents: []event.Slo{
+				{Domain:"domain", Class:"class", App:"app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Fail},
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		out := make(chan *SloEvent, 100)
+		out := make(chan *event.Slo, 100)
 		testedEvaluator, err := NewEventEvaluatorFromConfig(&tc.rulesConfig)
 		if err != nil {
 			t.Error(err)
 		}
 		testedEvaluator.Evaluate(&tc.inputEvent, out)
 		close(out)
-		var results []SloEvent
-		for event := range out {
-			results = append(results, *event)
+		var results []event.Slo
+		for newEvent := range out {
+			results = append(results, *newEvent)
 		}
 		if diff := deep.Equal(tc.expectedSloEvents, results); diff != nil {
 			t.Errorf("events are different %v, \nexpected: %v\n result: %v\n", diff, tc.expectedSloEvents, results)
@@ -77,19 +79,19 @@ func TestSloEventProducer_PossibleMetadataKeys(t *testing.T) {
 	config := rulesConfig{Rules: []ruleOptions{
 		{
 			EventType:              "request",
-			Matcher:                eventMetadata{},
+			SloMatcher:             sloMatcher{},
 			FailureCriteriaOptions: []criteriumOptions{},
-			AdditionalMetadata:     eventMetadata{"test1": "foo"},
+			AdditionalMetadata:     stringmap.StringMap{"test1": "foo"},
 		},
 		{
 			EventType:              "request",
-			Matcher:                eventMetadata{},
+			SloMatcher:             sloMatcher{},
 			FailureCriteriaOptions: []criteriumOptions{},
-			AdditionalMetadata:     eventMetadata{"test2": "bar"},
+			AdditionalMetadata:     stringmap.StringMap{"test2": "bar"},
 		},
 	},
 	}
-	expectedKeys := []string{"test1", "test2", "slo_domain", "slo_class", "app", "event_key"}
+	expectedKeys := []string{"test1", "test2"}
 
 	evaluator, err := NewEventEvaluatorFromConfig(&config)
 	if err != nil {

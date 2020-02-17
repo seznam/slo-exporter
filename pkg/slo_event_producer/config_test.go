@@ -5,6 +5,7 @@ package slo_event_producer
 
 import (
 	"github.com/stretchr/testify/assert"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
 )
 
@@ -20,12 +21,12 @@ func TestConfig_loadFromFile(t *testing.T) {
 			path: "testdata/slo_rules_valid.yaml.golden",
 			expectedConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					EventType: "request",
-					Matcher:   eventMetadata{"slo_domain": "domain"},
+					EventType:       "request",
+					SloMatcher: sloMatcher{Domain:"domain"},
 					FailureCriteriaOptions: []criteriumOptions{
 						{Criterium: "requestStatusHigherThan", Value: "500"},
 					},
-					AdditionalMetadata: eventMetadata{"slo_type": "availability"},
+					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				}}},
 			expectedError: false,
 		},

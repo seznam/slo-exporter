@@ -5,7 +5,9 @@ package slo_event_producer
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
 var (
@@ -38,20 +40,16 @@ func (re *requestEventEvaluator) AddEvaluationRule(rule *evaluationRule) {
 }
 
 func (re *requestEventEvaluator) PossibleMetadataKeys() []string {
-	possibleMetadata := map[string]string{}
+	possibleMetadata := stringmap.StringMap{}
 	for _, rule := range re.rules {
 		for _, key := range rule.PossibleMetadataKeys() {
 			possibleMetadata[key] = key
 		}
 	}
-	var possibleKeys []string
-	for k := range possibleMetadata {
-		possibleKeys = append(possibleKeys, k)
-	}
-	return possibleKeys
+	return possibleMetadata.Keys()
 }
 
-func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan chan<- *SloEvent) {
+func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan chan<- *event.Slo) {
 	timer := prometheus.NewTimer(evaluationDurationSeconds)
 	defer timer.ObserveDuration()
 	matchedRulesCount := 0

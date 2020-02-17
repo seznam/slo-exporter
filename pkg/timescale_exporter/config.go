@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+type labelsNamesConfig struct {
+	Result    string
+	SloDomain string
+	SloClass  string
+	SloApp    string
+	EventKey  string
+	Instance  string
+}
+
 type Config struct {
 	Host     string
 	Port     int
@@ -23,6 +32,9 @@ type Config struct {
 
 	UpdatedMetricPushInterval time.Duration
 	MaximumPushInterval       time.Duration
+
+	metricName string
+	LabelNames labelsNamesConfig
 }
 
 func (tc *Config) psqlInfo() string {

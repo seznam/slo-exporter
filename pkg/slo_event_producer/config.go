@@ -5,9 +5,16 @@ package slo_event_producer
 
 import (
 	"fmt"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )
+
+type sloMatcher struct {
+	Domain string `yaml:"domain"`
+	Class  string `yaml:"class"`
+	App    string `yaml:"app"`
+}
 
 type criteriumOptions struct {
 	Criterium string `yaml:"criterium"`
@@ -15,10 +22,10 @@ type criteriumOptions struct {
 }
 
 type ruleOptions struct {
-	EventType              string             `yaml:"event_type"`
-	Matcher                map[string]string  `yaml:"matcher,omitempty"`
-	FailureCriteriaOptions []criteriumOptions `yaml:"failure_criteria"`
-	AdditionalMetadata     map[string]string  `yaml:"additional_metadata,omitempty"`
+	EventType              string              `yaml:"event_type"`
+	SloMatcher             sloMatcher          `yaml:"slo_matcher"`
+	FailureCriteriaOptions []criteriumOptions  `yaml:"failure_criteria"`
+	AdditionalMetadata     stringmap.StringMap `yaml:"additional_metadata,omitempty"`
 }
 
 type rulesConfig struct {

@@ -202,7 +202,7 @@ func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
 
 	matcher, ok := matchers[matcherType]
 	if !ok {
-		return errors.New("Matcher '" + matcherType + "' does not exists")
+		return errors.New("MetadataMatcher '" + matcherType + "' does not exists")
 	}
 
 	return matcher.dumpCSV(w)
@@ -212,7 +212,7 @@ func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *producer.Re
 	return matcher.get(event.EventKey)
 }
 
-// Run event normalizer receiving events and filling their EventKey if not already filled.
+// Run event normalizer receiving events and filling their Key if not already filled.
 func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, outputEventsChan chan<- *producer.RequestEvent) {
 	go func() {
 		defer close(outputEventsChan)
@@ -227,7 +227,7 @@ func (dc *DynamicClassifier) Run(inputEventsChan <-chan *producer.RequestEvent, 
 			if !classified {
 				log.Warnf("unable to classify %s", event.EventKey)
 			} else {
-				log.Debugf("processed event with EventKey: %s", event.EventKey)
+				log.Debugf("processed event with Key: %s", event.EventKey)
 			}
 			outputEventsChan <- event
 			dc.observeDuration(start)
