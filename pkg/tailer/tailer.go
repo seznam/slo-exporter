@@ -111,7 +111,7 @@ func New(config tailerConfig) (*Tailer, error) {
 	}
 	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{SyncPeriod: config.PositionPersistenceInterval, PositionsFile: config.PositionFile})
 	if err != nil {
-		return nil, fmt.Errorf("could not initialize file position persister: %v", err)
+		return nil, fmt.Errorf("could not initialize file position persister: %+v", err)
 	}
 	// check that loaded position for a file is valid
 	fstat, err := os.Stat(config.TailedFile)

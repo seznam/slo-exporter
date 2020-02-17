@@ -59,7 +59,7 @@ func checkDatabase(db *sql.DB, checkTimeout time.Duration, checkInterval time.Du
 		row := db.QueryRow("SELECT to_regclass($1);", expectedTable)
 		err := row.Scan(&table)
 		if err != nil {
-			log.Errorf("failed to connect: %v", err)
+			log.Errorf("failed to connect: %+v", err)
 		} else if !table.Valid {
 			log.Error("table metrics is missing")
 		} else {

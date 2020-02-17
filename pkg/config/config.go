@@ -61,7 +61,7 @@ func (c *Config) ModuleConfig(moduleName string) (*viper.Viper, error) {
 func (c *Config) MustModuleConfig(moduleName string) *viper.Viper {
 	conf, err := c.ModuleConfig(moduleName)
 	if err != nil {
-		log.Fatalf("failed to load %s configuration: %v", moduleName, err)
+		log.Fatalf("failed to load %s configuration: %+v", moduleName, err)
 	}
 	return conf
 }

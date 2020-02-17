@@ -35,7 +35,7 @@ func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 	expectedExactMatches.exactMatches["GET:/testing-endpoint"] = newSloClassification("test-domain", "test-app", "test-class")
 
 	if !reflect.DeepEqual(classifier.exactMatches, expectedExactMatches) {
-		t.Errorf("Loaded data from csv and expected data does not match: %v != %v", classifier.exactMatches, expectedExactMatches)
+		t.Errorf("Loaded data from csv and expected data does not match: %+v != %+v", classifier.exactMatches, expectedExactMatches)
 	}
 
 }
@@ -55,7 +55,7 @@ func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 	expectedExactMatches.matchers = append(expectedExactMatches.matchers, expectedRegexpSloClassification)
 
 	if !reflect.DeepEqual(classifier.regexpMatches, expectedExactMatches) {
-		t.Errorf("Loaded data from csv and expected data does not match: %v != %v", classifier.regexpMatches, expectedExactMatches)
+		t.Errorf("Loaded data from csv and expected data does not match: %+v != %+v", classifier.regexpMatches, expectedExactMatches)
 	}
 
 }
@@ -84,12 +84,12 @@ func TestClassificationByExactMatches(t *testing.T) {
 
 		ok, err := classifier.Classify(event)
 		if err != nil {
-			t.Fatalf("Failed to classify %v - %v", event, err)
+			t.Fatalf("Failed to classify %+v - %+v", event, err)
 		}
 
 		assert.Equal(t, ec.expectedOk, ok)
 		if !reflect.DeepEqual(ec.expectedClassification, event.SloClassification) {
-			t.Errorf("Classification does not match %v != %v", ec.expectedClassification, event.SloClassification)
+			t.Errorf("Classification does not match %+v != %+v", ec.expectedClassification, event.SloClassification)
 		}
 	}
 }
@@ -119,12 +119,12 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 
 		ok, err := classifier.Classify(event)
 		if err != nil {
-			t.Fatalf("Failed to classify %v - %v", event, err)
+			t.Fatalf("Failed to classify %+v - %+v", event, err)
 		}
 
 		assert.Equal(t, ec.expectedOk, ok)
 		if !reflect.DeepEqual(ec.expectedClassification, event.SloClassification) {
-			t.Errorf("Classification does not match %v != %v", ec.expectedClassification, event.SloClassification)
+			t.Errorf("Classification does not match %+v != %+v", ec.expectedClassification, event.SloClassification)
 		}
 	}
 }

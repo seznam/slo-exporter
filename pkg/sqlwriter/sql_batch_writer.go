@@ -56,7 +56,7 @@ type parametrizedQuery struct {
 }
 
 func (q *parametrizedQuery) String() string {
-	return fmt.Sprintf("sql: `%s` args: %v retries: %d error: %v", q.sql, q.args, q.retries, q.error)
+	return fmt.Sprintf("sql: `%s` args: %+v retries: %d error: %+v", q.sql, q.args, q.retries, q.error)
 }
 
 type queryBatch []*parametrizedQuery
@@ -124,10 +124,10 @@ func (w *batchedSqlWriter) startBatchedWrite(ticker *time.Ticker, ch chan *param
 		batchSizeMetric.Set(float64(batchSize))
 		success, err := w.writeBatch(batch)
 		if err != nil {
-			w.log.WithField("job", jobName).Warnf("failed to retry batch of queries: %v", err)
+			w.log.WithField("job", jobName).Warnf("failed to retry batch of queries: %+v", err)
 		}
 		if !success {
-			w.log.WithField("job", jobName).Warnf("some of retried queries failed: %v", err)
+			w.log.WithField("job", jobName).Warnf("some of retried queries failed: %+v", err)
 		}
 		if closed {
 			ticker.Stop()

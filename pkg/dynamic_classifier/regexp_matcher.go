@@ -59,7 +59,7 @@ func (rm *regexpMatcher) set(regexpString string, classification *producer.SloCl
 		return err
 	}
 	rm.matchers = append(rm.matchers, regexpClassification)
-	log.Tracef("added regex match for '%s' - %v", regexpClassification.regexpCompiled, regexpClassification.classification)
+	log.Tracef("added regex match for '%s' - %+v", regexpClassification.regexpCompiled, regexpClassification.classification)
 	return nil
 }
 

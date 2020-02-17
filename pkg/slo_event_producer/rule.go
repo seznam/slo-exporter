@@ -65,7 +65,7 @@ func (er *evaluationRule) evaluateEvent(newEvent *producer.RequestEvent) (*event
 	eventSloClassification := newEvent.GetSloClassification()
 	if !newEvent.IsClassified() || eventSloClassification == nil {
 		unclassifiedEventsTotal.Inc()
-		log.Warnf("dropping event %v with no classification", newEvent)
+		log.Warnf("dropping event %+v with no classification", newEvent)
 		return nil, false
 	}
 	// Check if rule matches the newEvent

@@ -159,7 +159,7 @@ func TestTimescaleExporter_processEvent(t *testing.T) {
 	for k, v := range expectedStatistics {
 		value, ok := te.statistics[k]
 		if !ok {
-			t.Errorf("did not find key %v in map %v", k, te.statistics)
+			t.Errorf("did not find key %+v in map %+v", k, te.statistics)
 			continue
 		}
 		assert.Equal(t, v.value, value.value)
