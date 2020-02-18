@@ -74,7 +74,7 @@ type testProcessEvent struct {
 }
 
 func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
-	testedMetricName := aggregatedMetricName(conf.MetricName, conf.LabelNames.SloDomain, conf.LabelNames.SloApp, conf.LabelNames.SloClass, conf.LabelNames.EventKey)
+	testedMetricName := aggregatedMetricName(conf.MetricName, conf.LabelNames.SloDomain, conf.LabelNames.SloClass, conf.LabelNames.SloApp, conf.LabelNames.EventKey)
 	metricMetadata := fmt.Sprintf(`
 		# HELP %[1]s %[2]s
 		# TYPE %[1]s counter
@@ -116,7 +116,10 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		exporter.processEvent(test.ev)
+		if err := exporter.processEvent(test.ev); err != nil {
+			t.Error(err)
+			return
+		}
 		if err := testutil.GatherAndCompare(reg, strings.NewReader(test.expectedMetrics), testedMetricName); err != nil {
 			t.Errorf("unexpected collecting result:\n%s", err)
 		}

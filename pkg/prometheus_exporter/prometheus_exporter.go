@@ -67,7 +67,7 @@ type prometheusExporterConfig struct {
 }
 
 type PrometheusSloEventExporter struct {
-	aggregatedMetrics           []*aggregatedCounter
+	aggregatedMetricsSet        *aggregatedCounterSet
 	knownLabels                 []string
 	validEventResults           []event.Result
 	metricName                  string
@@ -102,33 +102,6 @@ func NewFromViper(metricRegistry prometheus.Registerer, possibleLabels []string,
 	return New(metricRegistry, possibleLabels, possibleResults, config)
 }
 
-func aggregatedMetrics(registry prometheus.Registerer, metricName string, possibleLabels []string, labelNames labelsNamesConfig) ([]*aggregatedCounter, error) {
-	var aggregatedCounters []*aggregatedCounter
-
-	perEndpointCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain, labelNames.SloApp, labelNames.SloClass, labelNames.EventKey}, []string{})
-	if err != nil {
-		return nil, err
-	}
-	aggregatedCounters = append(aggregatedCounters, perEndpointCounter)
-	perClassCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain, labelNames.SloApp, labelNames.SloClass}, []string{labelNames.EventKey})
-	if err != nil {
-		return nil, err
-	}
-	aggregatedCounters = append(aggregatedCounters, perEndpointCounter)
-	perAppCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain, labelNames.SloApp}, []string{labelNames.EventKey, labelNames.SloClass})
-	if err != nil {
-		return nil, err
-	}
-	aggregatedCounters = append(aggregatedCounters, perEndpointCounter)
-	perDomainCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain}, []string{labelNames.SloApp, labelNames.SloClass, labelNames.EventKey})
-	if err != nil {
-		return nil, err
-	}
-	aggregatedCounters = append(aggregatedCounters, perEndpointCounter)
-
-	return []*aggregatedCounter{perEndpointCounter, perClassCounter, perAppCounter, perDomainCounter}, nil
-}
-
 func New(metricRegistry prometheus.Registerer, possibleLabels []string, possibleResults []event.Result, config prometheusExporterConfig) (*PrometheusSloEventExporter, error) {
 	knownLabels := append(possibleLabels, config.LabelNames.keys()...)
 
@@ -136,13 +109,13 @@ func New(metricRegistry prometheus.Registerer, possibleLabels []string, possible
 	eventKeyCardinalityLimit.Set(float64(config.MaximumUniqueEventKeys))
 	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeys)
 
-	newAggregatedMetrics, err := aggregatedMetrics(metricRegistry, config.MetricName, knownLabels, config.LabelNames)
+	newAggregatedMetricsSet, err := newAggregatedCounterSet(metricRegistry, config.MetricName, knownLabels, config.LabelNames)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PrometheusSloEventExporter{
-		aggregatedMetrics:           newAggregatedMetrics,
+		aggregatedMetricsSet:        newAggregatedMetricsSet,
 		knownLabels:                 knownLabels,
 		validEventResults:           possibleResults,
 		metricName:                  config.MetricName,
@@ -222,9 +195,7 @@ func (e *PrometheusSloEventExporter) isValidResult(result event.Result) bool {
 func (e *PrometheusSloEventExporter) initializeMetricForGivenMetadata(metadata stringmap.StringMap) {
 	for _, result := range e.validEventResults {
 		metadata[e.labelNames.Result] = string(result)
-		for _, metric := range e.aggregatedMetrics {
-			metric.add(0, metadata)
-		}
+		e.aggregatedMetricsSet.add(0, metadata)
 	}
 }
 
@@ -256,8 +227,6 @@ func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 
 	// add result to metadata
 	normalizedLabels[e.labelNames.Result] = string(newEvent.Result)
-	for _, metric := range e.aggregatedMetrics {
-			metric.inc(normalizedLabels)
-	}
+	e.aggregatedMetricsSet.inc(normalizedLabels)
 	return nil
 }
