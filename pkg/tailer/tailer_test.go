@@ -3,6 +3,7 @@ package tailer
 import (
 	"context"
 	"fmt"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io/ioutil"
 	"net"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 )
 
 var (
@@ -133,7 +133,7 @@ func TestParseLine(t *testing.T) {
 
 		parsedEvent, err := parseLine(requestLine)
 
-		var expectedEvent *producer.RequestEvent
+		var expectedEvent *event.HttpRequest
 
 		if test.isLineValid {
 			// line is considered valid, build the expectedEvent struct in order to compare it to the parsed one
@@ -143,7 +143,7 @@ func TestParseLine(t *testing.T) {
 			method, requestURI, _, _ := parseRequestLine(test.lineContentMapping["request"])
 			uri, _ := url.Parse(requestURI)
 
-			expectedEvent = &producer.RequestEvent{
+			expectedEvent = &event.HttpRequest{
 				Time:       lineTime,
 				IP:         net.ParseIP(test.lineContentMapping["ip"]),
 				Duration:   duration,
@@ -175,7 +175,7 @@ type offsetPersistenceTest struct {
 }
 
 // reads in chan and on close returns count to out chan
-func countEvents(in chan *producer.RequestEvent, out chan int) {
+func countEvents(in chan *event.HttpRequest, out chan int) {
 	count := 0
 	for range in {
 		count++
@@ -214,7 +214,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		return err
 	}
 
-	eventsChan := make(chan *producer.RequestEvent)
+	eventsChan := make(chan *event.HttpRequest)
 	errChan := make(chan error, 10)
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	tailer.Run(ctx, eventsChan, errChan)
@@ -236,7 +236,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
 	}
 
-	eventsChan = make(chan *producer.RequestEvent)
+	eventsChan = make(chan *event.HttpRequest)
 	errChan = make(chan error, 10)
 	ctx, cancelFunc = context.WithCancel(context.Background())
 

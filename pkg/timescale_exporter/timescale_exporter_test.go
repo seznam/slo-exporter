@@ -10,9 +10,6 @@ import (
 	"time"
 )
 
-
-
-
 type eventToRender struct {
 	l   string
 	v   float64
@@ -137,7 +134,7 @@ func TestTimescaleExporter_processEvent(t *testing.T) {
 	}
 	te := TimescaleExporter{
 		instanceName: "test",
-		labelNames:labelsNamesConfig{Instance:"instance", Result:"result"},
+		labelNames:   labelsNamesConfig{Instance: "instance", Result: "result"},
 		statistics:   map[string]*timescaleMetric{},
 	}
 	expectedStatistics := map[string]*timescaleMetric{}
@@ -152,7 +149,6 @@ func TestTimescaleExporter_processEvent(t *testing.T) {
 		}
 		expectedStatistics[fmt.Sprintf("%s=%q,%s=%q", te.labelNames.Instance, "test", te.labelNames.Result, v)] = newMetric
 	}
-
 
 	te.processEvent(&testEvent)
 	assert.Equal(t, len(expectedStatistics), len(te.statistics))

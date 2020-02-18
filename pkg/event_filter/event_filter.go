@@ -5,7 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"time"
 )
@@ -55,7 +55,7 @@ func New(config eventFilterConfig) *RequestEventFilter {
 	}
 }
 
-func (ef *RequestEventFilter) matches(event *producer.RequestEvent) bool {
+func (ef *RequestEventFilter) matches(event *event.HttpRequest) bool {
 	if ef.statusMatch(event.StatusCode) {
 		filteredEventsTotal.WithLabelValues("status_code").Inc()
 		log.WithField("event", event).Debugf("matched event because of status code")
@@ -100,7 +100,7 @@ func (ef *RequestEventFilter) observeDuration(start time.Time) {
 	}
 }
 
-func (ef *RequestEventFilter) Run(in <-chan *producer.RequestEvent, out chan<- *producer.RequestEvent) {
+func (ef *RequestEventFilter) Run(in <-chan *event.HttpRequest, out chan<- *event.HttpRequest) {
 	go func() {
 		defer close(out)
 		for event := range in {

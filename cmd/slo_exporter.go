@@ -21,7 +21,6 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
@@ -135,7 +134,7 @@ func main() {
 		gracefulShutdownChan <- struct{}{}
 	}()
 
-	// Tail nginx logs and parse them to RequestEvent
+	// Tail nginx logs and parse them to HttpRequest
 	nginxTailer, err := tailer.NewFromViper(conf.MustModuleConfig("tailer"))
 	if err != nil {
 		log.Fatal(err)
@@ -193,16 +192,16 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	// Pipeline definition
-	nginxEventsChan := make(chan *producer.RequestEvent)
+	nginxEventsChan := make(chan *event.HttpRequest)
 	nginxTailer.Run(ctx, nginxEventsChan, errChan)
 
-	normalizedEventsChan := make(chan *producer.RequestEvent)
+	normalizedEventsChan := make(chan *event.HttpRequest)
 	requestNormalizer.Run(nginxEventsChan, normalizedEventsChan)
 
-	filteredEventsChan := make(chan *producer.RequestEvent)
+	filteredEventsChan := make(chan *event.HttpRequest)
 	eventFilter.Run(normalizedEventsChan, filteredEventsChan)
 
-	classifiedEventsChan := make(chan *producer.RequestEvent)
+	classifiedEventsChan := make(chan *event.HttpRequest)
 	dynamicClassifier.Run(filteredEventsChan, classifiedEventsChan)
 
 	sloEventsChan := make(chan *event.Slo)

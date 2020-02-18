@@ -6,7 +6,6 @@ package slo_event_producer
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
@@ -33,7 +32,7 @@ func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 		failureCriteria = append(failureCriteria, criterium)
 	}
 	return &evaluationRule{
-		sloMatcher: producer.SloClassification{
+		sloMatcher: event.SloClassification{
 			Domain: opts.SloMatcher.Domain,
 			App:    opts.SloMatcher.App,
 			Class:  opts.SloMatcher.Class,
@@ -44,7 +43,7 @@ func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 }
 
 type evaluationRule struct {
-	sloMatcher         producer.SloClassification
+	sloMatcher         event.SloClassification
 	failureCriteria    []criterium
 	additionalMetadata stringmap.StringMap
 }
@@ -61,7 +60,7 @@ func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
 	}
 }
 
-func (er *evaluationRule) evaluateEvent(newEvent *producer.RequestEvent) (*event.Slo, bool) {
+func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) (*event.Slo, bool) {
 	eventSloClassification := newEvent.GetSloClassification()
 	if !newEvent.IsClassified() || eventSloClassification == nil {
 		unclassifiedEventsTotal.Inc()

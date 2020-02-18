@@ -21,8 +21,8 @@ func TestConfig_loadFromFile(t *testing.T) {
 			path: "testdata/slo_rules_valid.yaml.golden",
 			expectedConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					EventType:       "request",
-					SloMatcher: sloMatcher{Domain:"domain"},
+					EventType:  "request",
+					SloMatcher: sloMatcher{Domain: "domain"},
 					FailureCriteriaOptions: []criteriumOptions{
 						{Criterium: "requestStatusHigherThan", Value: "500"},
 					},

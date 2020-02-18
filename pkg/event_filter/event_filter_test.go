@@ -2,14 +2,14 @@ package event_filter
 
 import (
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
 )
 
 type ShouldDropTestCase struct {
 	eventFilter *RequestEventFilter
-	event       *producer.RequestEvent
+	event       *event.HttpRequest
 	dropped     bool
 	reason      string
 }
@@ -52,18 +52,17 @@ func TestEventFilter_headersMatch(t *testing.T) {
 	}
 }
 
-
 func TestEventFilter_shouldDrop(t *testing.T) {
 	config := eventFilterConfig{
 		FilteredHttpStatusCodes: []int{301, 404},
-		FilteredHttpHeaders: stringmap.StringMap{"name": "value"},
+		FilteredHttpHeaders:     stringmap.StringMap{"name": "value"},
 	}
 	eventFilter := New(config)
 	testCases := []ShouldDropTestCase{
 		// no match
 		{
 			eventFilter,
-			&producer.RequestEvent{
+			&event.HttpRequest{
 				StatusCode: 200,
 			},
 			false,
@@ -72,7 +71,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		// status code match
 		{
 			eventFilter,
-			&producer.RequestEvent{
+			&event.HttpRequest{
 				StatusCode: 301,
 			},
 			true,
@@ -81,7 +80,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		// no match
 		{
 			eventFilter,
-			&producer.RequestEvent{
+			&event.HttpRequest{
 				StatusCode: 200,
 				Headers:    stringmap.StringMap{"name1": "somevalue"},
 			},
@@ -91,7 +90,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		// just header name match
 		{
 			eventFilter,
-			&producer.RequestEvent{
+			&event.HttpRequest{
 				StatusCode: 200,
 				Headers:    stringmap.StringMap{"name": "somevalue"},
 			},
@@ -101,7 +100,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		// header match
 		{
 			eventFilter,
-			&producer.RequestEvent{
+			&event.HttpRequest{
 				StatusCode: 200,
 				Headers:    stringmap.StringMap{"name": "value"},
 			},
@@ -111,7 +110,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		// header match, name normalization (->lower case)
 		{
 			New(eventFilterConfig{FilteredHttpHeaders: stringmap.StringMap{"NAME": "value"}}, ),
-			&producer.RequestEvent{
+			&event.HttpRequest{
 				StatusCode: 200,
 				Headers:    stringmap.StringMap{"name": "value"},
 			},
@@ -121,7 +120,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		// both status code and header match
 		{
 			eventFilter,
-			&producer.RequestEvent{
+			&event.HttpRequest{
 				StatusCode: 404,
 				Headers:    stringmap.StringMap{"name": "value"},
 			},
