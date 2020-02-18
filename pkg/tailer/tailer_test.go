@@ -154,7 +154,7 @@ func TestParseLine(t *testing.T) {
 				Method:     method,
 			}
 			if !reflect.DeepEqual(expectedEvent, parsedEvent) {
-				t.Errorf("Unexpected result of parse line: %s\n%v\nExpected:\n%v", requestLine, parsedEvent, expectedEvent)
+				t.Errorf("Unexpected result of parse line: %s\n%+v\nExpected:\n%+v", requestLine, parsedEvent, expectedEvent)
 			}
 		} else {
 			// line is not valid, just check that err is returned

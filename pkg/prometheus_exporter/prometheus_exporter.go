@@ -83,7 +83,7 @@ type InvalidSloEventResult struct {
 }
 
 func (e *InvalidSloEventResult) Error() string {
-	return fmt.Sprintf("result '%s' is not valid. Expected one of: %v", e.result, e.validResults)
+	return fmt.Sprintf("result '%s' is not valid. Expected one of: %+v", e.result, e.validResults)
 }
 
 func NewFromViper(metricRegistry prometheus.Registerer, possibleLabels []string, possibleResults []event.Result, viperConfig *viper.Viper) (*PrometheusSloEventExporter, error) {
@@ -131,7 +131,7 @@ func (e *PrometheusSloEventExporter) Run(input <-chan *event.Slo) {
 			start := time.Now()
 			err := e.processEvent(newEvent)
 			if err != nil {
-				log.Errorf("unable to process slo event: %v", err)
+				log.Errorf("unable to process slo event: %+v", err)
 				switch err.(type) {
 				case *InvalidSloEventResult:
 					errorsTotal.With(prometheus.Labels{"type": "InvalidResult"}).Inc()

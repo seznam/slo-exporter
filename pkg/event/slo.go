@@ -38,7 +38,7 @@ func (s *Slo) IsClassified() bool {
 }
 
 func (s *Slo) String() string {
-	return fmt.Sprintf("SLO event %q of domain: %q, class: %q, app: %q with metadata: %v", s.Key, s.Domain, s.Class, s.App, s.Metadata)
+	return fmt.Sprintf("SLO event %q of domain: %q, class: %q, app: %q with metadata: %+v", s.Key, s.Domain, s.Class, s.App, s.Metadata)
 }
 
 func (s Slo) Copy() Slo {

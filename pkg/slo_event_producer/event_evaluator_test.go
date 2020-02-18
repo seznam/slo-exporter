@@ -70,7 +70,7 @@ func TestSloEventProducer(t *testing.T) {
 			results = append(results, *newEvent)
 		}
 		if diff := deep.Equal(tc.expectedSloEvents, results); diff != nil {
-			t.Errorf("events are different %v, \nexpected: %v\n result: %v\n", diff, tc.expectedSloEvents, results)
+			t.Errorf("events are different %+v, \nexpected: %+v\n result: %+v\n", diff, tc.expectedSloEvents, results)
 		}
 	}
 }

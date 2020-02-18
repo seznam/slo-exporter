@@ -87,7 +87,7 @@ func (p *Prober) setStatus(err error) {
 		status.WithLabelValues(p.name).Set(1)
 	}
 	if p.status == nil && err != nil {
-		log.Warnf("changing %s status to not ok, reason: %v", p.name, err)
+		log.Warnf("changing %s status to not ok, reason: %+v", p.name, err)
 		status.WithLabelValues(p.name).Set(0)
 	}
 	p.status = err

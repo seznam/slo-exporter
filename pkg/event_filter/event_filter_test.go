@@ -132,6 +132,6 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 
 	for _, test := range testCases {
 		dropped := test.eventFilter.matches(test.event)
-		assert.Equal(t, test.dropped, dropped, "event %v failed with eventFilter %v", test.event, test.eventFilter)
+		assert.Equal(t, test.dropped, dropped, "event %+v failed with eventFilter %+v", test.event, test.eventFilter)
 	}
 }

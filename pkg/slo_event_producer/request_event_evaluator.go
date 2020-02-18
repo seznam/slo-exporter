@@ -62,7 +62,7 @@ func (re *requestEventEvaluator) Evaluate(event *producer.RequestEvent, outChan 
 		outChan <- newSloEvent
 	}
 	if matchedRulesCount == 0 {
-		log.Warnf("event %v did not match any SLO rule", event)
+		log.Warnf("event %+v did not match any SLO rule", event)
 		didNotMatchAnyRule.Inc()
 	}
 }

@@ -45,7 +45,7 @@ func NewEventEvaluatorFromConfig(config *rulesConfig) (EventEvaluator, error) {
 	for _, ruleOpts := range config.Rules {
 		rule, err := newEvaluationRule(ruleOpts)
 		if err != nil {
-			log.Errorf("invalid rule configuration: %v", err)
+			log.Errorf("invalid rule configuration: %+v", err)
 			configurationErrors = multierror.Append(configurationErrors, err)
 			continue
 		}

@@ -104,7 +104,7 @@ func main() {
 	}
 
 	if err := setupLogging(conf.LogLevel); err != nil {
-		log.Fatalf("invalid specified log level %v, error: %v", conf.LogLevel, err)
+		log.Fatalf("invalid specified log level %+v, error: %+v", conf.LogLevel, err)
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -120,7 +120,7 @@ func main() {
 	// Classify event by dynamic classifier
 	dynamicClassifier, err := dynamic_classifier.NewFromViper(conf.MustModuleConfig("dynamicClassifier"))
 	if err != nil {
-		log.Fatalf("failed to initialize dynamic classifier: %v", err)
+		log.Fatalf("failed to initialize dynamic classifier: %+v", err)
 	}
 	dynamicClassifier.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("dynamic_classifier"))
 	dynamicClassifierHandler := handler.NewDynamicClassifierHandler(dynamicClassifier)
@@ -128,7 +128,7 @@ func main() {
 	// Start default server
 	defaultServer := setupDefaultServer(conf.WebServerListenAddress, liveness, readiness, dynamicClassifierHandler)
 	go func() {
-		log.Infof("HTTP server listening on %v", defaultServer.Addr)
+		log.Infof("HTTP server listening on %+v", defaultServer.Addr)
 		if err := defaultServer.ListenAndServe(); err != nil {
 			errChan <- err
 		}
@@ -157,7 +157,7 @@ func main() {
 
 	sloEventProducer, err := slo_event_producer.NewFromViper(conf.MustModuleConfig("sloEventProducer"))
 	if err != nil {
-		log.Fatalf("failed to load SLO rules conf: %v", err)
+		log.Fatalf("failed to load SLO rules conf: %+v", err)
 	}
 	sloEventProducer.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("slo_event_producer"))
 
@@ -167,7 +167,7 @@ func main() {
 	if !*disablePrometheus {
 		sloEventExporter, err := prometheus_exporter.NewFromViper(prometheusRegistry, sloEventProducer.PossibleMetadataKeys(), event.PossibleResults, conf.MustModuleConfig("prometheusExporter"))
 		if err != nil {
-			log.Fatalf("failed to load SLO rules conf: %v", err)
+			log.Fatalf("failed to load SLO rules conf: %+v", err)
 		}
 		sloEventExporter.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("prometheus_exporter"))
 		prometheusSloEventsChan := make(chan *event.Slo)
@@ -178,7 +178,7 @@ func main() {
 	if !*disableTimescale {
 		timescaleExporter, err := timescale_exporter.NewFromViper(conf.MustModuleConfig("timescaleExporter"))
 		if err != nil {
-			log.Fatalf("failed to initialize timescale exporter: %v", err)
+			log.Fatalf("failed to initialize timescale exporter: %+v", err)
 		}
 		timescaleSloEventsChan := make(chan *event.Slo)
 		exporterChannels = append(exporterChannels, timescaleSloEventsChan)
@@ -223,16 +223,16 @@ func main() {
 			shutdownCtx, _ := context.WithTimeout(ctx, conf.GracefulShutdownTimeout)
 			cancelFunc()
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
-				log.Errorf("failed to gracefully shutdown HTTP server %v. ", err)
+				log.Errorf("failed to gracefully shutdown HTTP server %+v. ", err)
 			}
 			log.Infof("waiting configured graceful shutdown timeout %s", conf.GracefulShutdownTimeout)
 			shutdownCtx.Done()
 			return
 		case sig := <-sigChan:
-			log.Infof("received signal %v", sig)
+			log.Infof("received signal %+v", sig)
 			gracefulShutdownChan <- struct{}{}
 		case err := <-errChan:
-			log.Errorf("encountered error: %v", err)
+			log.Errorf("encountered error: %+v", err)
 			gracefulShutdownChan <- struct{}{}
 		}
 	}

@@ -140,7 +140,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 
 		err = matcher.set(sloEndpoint, classification)
 		if err != nil {
-			log.Errorf("failed to load match: %v", err)
+			log.Errorf("failed to load match: %+v", err)
 		}
 	}
 
@@ -166,7 +166,7 @@ func (dc *DynamicClassifier) Classify(event *producer.RequestEvent) (bool, error
 		var err error
 		classification, err = dc.classifyByMatch(classifier, event)
 		if err != nil {
-			log.Errorf("error while classifying event: %v", err)
+			log.Errorf("error while classifying event: %+v", err)
 			classificationErrors = multierror.Append(classificationErrors, err)
 		}
 		if classification != nil {

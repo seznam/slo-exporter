@@ -53,7 +53,7 @@ func TestMatcher(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(value, v.wantedValue) {
-			t.Errorf("Get returned non-expected value %v != %v", value, v.wantedValue)
+			t.Errorf("Get returned non-expected value %+v != %+v", value, v.wantedValue)
 		}
 
 	}
