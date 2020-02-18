@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+func NewFromKeys(keys []string) StringMap {
+	newStringMap := StringMap{}
+	for _, k := range keys {
+		newStringMap[k] = ""
+	}
+	return newStringMap
+}
+
 type StringMap map[string]string
 
 // Copy returns new StringMap as a copy of the original.
@@ -100,4 +108,16 @@ func (m StringMap) Select(keys []string) StringMap {
 		}
 	}
 	return selected
+}
+
+// Without returns new StringMap with without specified keys from the original StringMap.
+func (m StringMap) Without(keys []string) StringMap {
+	other := StringMap{}
+	for _, key := range keys {
+		val, ok := m[key]
+		if !ok {
+			other[key] = val
+		}
+	}
+	return other
 }

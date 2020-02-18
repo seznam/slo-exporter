@@ -19,7 +19,7 @@ var conf = prometheusExporterConfig{
 		Result:    "result",
 		SloDomain: "slo_domain",
 		SloClass:  "slo_class",
-		SloApp:    "app",
+		SloApp:    "slo_app",
 		EventKey:  "event_key",
 	},
 	MaximumUniqueEventKeys: 2,
@@ -55,16 +55,16 @@ func Test_normalizeEventMetadata(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		p := New(prometheus.NewRegistry(), testCase.knownLabels, event.PossibleResults, conf)
+		p, err := New(prometheus.NewRegistry(), testCase.knownLabels, event.PossibleResults, conf)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		assert.Equal(t, testCase.expectedOutput, p.normalizeEventMetadata(testCase.input))
 	}
 }
 
 var (
-	metricMetadata = fmt.Sprintf(`
-		# HELP %s Total number of SLO events exported with it's result and metadata.
-		# TYPE %s counter
-	`, conf.MetricName, conf.MetricName)
 	labels = []string{"a", "b"}
 )
 
@@ -74,6 +74,12 @@ type testProcessEvent struct {
 }
 
 func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
+	testedMetricName := aggregatedMetricName(conf.MetricName, conf.LabelNames.SloDomain, conf.LabelNames.SloClass, conf.LabelNames.SloApp, conf.LabelNames.EventKey)
+	metricMetadata := fmt.Sprintf(`
+		# HELP %[1]s %[2]s
+		# TYPE %[1]s counter
+	`, testedMetricName, metricHelp)
+
 	testCases := []testProcessEvent{
 		{
 			ev: &event.Slo{
@@ -84,9 +90,9 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 				Result:   event.Fail,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="fail", %[5]s = "", %[6]s = "domain"} 1
-				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="success", %[5]s = "", %[6]s = "domain"} 0
-				`, conf.MetricName, conf.LabelNames.SloApp, conf.LabelNames.EventKey, conf.LabelNames.Result, conf.LabelNames.SloClass, conf.LabelNames.SloDomain),
+				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="fail", %[4]s = "", %[5]s = "", %[6]s = "domain"} 1
+				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="success", %[4]s = "", %[5]s = "", %[6]s = "domain"} 0
+				`, testedMetricName, conf.LabelNames.EventKey, conf.LabelNames.Result, conf.LabelNames.SloApp, conf.LabelNames.SloClass, conf.LabelNames.SloDomain),
 		},
 		{
 			ev: &event.Slo{
@@ -97,23 +103,35 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 				Result:   event.Success,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
-				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="success", %[5]s = "", %[6]s = "domain"} 1
-				%[1]s{ a = "a1" , %[2]s = "", b = "b1", %[3]s = "foo", %[4]s ="fail", %[5]s = "", %[6]s = "domain"} 0
-				`, conf.MetricName, conf.LabelNames.SloApp, conf.LabelNames.EventKey, conf.LabelNames.Result, conf.LabelNames.SloClass, conf.LabelNames.SloDomain),
+				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="success", %[4]s = "", %[5]s = "", %[6]s = "domain"} 1
+				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="fail", %[4]s = "", %[5]s = "", %[6]s = "domain"} 0
+				`, testedMetricName, conf.LabelNames.EventKey, conf.LabelNames.Result, conf.LabelNames.SloApp, conf.LabelNames.SloClass, conf.LabelNames.SloDomain),
 		},
 	}
 
 	for _, test := range testCases {
-		exporter := New(prometheus.NewPedanticRegistry(), labels, event.PossibleResults, conf)
-		exporter.processEvent(test.ev)
-		if err := testutil.CollectAndCompare(exporter.eventsCount, strings.NewReader(test.expectedMetrics), conf.MetricName); err != nil {
+		reg := prometheus.NewPedanticRegistry()
+		exporter, err := New(reg, labels, event.PossibleResults, conf)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if err := exporter.processEvent(test.ev); err != nil {
+			t.Error(err)
+			return
+		}
+		if err := testutil.GatherAndCompare(reg, strings.NewReader(test.expectedMetrics), testedMetricName); err != nil {
 			t.Errorf("unexpected collecting result:\n%s", err)
 		}
 	}
 }
 
 func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
-	exporter := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
+	exporter, err := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	testCases := map[event.Result]bool{
 		event.PossibleResults[0]:          true,
 		event.Result("nonexistingresult"): false,
@@ -124,7 +142,11 @@ func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
-	exporter := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
+	exporter, err := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	for i := 0; i < 5; i++ {
 		if exporter.isCardinalityExceeded(string(i)) && i+1 <= conf.MaximumUniqueEventKeys {
 			t.Errorf("Event key '%d' masked while it the total count '%d' is under given limit '%d'", i, len(exporter.eventKeyCache), conf.MaximumUniqueEventKeys)

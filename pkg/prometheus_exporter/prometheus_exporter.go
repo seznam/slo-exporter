@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	component = "prometheus_exporter"
+	component  = "prometheus_exporter"
+	metricHelp = "Total number of SLO events exported with it's result and metadata."
 )
 
 var (
@@ -66,7 +67,7 @@ type prometheusExporterConfig struct {
 }
 
 type PrometheusSloEventExporter struct {
-	eventsCount                 *prometheus.CounterVec
+	aggregatedMetricsSet        *aggregatedCounterSet
 	knownLabels                 []string
 	validEventResults           []event.Result
 	metricName                  string
@@ -98,22 +99,23 @@ func NewFromViper(metricRegistry prometheus.Registerer, possibleLabels []string,
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(metricRegistry, possibleLabels, possibleResults, config), nil
+	return New(metricRegistry, possibleLabels, possibleResults, config)
 }
 
-func New(metricRegistry prometheus.Registerer, possibleLabels []string, possibleResults []event.Result, config prometheusExporterConfig) *PrometheusSloEventExporter {
+func New(metricRegistry prometheus.Registerer, possibleLabels []string, possibleResults []event.Result, config prometheusExporterConfig) (*PrometheusSloEventExporter, error) {
 	knownLabels := append(possibleLabels, config.LabelNames.keys()...)
 
 	// initialize and register Prometheus metrics
 	eventKeyCardinalityLimit.Set(float64(config.MaximumUniqueEventKeys))
-	eventsCount := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: config.MetricName,
-		Help: "Total number of SLO events exported with it's result and metadata.",
-	}, knownLabels)
-	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeys, eventsCount)
+	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeys)
+
+	newAggregatedMetricsSet, err := newAggregatedCounterSet(metricRegistry, config.MetricName, knownLabels, config.LabelNames)
+	if err != nil {
+		return nil, err
+	}
 
 	return &PrometheusSloEventExporter{
-		eventsCount:                 eventsCount,
+		aggregatedMetricsSet:        newAggregatedMetricsSet,
 		knownLabels:                 knownLabels,
 		validEventResults:           possibleResults,
 		metricName:                  config.MetricName,
@@ -122,7 +124,7 @@ func New(metricRegistry prometheus.Registerer, possibleLabels []string, possible
 		exceededKeyLimitPlaceholder: config.ExceededKeyLimitPlaceholder,
 		eventKeyCache:               map[string]int{},
 		observer:                    nil,
-	}
+	}, nil
 }
 
 func (e *PrometheusSloEventExporter) Run(input <-chan *event.Slo) {
@@ -193,7 +195,7 @@ func (e *PrometheusSloEventExporter) isValidResult(result event.Result) bool {
 func (e *PrometheusSloEventExporter) initializeMetricForGivenMetadata(metadata stringmap.StringMap) {
 	for _, result := range e.validEventResults {
 		metadata[e.labelNames.Result] = string(result)
-		e.eventsCount.With(prometheus.Labels(metadata)).Add(0)
+		e.aggregatedMetricsSet.add(0, metadata)
 	}
 }
 
@@ -225,6 +227,6 @@ func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 
 	// add result to metadata
 	normalizedLabels[e.labelNames.Result] = string(newEvent.Result)
-	e.eventsCount.With(prometheus.Labels(normalizedLabels)).Inc()
+	e.aggregatedMetricsSet.inc(normalizedLabels)
 	return nil
 }
