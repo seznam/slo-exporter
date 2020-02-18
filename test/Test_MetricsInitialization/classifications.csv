@@ -1,0 +1,1 @@
+frontend-api,high_fast,"^(GET|POST|HEAD|PUT|DELETE):/api/v2/graphql:RemoteNotificationsQuery$"
