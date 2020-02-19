@@ -26,7 +26,6 @@ var testCases = []testURL{
 	testURL{event: event.HttpRequest{URL: urlMustParse("http://foo.bar:8845"), Method: "POST"}, expectedID: "POST:/"},
 	testURL{event: event.HttpRequest{URL: urlMustParse("http://foo.bar:8845/"), Method: ""}, expectedID: ":/"},
 	testURL{event: event.HttpRequest{URL: urlMustParse("http://foo.bar:8845/banner-250x250.png"), Method: ""}, expectedID: ":/:image"},
-	testURL{event: event.HttpRequest{URL: urlMustParse("http://foo.bar:8845/banner-250x250.info"), Method: ""}, expectedID: ":/banner-0x0.info"},
 	testURL{event: event.HttpRequest{URL: urlMustParse("http://foo.bar:8845/foo////bar"), Method: ""}, expectedID: ":/foo/bar"},
 	testURL{event: event.HttpRequest{URL: urlMustParse("http://foo.bar:8845/foo/bar///"), Method: ""}, expectedID: ":/foo/bar"},
 	testURL{event: event.HttpRequest{URL: urlMustParse("http://foo.bar:8845/api/v1/ppchit/rule/0decf0c0cfb0"), Method: ""}, expectedID: ":/api/v1/ppchit/rule/0"},

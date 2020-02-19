@@ -240,7 +240,7 @@ func (t *Tailer) markOffsetPosition() error {
 // reportErrLine does the necessary reporting in case a wrong line occurs
 func reportErrLine(line string, err error) {
 	// TODO increment metrics
-	log.Errorf("err (%w) while parsing the line: %s", err, line)
+	log.WithField("line", line).Errorf("err (%+v) while parsing line", err)
 }
 
 // InvalidRequestError is error representing invalid RequestEvent
