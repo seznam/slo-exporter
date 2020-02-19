@@ -33,7 +33,7 @@ modules:
   # PROCESSOR Module allowing to filter HTTP requests.
   eventFilter:
     # List of HTTP status codes to filter out.
-    filteredHttpStatusCodes: [404, 405, 411, 301, 302]
+    filteredHttpStatusCodes: [301, 302, 400, 404, 405, 411]
     # Map of HTTP headers to to filter out (either key either value are checked ignoring case).
     filteredHttpHeaders: {}
 
