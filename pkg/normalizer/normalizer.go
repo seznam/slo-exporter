@@ -28,7 +28,6 @@ const (
 
 var (
 	log                  *logrus.Entry
-	followingDigitsRegex = regexp.MustCompile("[0-9]+")
 	imageExtensionRegex  = regexp.MustCompile(`(?i)\.(?:png|jpg|jpeg|svg|tif|tiff|gif)$`)
 	fontExtensionRegex   = regexp.MustCompile(`(?i)\.(?:ttf|woff)$`)
 )
@@ -145,7 +144,6 @@ func (rn *requestNormalizer) normalizePath(rawPath string) string {
 				pathItems[i] = fontPlaceholder
 				continue
 			}
-			pathItems[i] = followingDigitsRegex.ReplaceAllString(item, numberPlaceholder)
 			continue
 		}
 	}
