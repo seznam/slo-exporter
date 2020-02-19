@@ -35,6 +35,26 @@ modules:
     # How often current position should be persisted to the position file.
     positionPersistenceInterval: "2s"
 
+  # PRODUCER Module which regularly queries Prometheus/Thanos and inserts the results to the processing pipeline.
+  prometheusIngester:
+    # URL of the API for Prometheus queries
+    apiUrl: "https://thanos.sklik-scif-ko.dev.dszn.cz"
+    #queryTimeout: 10s
+    # Each query definition have to contain these fields:
+    #  - query            | required | (string)            | What PromQL should be executed
+    #  - interval         | required | (int)               | How long should we wait between each query execution
+    #  - dropLabels       | optional | (list[string])      | Names of the labels that should be dropped from the results before pushing to the internal SloEventsChannel
+    #  - additionalLabels | optional | (map[string]string) | Defines what labels and values should be appended to the results before pushing to the channel
+    queries:
+      # TODO: This is just an example query, should be deleted when Prometheus Ingester starts
+      - query: 'time() - last_successful_run_timestamp - on(app) group_left() min(alerting_threshold:last_successful_run_timestamp) by (app) > 0'
+        interval: 20s
+        dropLabels:
+          - job
+        additionalLabels:
+          purpose: "to_demonstrate_slo_exporter_conf_syntax"
+
+
   # PROCESSOR Module allowing to filter out HTTP requests.
   eventFilter:
     # List of Go regular expressions matching HTTP status codes to be filtered out.

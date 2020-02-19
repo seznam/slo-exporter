@@ -2,6 +2,7 @@ package stringmap
 
 import (
 	"fmt"
+	"github.com/prometheus/common/model"
 	"sort"
 	"strings"
 )
@@ -13,6 +14,15 @@ func NewFromKeys(keys []string) StringMap {
 	}
 	return newStringMap
 }
+
+func NewFromMetric(labels model.Metric) StringMap {
+	newStringMap := StringMap{}
+	for name, value := range labels {
+		newStringMap[string(name)] = string(value)
+	}
+	return newStringMap
+}
+
 
 type StringMap map[string]string
 

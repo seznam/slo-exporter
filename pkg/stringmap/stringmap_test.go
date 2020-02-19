@@ -1,6 +1,7 @@
 package stringmap
 
 import (
+	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -132,7 +133,6 @@ func TestStringMap_Lowercase(t *testing.T) {
 	}
 }
 
-
 type stringMapWithoutTestCase struct {
 	a      StringMap
 	b      []string
@@ -151,5 +151,37 @@ func TestStringMap_Without(t *testing.T) {
 
 	for _, tc := range testCases {
 		assert.Equal(t, tc.result, tc.a.Without(tc.b), tc)
+	}
+}
+
+type stringMapNewFromMetricTestCase struct {
+	a      model.Metric
+	result StringMap
+}
+
+func newMetric(keysAndValues ...string) model.Metric {
+	metric := model.Metric{}
+	var lastKey string
+	for _, value := range keysAndValues {
+		if lastKey == "" {
+			lastKey = value
+			continue
+		}
+
+		metric[model.LabelName(lastKey)] = model.LabelValue(value)
+		lastKey = ""
+	}
+	return metric
+}
+
+func TestStringMap_NewFromMetric(t *testing.T) {
+	testCases := []stringMapNewFromMetricTestCase{
+		{a: newMetric("a", "1", "b", "2"), result: StringMap{"a": "1", "b": "2"}},
+		{a: newMetric("a", "1"), result: StringMap{"a": "1"}},
+		{a: nil, result: StringMap{}},
+	}
+
+	for _, tc := range testCases {
+		assert.Equal(t, tc.result, NewFromMetric(tc.a), tc)
 	}
 }
