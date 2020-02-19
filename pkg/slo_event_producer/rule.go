@@ -63,8 +63,6 @@ func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
 func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) (*event.Slo, bool) {
 	eventSloClassification := newEvent.GetSloClassification()
 	if !newEvent.IsClassified() || eventSloClassification == nil {
-		unclassifiedEventsTotal.Inc()
-		log.Warnf("dropping event %+v with no classification", newEvent)
 		return nil, false
 	}
 	// Check if rule matches the newEvent
