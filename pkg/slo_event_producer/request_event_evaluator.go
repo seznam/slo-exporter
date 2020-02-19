@@ -48,12 +48,17 @@ func (re *requestEventEvaluator) PossibleMetadataKeys() []string {
 	return possibleMetadata.Keys()
 }
 
-func (re *requestEventEvaluator) Evaluate(event *event.HttpRequest, outChan chan<- *event.Slo) {
+func (re *requestEventEvaluator) Evaluate(newEvent *event.HttpRequest, outChan chan<- *event.Slo) {
+	if !newEvent.IsClassified() {
+		unclassifiedEventsTotal.Inc()
+		log.Warnf("dropping newEvent %+v with no classification", newEvent)
+		return
+	}
 	timer := prometheus.NewTimer(evaluationDurationSeconds)
 	defer timer.ObserveDuration()
 	matchedRulesCount := 0
 	for _, rule := range re.rules {
-		newSloEvent, matched := rule.evaluateEvent(event)
+		newSloEvent, matched := rule.evaluateEvent(newEvent)
 		if !matched {
 			continue
 		}
@@ -61,7 +66,7 @@ func (re *requestEventEvaluator) Evaluate(event *event.HttpRequest, outChan chan
 		outChan <- newSloEvent
 	}
 	if matchedRulesCount == 0 {
-		log.Warnf("event %+v did not match any SLO rule", event)
+		log.Warnf("newEvent %+v did not match any SLO rule", newEvent)
 		didNotMatchAnyRule.Inc()
 	}
 }
