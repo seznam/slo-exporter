@@ -30,7 +30,7 @@ frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/interests/change-basi
 frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/keywords/change-basic-status$"
 frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/keywords/change-status$"
 frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/keywords/negative/save$"
-frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/placements$"
+frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/placements(/0)?$"
 frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/placements/add$"
 frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/placements/change-basic-status$"
 frontend-api,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/placements/negative/save$"
