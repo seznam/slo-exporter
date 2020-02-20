@@ -99,30 +99,3 @@ modules:
       sloApp: "slo_app"
       # Unique identifier of the event.
       eventKey: "event_key"
-
-  # EXPORTER Module allowing to write SLO metrics to TimescaleDB.
-  timescaleExporter:
-    # TimescaleDB host.
-    host: "postgresql"
-    # TimescaleDB port.
-    port: 5432
-    # TimescaleDB user.
-    user: "postgres"
-    # TimescaleDB password.
-    password: "postgres"
-    # TimescaleDB database to use.
-    dbname: "postgres"
-    # How long to wait for TimescaleDB to be ready on startup.
-    dbInitTimeout: "1m"
-    # How often tu check if TimescaleDB is ready on startup.
-    dbInitCheckInterval: "1s"
-    # How often should be metric value reported to TimescaleDB if it changed recently.
-    updatedMetricPushInterval: "5m"
-    # How often should be all metric values reported to TimescaleDB regardless if it changed.
-    maximumPushInterval: "1h"
-    # How many inserts to batch into one write.
-    dbBatchWriteSize: 3000
-    # How often to write to TimescaleDB.
-    dbWriteInterval: "30s"
-    # How many times to retry failed inserts before dropping them completely.
-    dbWriteRetryInterval: "3m"
