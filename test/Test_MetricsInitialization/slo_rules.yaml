@@ -12,32 +12,6 @@ rules:
   - event_type: request
     slo_matcher:
       domain: testdomain
-      class: critical
-    failure_criteria:
-      - criterium: requestDurationHigherThan
-        value: 0.8s
-    additional_metadata:
-      slo_version: 1
-      slo_type: latency90
-      percentile: 90
-      le: 0.8
-
-  - event_type: request
-    slo_matcher:
-      domain: testdomain
-      class: critical
-    failure_criteria:
-      - criterium: requestDurationHigherThan
-        value: 8.0s
-    additional_metadata:
-      slo_version: 1
-      slo_type: latency99
-      percentile: 99
-      le: 8.0
-
-  - event_type: request
-    slo_matcher:
-      domain: testdomain
       class: high_fast
     failure_criteria:
       - criterium: requestDurationHigherThan

@@ -33,35 +33,18 @@ modules:
   # PROCESSOR Module allowing to filter HTTP requests.
   eventFilter:
     # List of HTTP status codes to filter out.
-    filteredHttpStatusCodes: [404, 405, 411, 301, 302]
+    filteredHttpStatusCodes: [404]
     # Map of HTTP headers to to filter out (either key either value are checked ignoring case).
     filteredHttpHeaders: {}
 
   # PROCESSOR Module doing sanitization of HTTP request path anf generating unique key for the event.
   normalizer:
-    getParamWithEventIdentifier: "operationName"
     # List of replace rules to be applied on the HTTP request path
     replaceRules:
       # Regular expression to match the path
       - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
         # Replacement of the matched path
         replacement: "/api/v1/ppchit/rule/0"
-      - regexp: '/campaigns/\\d+/groups/\\d+/placements/automatic/(\\w[\\w-]+\\.)+\w{2,}/urls'
-        replacement: "/campaigns/0/groups/0/placements/automatic/:domain/urls"
-      - regexp: "/api/v1/captchas/\\w+"
-        replacement: "/api/v1/captchas/:hash"
-    # If hashes in the path should be replaced (MD5, SHA1, ...).
-    sanitizeHashes: true
-    # If number sequences in the path should be replaced eg `/foo/123/bar`.
-    sanitizeNumbers: true
-    # If UIDs in the path should be replaced.
-    sanitizeUids: true
-    # If IPs in the path should be replaced (v4, v6).
-    sanitizeIps:     true
-    # If image names should be masked (.png, .jpg, .gif ...).
-    sanitizeImages:  true
-    # If font file names in the path should be replaced (.ttf, .woff, ...)
-    sanitizeFonts:   true
 
   # PROCESSOR Module which classifies the events if not already into SLO domain, class and app according to it's key.
   dynamicClassifier:
