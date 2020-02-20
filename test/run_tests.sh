@@ -31,7 +31,6 @@ TEST_RESULT_DIR="test_ouput"
 CONFIG_FILENAME="slo_exporter.yaml"
 METRICS_URL="http://localhost:8080/metrics"
 METRICS_FILENAME="metrics"
-EXPECTED_METRICS_FILENAME="metrics.expected"
 
 SLO_EXPORTER_LOG_FILENAME="slo_exporter.log"
 
@@ -43,10 +42,11 @@ for i_test in $(find "${SCRIPT_DIR}" -type d | grep ${TEST_DIR_PREFIX}) ; do
     pushd ${i_test} > /dev/null
     mkdir ${TEST_RESULT_DIR}
     ${SLO_EXPORTER} --config-file=${CONFIG_FILENAME} --disable-timescale-exporter > ${TEST_RESULT_DIR}/${SLO_EXPORTER_LOG_FILENAME} 2>&1 &
+    SLO_EXPORTER_PID=$!
     sleep 1
     get_metrics > ${TEST_RESULT_DIR}/${METRICS_FILENAME}
     # kill slo exporter test instance
-    kill %1 || true
+    kill ${SLO_EXPORTER_PID} || true
 
     evaluate_test_result
     popd > /dev/null
