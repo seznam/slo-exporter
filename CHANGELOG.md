@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2020-02-20
+
 ### Config
   - Frontend API GraphQL endpoints without `operationName` are now classified as `no_slo`.
 
