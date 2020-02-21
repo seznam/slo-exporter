@@ -11,6 +11,9 @@ lint:
 	go get github.com/mgechev/revive
 	revive -formatter friendly -config .revive.toml $(shell find $(src_dir) -name "*.go" | grep -v "^$(src_dir)/vendor/")
 
+e2e-test: build
+	./test/run_tests.sh
+
 test:
 	go test -v --race -coverprofile=coverage.out $(shell go list ./... | grep -v /vendor/)
 
@@ -24,4 +27,4 @@ clean-compose:
 	$(DOCKER_COMPOSE) rm --force --stop -v
 	docker volume rm slo-exporter_log-volume || true
 
-.PHONY: build lint test test-and-coverage compose
+.PHONY: build lint test test-and-coverage compose clean-compose e2e-test

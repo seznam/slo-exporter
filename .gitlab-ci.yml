@@ -30,6 +30,18 @@ test:
     paths:
       - coverage.out
     expire_in: 1 week
+    when: always
+
+e2e-test:
+  stage: check
+  script: |
+    make e2e-test
+  artifacts:
+    paths:
+      - test/**/test_ouput
+    expire_in: 1 week
+    when: always
+
 
 test-tag-version:
   <<: *ci_scripts_image
