@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io/ioutil"
 	"net"
@@ -217,7 +218,9 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 	eventsChan := make(chan *event.HttpRequest)
 	errChan := make(chan error, 10)
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	tailer.Run(ctx, eventsChan, errChan)
+	shutdownHandler := shutdown_handler.New(ctx)
+	tailer.Run(&shutdownHandler, eventsChan, errChan)
+	shutdownHandler.Inc()
 	go countEvents(eventsChan, eventCount)
 
 	for i := 0; i < t.during; i++ {
@@ -239,12 +242,13 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 	eventsChan = make(chan *event.HttpRequest)
 	errChan = make(chan error, 10)
 	ctx, cancelFunc = context.WithCancel(context.Background())
-
+	shutdownHandler = shutdown_handler.New(ctx)
 	tailer, err = New(config)
 	if err != nil {
 		return err
 	}
-	tailer.Run(ctx, eventsChan, errChan)
+	tailer.Run(&shutdownHandler, eventsChan, errChan)
+	shutdownHandler.Inc()
 	go countEvents(eventsChan, eventCount)
 
 	for i := 0; i < t.reopen; i++ {
