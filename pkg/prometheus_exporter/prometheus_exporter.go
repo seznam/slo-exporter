@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"time"
 )
@@ -127,7 +128,7 @@ func New(metricRegistry prometheus.Registerer, possibleLabels []string, possible
 	}, nil
 }
 
-func (e *PrometheusSloEventExporter) Run(input <-chan *event.Slo) {
+func (e *PrometheusSloEventExporter) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, input <-chan *event.Slo) {
 	go func() {
 		for newEvent := range input {
 			start := time.Now()
@@ -144,6 +145,7 @@ func (e *PrometheusSloEventExporter) Run(input <-chan *event.Slo) {
 			e.observeDuration(start)
 		}
 		log.Info("input channel closed, finishing")
+		shutdownHandler.Done()
 	}()
 }
 

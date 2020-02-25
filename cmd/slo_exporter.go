@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 
 	"github.com/gorilla/mux"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
@@ -106,15 +106,17 @@ func main() {
 		log.Fatalf("invalid specified log level %+v, error: %+v", conf.LogLevel, err)
 	}
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
+	producersContext, producersCancelFunc := context.WithCancel(context.Background())
+	defer producersCancelFunc()
+
+	var shutdownHandler = shutdown_handler.New(producersContext)
 
 	liveness := prober.NewLiveness()
 	readiness := prober.NewReadiness()
 
 	// shared error channel
 	errChan := make(chan error, 10)
-	gracefulShutdownChan := make(chan struct{}, 10)
+	gracefulShutdownRequestChan := make(chan struct{}, 10)
 
 	// Classify event by dynamic classifier
 	dynamicClassifier, err := dynamic_classifier.NewFromViper(conf.MustModuleConfig("dynamicClassifier"))
@@ -131,7 +133,7 @@ func main() {
 		if err := defaultServer.ListenAndServe(); err != nil {
 			errChan <- err
 		}
-		gracefulShutdownChan <- struct{}{}
+		gracefulShutdownRequestChan <- struct{}{}
 	}()
 
 	// Tail nginx logs and parse them to HttpRequest
@@ -171,7 +173,8 @@ func main() {
 		sloEventExporter.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("prometheus_exporter"))
 		prometheusSloEventsChan := make(chan *event.Slo)
 		exporterChannels = append(exporterChannels, prometheusSloEventsChan)
-		sloEventExporter.Run(prometheusSloEventsChan)
+		sloEventExporter.Run(&shutdownHandler, prometheusSloEventsChan)
+		shutdownHandler.Inc()
 	}
 
 	if !*disableTimescale {
@@ -181,7 +184,8 @@ func main() {
 		}
 		timescaleSloEventsChan := make(chan *event.Slo)
 		exporterChannels = append(exporterChannels, timescaleSloEventsChan)
-		timescaleExporter.Run(timescaleSloEventsChan)
+		timescaleExporter.Run(&shutdownHandler, timescaleSloEventsChan)
+		shutdownHandler.Inc()
 	}
 	//--
 
@@ -193,7 +197,7 @@ func main() {
 
 	// Pipeline definition
 	nginxEventsChan := make(chan *event.HttpRequest)
-	nginxTailer.Run(ctx, nginxEventsChan, errChan)
+	nginxTailer.Run(&shutdownHandler, nginxEventsChan, errChan)
 
 	normalizedEventsChan := make(chan *event.HttpRequest)
 	requestNormalizer.Run(nginxEventsChan, normalizedEventsChan)
@@ -215,24 +219,24 @@ func main() {
 	defer log.Info("see ya!")
 	for {
 		select {
-		// TODO validate correctness of the graceful shutdown. Might be necessary to use wait group for verifying all modules are terminated.
-		case <-gracefulShutdownChan:
+		case <-gracefulShutdownRequestChan:
 			log.Info("gracefully shutting down")
 			readiness.NotOk(fmt.Errorf("shutting down"))
-			shutdownCtx, _ := context.WithTimeout(ctx, conf.GracefulShutdownTimeout)
-			cancelFunc()
+
+			shutdownCtx, _ := context.WithTimeout(producersContext, conf.GracefulShutdownTimeout)
+			producersCancelFunc()
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
 				log.Errorf("failed to gracefully shutdown HTTP server %+v. ", err)
 			}
-			log.Infof("waiting configured graceful shutdown timeout %s", conf.GracefulShutdownTimeout)
+			shutdownHandler.WaitMax(conf.GracefulShutdownTimeout)
 			shutdownCtx.Done()
 			return
 		case sig := <-sigChan:
 			log.Infof("received signal %+v", sig)
-			gracefulShutdownChan <- struct{}{}
+			gracefulShutdownRequestChan <- struct{}{}
 		case err := <-errChan:
 			log.Errorf("encountered error: %+v", err)
-			gracefulShutdownChan <- struct{}{}
+			gracefulShutdownRequestChan <- struct{}{}
 		}
 	}
 

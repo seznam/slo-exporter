@@ -1,11 +1,11 @@
 package tailer
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
 	"io"
 	"net"
 	"net/url"
@@ -159,7 +159,7 @@ func (t *Tailer) observeDuration(start time.Time) {
 // - RequestEvent.IP may be nil in case invalid IP address is given in logline
 // - Slo* fields may not be filled at all
 // - Content of RequestEvent.Headers may vary
-func (t *Tailer) Run(ctx context.Context, eventsChan chan *event.HttpRequest, errChan chan error) {
+func (t *Tailer) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, eventsChan chan *event.HttpRequest, errChan chan error) {
 
 	go func() {
 		defer close(eventsChan)
@@ -169,6 +169,7 @@ func (t *Tailer) Run(ctx context.Context, eventsChan chan *event.HttpRequest, er
 		defer t.positions.Stop()
 
 		quitting := false
+
 		for {
 			select {
 			case line, ok := <-t.tail.Lines:
@@ -196,7 +197,7 @@ func (t *Tailer) Run(ctx context.Context, eventsChan chan *event.HttpRequest, er
 						log.Error(err)
 					}
 				}
-			case <-ctx.Done():
+			case <-shutdownHandler.ProducersContextWithCancel.Done():
 				if !quitting {
 					quitting = true
 					// we need to perform this strictly once, as tail return 0 offset when already stopped
