@@ -1,1 +1,1 @@
-test-app,test-class,"GET:/testing-endpoint"
+test-domain,test-app,test-class,"GET:/testing-endpoint"

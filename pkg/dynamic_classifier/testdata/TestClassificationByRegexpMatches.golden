@@ -1,2 +1,2 @@
-test-app,test-class,"/api/test/.*"
-test-app,test-class-all,"/api/.*"
+test-domain,test-app,test-class,"/api/test/.*"
+test-domain,test-app,test-class-all,"/api/.*"
