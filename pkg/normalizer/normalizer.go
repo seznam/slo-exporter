@@ -28,7 +28,7 @@ const (
 
 var (
 	log                  *logrus.Entry
-	imageExtensionRegex  = regexp.MustCompile(`(?i)\.(?:png|jpg|jpeg|svg|tif|tiff|gif)$`)
+	imageExtensionRegex  = regexp.MustCompile(`(?i)\.(?:png|jpg|jpeg|svg|tif|tiff|gif|ico)$`)
 	fontExtensionRegex   = regexp.MustCompile(`(?i)\.(?:ttf|woff)$`)
 )
 
