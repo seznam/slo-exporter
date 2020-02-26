@@ -48,8 +48,6 @@ modules:
 
   # PROCESSOR Module which classifies the events if not already into SLO domain, class and app according to it's key.
   dynamicClassifier:
-    # Name of the SLO domain of all events.
-    sloDomain: "testdomain"
     # Paths to CSV files containing exact match classification rules.
     exactMatchesCsvFiles: []
     # Paths to CSV files containing regexp match classification rules.
