@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/sqlwriter"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"os"
@@ -161,7 +162,7 @@ func (ts *TimescaleExporter) pushAllMetricsWithOffset(offset time.Duration) {
 	}
 }
 
-func (ts *TimescaleExporter) Run(input <-chan *event.Slo) {
+func (ts *TimescaleExporter) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, input <-chan *event.Slo) {
 	go func() {
 		defer ts.Close(context.Background())
 		for {
@@ -169,6 +170,7 @@ func (ts *TimescaleExporter) Run(input <-chan *event.Slo) {
 			case newEvent, ok := <-input:
 				if !ok {
 					log.Info("input channel closed, finishing")
+					shutdownHandler.Done()
 					return
 				}
 				log.Debugf("processing newEvent %s", newEvent)
