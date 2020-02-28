@@ -1,1 +1,1 @@
-test-app,test-class,".*"
+test-domain,test-app,test-class,".*"

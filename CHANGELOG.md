@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Feat
+ - process multiple domains from single data source
+
+### Fix
+ - typo in label failedToClassify
+
 ## [1.2.3] - 2020-02-27
 
 ### Added
