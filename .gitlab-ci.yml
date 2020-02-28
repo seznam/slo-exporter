@@ -100,8 +100,10 @@ release-docker-development:
     name: kubernetes-config
   script: |
     /ci/kubernetes-ci-init.sh
+    ARGS=()
     for i_slo_exporter_instance in skweb{1,2}-{ko,ng}; do
-      /ci/kubernetes-config-custom.sh --app slo-exporter-userportal-${i_slo_exporter_instance} --destination-dir kubernetes/${ENVIRONMENT}-slo-exporter-userportal-${i_slo_exporter_instance} --env-file conf/${ENVIRONMENT}-userportal.env --env-file conf/${i_slo_exporter_instance}.include.env --no-configmap
+      [ -f "conf/${ENVIRONMENT}-userportal.env" ] && ARGS+=("--env-file" "conf/${ENVIRONMENT}-userportal.env")
+      /ci/kubernetes-config-custom.sh --app slo-exporter-userportal-${i_slo_exporter_instance} --destination-dir kubernetes/${ENVIRONMENT}-slo-exporter-userportal-${i_slo_exporter_instance} --env-file conf/${i_slo_exporter_instance}.include.env --no-configmap "${ARGS[@]}"
     done
   artifacts:
     expire_in: 3 mo

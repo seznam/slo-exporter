@@ -26,7 +26,6 @@ func goldenFile(t *testing.T) []string {
 
 func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 	config := classifierConfig{
-		SloDomain:            "test-domain",
 		ExactMatchesCsvFiles: goldenFile(t),
 	}
 	classifier := newClassifier(t, config)
@@ -42,7 +41,6 @@ func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 
 func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 	config := classifierConfig{
-		SloDomain:             "test-domain",
 		RegexpMatchesCsvFiles: goldenFile(t),
 	}
 	classifier := newClassifier(t, config)
@@ -62,7 +60,6 @@ func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 
 func TestClassificationByExactMatches(t *testing.T) {
 	config := classifierConfig{
-		SloDomain:            "test-domain",
 		ExactMatchesCsvFiles: goldenFile(t),
 	}
 	classifier := newClassifier(t, config)
@@ -96,7 +93,6 @@ func TestClassificationByExactMatches(t *testing.T) {
 
 func TestClassificationByRegexpMatches(t *testing.T) {
 	config := classifierConfig{
-		SloDomain:             "test-domain",
 		RegexpMatchesCsvFiles: goldenFile(t),
 	}
 	classifier := newClassifier(t, config)

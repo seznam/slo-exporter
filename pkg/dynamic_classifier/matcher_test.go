@@ -5,6 +5,7 @@ package dynamic_classifier
 
 import (
 	"bytes"
+	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io/ioutil"
 	"path/filepath"
@@ -69,7 +70,8 @@ func testDumpCSV(t *testing.T, matcher matcher) {
 	var dataBytes []byte
 	dataBuffer := bytes.NewBuffer(dataBytes)
 	matcher.dumpCSV(dataBuffer)
-	assert.EqualValues(t, expectedDataBytes, dataBuffer.Bytes())
+	assert.EqualValues(t, expectedDataBytes, dataBuffer.Bytes(),
+		fmt.Sprintf("expected:\n%s\nactual:\n%s", string(expectedDataBytes), string(dataBuffer.Bytes())))
 }
 
 func TestMatcherExactDumpCSV(t *testing.T) {

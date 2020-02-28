@@ -43,7 +43,6 @@ var (
 )
 
 type classifierConfig struct {
-	SloDomain             string
 	ExactMatchesCsvFiles  []string
 	RegexpMatchesCsvFiles []string
 }
@@ -52,7 +51,6 @@ type classifierConfig struct {
 type DynamicClassifier struct {
 	exactMatches  matcher
 	regexpMatches matcher
-	sloDomain     string
 	observer      prometheus.Observer
 }
 
@@ -69,7 +67,6 @@ func New(conf classifierConfig) (*DynamicClassifier, error) {
 	classifier := DynamicClassifier{
 		exactMatches:  newMemoryExactMatcher(),
 		regexpMatches: newRegexpMatcher(),
-		sloDomain:     conf.SloDomain,
 	}
 	if err := classifier.LoadExactMatchesFromMultipleCSV(conf.ExactMatchesCsvFiles); err != nil {
 		return nil, fmt.Errorf("failed to load exact matches from CSV: %w", err)
@@ -115,7 +112,12 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.WithField("path", path).Errorf("failed to close the CSV")
+		}
+	}()
 
 	csvReader := csv.NewReader(file)
 
@@ -128,11 +130,12 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 			return err
 		}
 
-		sloApp := line[0]
-		sloClass := line[1]
-		sloEndpoint := line[2]
+		sloDomain := line[0]
+		sloApp := line[1]
+		sloClass := line[2]
+		sloEndpoint := line[3]
 		classification := &event.SloClassification{
-			Domain: dc.sloDomain,
+			Domain: sloDomain,
 			App:    sloApp,
 			Class:  sloClass,
 		}
@@ -221,7 +224,7 @@ func (dc *DynamicClassifier) Run(inputEventsChan <-chan *event.HttpRequest, outp
 			classified, err := dc.Classify(event)
 			if err != nil {
 				log.Error(err)
-				errorsTotal.WithLabelValues("failedToCLassify").Inc()
+				errorsTotal.WithLabelValues("failedToClassify").Inc()
 			}
 			if !classified {
 				log.Warnf("unable to classify %s", event.EventKey)
