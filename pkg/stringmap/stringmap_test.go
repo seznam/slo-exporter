@@ -21,7 +21,7 @@ func TestStringMap_Matches(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.a.Matches(tc.b), tc.result)
+		assert.Equal(t, tc.result, tc.a.Matches(tc.b))
 	}
 }
 
@@ -38,10 +38,12 @@ func TestStringMap_Merge(t *testing.T) {
 		{a: StringMap{"a": "1"}, b: StringMap{}, result: StringMap{"a": "1"}},
 		{a: StringMap{}, b: StringMap{"a": "1"}, result: StringMap{"a": "1"}},
 		{a: StringMap{}, b: StringMap{}, result: StringMap{}},
+		{a: nil, b: StringMap{"a": "1"}, result: StringMap{"a": "1"}},
+		{a: StringMap{"a": "1"}, b: nil, result: StringMap{"a": "1"}},
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.a.Merge(tc.b), tc.result)
+		assert.Equal(t, tc.result, tc.a.Merge(tc.b))
 	}
 }
 
@@ -58,7 +60,7 @@ func TestStringMap_Keys(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.ElementsMatch(t, tc.meta.Keys(), tc.res)
+		assert.ElementsMatch(t, tc.res, tc.meta.Keys())
 	}
 }
 
@@ -70,7 +72,7 @@ func TestStringMap_Values(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.ElementsMatch(t, tc.meta.Values(), tc.res)
+		assert.ElementsMatch(t, tc.res, tc.meta.Values())
 	}
 }
 
@@ -90,7 +92,7 @@ func TestStringMap_String(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.meta.String(), tc.res)
+		assert.Equal(t, tc.res, tc.meta.String())
 	}
 }
 
@@ -110,7 +112,7 @@ func TestStringMap_Select(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.meta.Select(tc.keys), tc.res)
+		assert.Equal(t, tc.res, tc.meta.Select(tc.keys))
 	}
 }
 
@@ -126,6 +128,28 @@ func TestStringMap_Lowercase(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.meta.Lowercase(), tc.res)
+		assert.Equal(t, tc.res, tc.meta.Lowercase())
+	}
+}
+
+
+type stringMapWithoutTestCase struct {
+	a      StringMap
+	b      []string
+	result StringMap
+}
+
+func TestStringMap_Without(t *testing.T) {
+	testCases := []stringMapWithoutTestCase{
+		{a: StringMap{"a": "1", "b": "2"}, b: []string{"b"}, result: StringMap{"a": "1"}},
+		{a: StringMap{"a": "2"}, b: []string{"a"}, result: StringMap{}},
+		{a: StringMap{"a": "1"}, b: []string{}, result: StringMap{"a": "1"}},
+		{a: StringMap{}, b: []string{}, result: StringMap{}},
+		{a: nil, b: []string{"A"}, result: nil},
+		{a: StringMap{"a": "1"}, b: nil, result: StringMap{"a": "1"}},
+	}
+
+	for _, tc := range testCases {
+		assert.Equal(t, tc.result, tc.a.Without(tc.b), tc)
 	}
 }
