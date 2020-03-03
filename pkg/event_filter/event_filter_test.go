@@ -16,7 +16,7 @@ type ShouldDropTestCase struct {
 
 func TestEventFilter_statusMatch(t *testing.T) {
 	config := eventFilterConfig{
-		FilteredHttpStatusCodes: []int{301, 404},
+		FilteredHttpStatusCodeMatchers: []string{"301", "40[04]"},
 	}
 	testCases := []struct {
 		statusCode  int
@@ -24,10 +24,15 @@ func TestEventFilter_statusMatch(t *testing.T) {
 	}{
 		{statusCode: 200, shouldMatch: false},
 		{statusCode: 301, shouldMatch: true},
+		{statusCode: 400, shouldMatch: true},
 		{statusCode: 404, shouldMatch: true},
+		{statusCode: 418, shouldMatch: false},
 		{statusCode: 500, shouldMatch: false},
 	}
-	eventFilter := New(config)
+	eventFilter, err := NewFromConfig(config)
+	if err != nil {
+		t.Error(err)
+	}
 	for _, tc := range testCases {
 		assert.Equal(t, tc.shouldMatch, eventFilter.statusMatch(tc.statusCode))
 	}
@@ -35,7 +40,7 @@ func TestEventFilter_statusMatch(t *testing.T) {
 
 func TestEventFilter_headersMatch(t *testing.T) {
 	config := eventFilterConfig{
-		FilteredHttpHeaders: stringmap.StringMap{"User-Agent": "Firefox"},
+		FilteredHttpHeaderMatchers: stringmap.StringMap{"(?i)User-Agent": "(?i)Firefox"},
 	}
 	testCases := []struct {
 		headers     stringmap.StringMap
@@ -45,8 +50,12 @@ func TestEventFilter_headersMatch(t *testing.T) {
 		{headers: stringmap.StringMap{"useragent": "firefox"}, shouldMatch: false},
 		{headers: stringmap.StringMap{"user-agent": "firefox"}, shouldMatch: true},
 		{headers: stringmap.StringMap{"User-Agent": "Firefox"}, shouldMatch: true},
+		{headers: stringmap.StringMap{"User-Agent foo": "Firefox bar"}, shouldMatch: true},
 	}
-	eventFilter := New(config)
+	eventFilter, err := NewFromConfig(config)
+	if err != nil {
+		t.Error(err)
+	}
 	for _, tc := range testCases {
 		assert.Equal(t, tc.shouldMatch, eventFilter.headersMatch(tc.headers))
 	}
@@ -54,10 +63,13 @@ func TestEventFilter_headersMatch(t *testing.T) {
 
 func TestEventFilter_shouldDrop(t *testing.T) {
 	config := eventFilterConfig{
-		FilteredHttpStatusCodes: []int{301, 404},
-		FilteredHttpHeaders:     stringmap.StringMap{"name": "value"},
+		FilteredHttpStatusCodeMatchers: []string{"301", "404"},
+		FilteredHttpHeaderMatchers:     stringmap.StringMap{"(?i)name": "(?i)value"},
 	}
-	eventFilter := New(config)
+	eventFilter, err := NewFromConfig(config)
+	if err != nil {
+		t.Error(err)
+	}
 	testCases := []ShouldDropTestCase{
 		// no match
 		{
@@ -84,7 +96,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 				StatusCode: 200,
 				Headers:    stringmap.StringMap{"name1": "somevalue"},
 			},
-			false,
+			true,
 			"",
 		},
 		// just header name match
@@ -94,7 +106,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 				StatusCode: 200,
 				Headers:    stringmap.StringMap{"name": "somevalue"},
 			},
-			false,
+			true,
 			"",
 		},
 		// header match
@@ -109,10 +121,10 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 		},
 		// header match, name normalization (->lower case)
 		{
-			New(eventFilterConfig{FilteredHttpHeaders: stringmap.StringMap{"NAME": "value"}}, ),
+			eventFilter,
 			&event.HttpRequest{
 				StatusCode: 200,
-				Headers:    stringmap.StringMap{"name": "value"},
+				Headers:    stringmap.StringMap{"Name": "Value"},
 			},
 			true,
 			"header:name",

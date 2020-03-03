@@ -1,82 +1,46 @@
-# Every configuration key can be configured using ENV variables.
-# To set root level keys use pattern `SLO_EXPORTER_<KEYNAME>` eg `SLO_EXPORTER_WEBSERVERLISTENADDRESS="0.0.0.0:8080"`.
-# To set module level keys use pattern `SLO_EXPORTER_<MODULENAME>_<KEYNAME>` eg `SLO_EXPORTER_EVENTFILTER_FILTEREDHTTPSTATUSCODES="404,301"`.
 
 
-# Sets logging level (trace,debug,info,error)
 logLevel: "debug"
-# Address where the web interface should listen on.
 webServerListenAddress: "0.0.0.0:8080"
-# Maximum time to wait for all events to be processed after receiving SIGTERM or SIGINT.
 gracefulShutdownTimeout: "1m"
 
-# TODO
-# Defines architecture of the pipeline.
 pipeline: []
 
-# Contains configuration for distinct pipeline module.
 modules:
 
-  # PRODUCER Module which follows Nginx access log in specific format and generates events from it.
   tailer:
-    # Path to file to be processed.
     tailedFile: "./logs"
-    # If tailed file should be followed for new lines once all current lines are processed.
     follow: true
-    # If tailed file should be reopened.
     reopen: true
-    # Path to file where to persist position of tailing.
     positionFile: ""
-    # How often current position should be persisted to the position file.
     positionPersistenceInterval: "2s"
 
-  # PROCESSOR Module allowing to filter HTTP requests.
   eventFilter:
-    # List of HTTP status codes to filter out.
-    filteredHttpStatusCodes: [404]
-    # Map of HTTP headers to to filter out (either key either value are checked ignoring case).
-    filteredHttpHeaders: {}
+    filteredHttpStatusCodeMatchers: ["404"]
+    filteredHttpHeaderMatchers: {}
 
-  # PROCESSOR Module doing sanitization of HTTP request path anf generating unique key for the event.
+
   normalizer:
-    # List of replace rules to be applied on the HTTP request path
     replaceRules:
-      # Regular expression to match the path
       - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
-        # Replacement of the matched path
         replacement: "/api/v1/ppchit/rule/0"
 
-  # PROCESSOR Module which classifies the events if not already into SLO domain, class and app according to it's key.
   dynamicClassifier:
-    # Paths to CSV files containing exact match classification rules.
     exactMatchesCsvFiles: []
-    # Paths to CSV files containing regexp match classification rules.
     regexpMatchesCsvFiles:
       - "./classifications.csv"
 
-  # PROCESSOR Module which generated SLO events out of HTTP request events.
   sloEventProducer:
-    # Paths to files containing rules for evaluation of SLO event result and it's metadata.
     rulesFiles:
       - "./slo_rules.yaml"
 
-  # EXPORTER Module allowing to expose SLO metrics for Prometheus.
   prometheusExporter:
-    # Name of the resulting counter metric to be exposed representing counter of slo events by it's classification and result.
     metricName: "slo_events_total"
-    # Limit of unique event keys, when exceeded, the event key in the label is replaced with placeholder.
     maximumUniqueEventKeys: 1000
-    # Placeholder to replace new event keys when the limit is hit.
     ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
-    # Names of labels to be used for specific event information.
     labelNames:
-      # Contains information about the event result (success, fail, ...).
       result: "result"
-      # Domain of the SLO event.
       sloDomain: "slo_domain"
-      # SLO class of the event.
       sloClass: "slo_class"
-      # Application, to which the event belongs.
       sloApp: "slo_app"
-      # Unique identifier of the event.
       eventKey: "event_key"
