@@ -115,14 +115,13 @@ func (m StringMap) Select(keys []string) StringMap {
 
 // Without returns new StringMap with without specified keys from the original StringMap.
 func (m StringMap) Without(keys []string) StringMap {
-	if keys == nil {
+	if len(keys) == 0 {
 		return m
 	}
-	other := StringMap{}
+	other := m
 	for _, key := range keys {
-		val, ok := m[key]
-		if !ok {
-			other[key] = val
+		if _, ok := other[key]; ok {
+			delete(other, key)
 		}
 	}
 	return other
