@@ -38,17 +38,17 @@ var testCases = []testURL{
 
 func TestRequestNormalizer_Run(t *testing.T) {
 	normalizer := requestNormalizer{
-		GetParamWithEventIdentifier: "operationName",
-		ReplaceRules: []replacer{{
+		getParamWithEventIdentifier: "operationName",
+		replaceRules: []replacer{{
 			Regexp:      "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}",
 			Replacement: "/api/v1/ppchit/rule/0",
 		}},
-		SanitizeHashes:  true,
-		SanitizeNumbers: true,
-		SanitizeUids:    true,
-		SanitizeIps:     true,
-		SanitizeImages:  true,
-		SanitizeFonts:   true,
+		sanitizeHashes:  true,
+		sanitizeNumbers: true,
+		sanitizeUids:    true,
+		sanitizeIps:     true,
+		sanitizeImages:  true,
+		sanitizeFonts:   true,
 	}
 	if err := normalizer.precompileRegexps(); err != nil {
 		t.Error(err)
