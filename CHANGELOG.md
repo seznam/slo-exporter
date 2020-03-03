@@ -4,23 +4,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed
+ - **BREAKING** Request event normalizer now uses regular expressions for filtering.
+     - Config option `filteredHttpStatusCodes` is now `filteredHttpStatusCodeMatchers` and is list of regular expressions instead of integers.
+     - Config option `filteredHttpHeaders` is now `filteredHttpHeaderMatchers` and is map of regular expression matching header name to regular expression matching header value.
+ 
 ## [1.4.0] - 2020-02-28
 
-### Feat
- - implemented graceful shutdown for each pipeline processor
+### Added
+ - Implemented graceful shutdown for each pipeline processor.
 
 ## [1.3.0] - 2020-02-28
 
-### Feat
- - process multiple domains from single data source
+### Added
+ - Process multiple domains from single data source.
 
-### Fix
- - typo in label failedToClassify
+### Fixed
+ - Typo in label failedToClassify.
 
 ## [1.2.3] - 2020-02-27
 
 ### Added
-  - Normalize also `.ico` files as `:image`
+  - Normalize also `.ico` files as `:image`.
    
 ## [1.2.2] - 2020-02-20
 

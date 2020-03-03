@@ -30,12 +30,13 @@ modules:
     # How often current position should be persisted to the position file.
     positionPersistenceInterval: "2s"
 
-  # PROCESSOR Module allowing to filter HTTP requests.
+  # PROCESSOR Module allowing to filter out HTTP requests.
   eventFilter:
-    # List of HTTP status codes to filter out.
-    filteredHttpStatusCodes: [301, 302, 400, 404, 405, 411]
-    # Map of HTTP headers to to filter out (either key either value are checked ignoring case).
-    filteredHttpHeaders: {}
+    # List of Go regular expressions matching HTTP status codes to be filtered out.
+    filteredHttpStatusCodeMatchers: ["301", "302", "40[045]", "411"]
+    # Map of Go regular expression matching HTTP header name to Go regular expression matching HTTP header value. Any HTTP header matching both is filtered out.
+    filteredHttpHeaderMatchers:
+      "(?i)user-agent": "(?i)(?:sentry|blackbox-exporter|kube-probe)"
 
   # PROCESSOR Module doing sanitization of HTTP request path anf generating unique key for the event.
   normalizer:

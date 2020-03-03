@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -30,14 +32,19 @@ func init() {
 }
 
 type eventFilterConfig struct {
-	FilteredHttpStatusCodes []int
-	FilteredHttpHeaders     stringmap.StringMap
+	FilteredHttpStatusCodeMatchers []string
+	FilteredHttpHeaderMatchers     stringmap.StringMap
+}
+
+type httpHeaderMatcher struct {
+	nameRegexp  *regexp.Regexp
+	valueRegexp *regexp.Regexp
 }
 
 type RequestEventFilter struct {
-	statuses []int
-	headers  stringmap.StringMap
-	observer prometheus.Observer
+	statusMatchers []*regexp.Regexp
+	headerMatchers []httpHeaderMatcher
+	observer       prometheus.Observer
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
@@ -45,14 +52,35 @@ func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(config), nil
+	return NewFromConfig(config)
 }
 
-func New(config eventFilterConfig) *RequestEventFilter {
-	return &RequestEventFilter{
-		statuses: config.FilteredHttpStatusCodes,
-		headers:  config.FilteredHttpHeaders.Lowercase(),
+func NewFromConfig(config eventFilterConfig) (*RequestEventFilter, error) {
+	filter := RequestEventFilter{
+		statusMatchers: []*regexp.Regexp{},
+		headerMatchers: []httpHeaderMatcher{},
 	}
+	// Load status code matchers
+	for _, statusMatcher := range config.FilteredHttpStatusCodeMatchers {
+		regexpMatcher, err := regexp.Compile(statusMatcher)
+		if err != nil {
+			return nil, fmt.Errorf("invalid status code matcher regular expression: %v", err)
+		}
+		filter.statusMatchers = append(filter.statusMatchers, regexpMatcher)
+	}
+	// Load HTTP header matchers
+	for nameMatcher, valueMatcher := range config.FilteredHttpHeaderMatchers {
+		nameRegexpMatcher, err := regexp.Compile(nameMatcher)
+		if err != nil {
+			return nil, fmt.Errorf("invalid HTTP header name matcher regular expression: %v", err)
+		}
+		valueRegexpMatcher, err := regexp.Compile(valueMatcher)
+		if err != nil {
+			return nil, fmt.Errorf("invalid HTTP header value matcher regular expression: %v", err)
+		}
+		filter.headerMatchers = append(filter.headerMatchers, httpHeaderMatcher{nameRegexp: nameRegexpMatcher, valueRegexp: valueRegexpMatcher})
+	}
+	return &filter, nil
 }
 
 func (ef *RequestEventFilter) matches(event *event.HttpRequest) bool {
@@ -70,9 +98,8 @@ func (ef *RequestEventFilter) matches(event *event.HttpRequest) bool {
 }
 
 func (ef *RequestEventFilter) statusMatch(testedStatus int) bool {
-	for _, status := range ef.statuses {
-		if status == testedStatus {
-
+	for _, matcher := range ef.statusMatchers {
+		if matcher.MatchString(strconv.Itoa(testedStatus)) {
 			return true
 		}
 	}
@@ -80,11 +107,11 @@ func (ef *RequestEventFilter) statusMatch(testedStatus int) bool {
 }
 
 func (ef *RequestEventFilter) headersMatch(testedHeaders stringmap.StringMap) bool {
-	lowerTestedHeaders := testedHeaders.Lowercase()
-	for k, v := range ef.headers {
-		value, ok := lowerTestedHeaders[k]
-		if ok && value == v {
-			return true
+	for _, matcher := range ef.headerMatchers {
+		for headerName, headerValue := range testedHeaders {
+			if matcher.nameRegexp.MatchString(headerName) && matcher.valueRegexp.MatchString(headerValue) {
+				return true
+			}
 		}
 	}
 	return false
