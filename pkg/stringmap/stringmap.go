@@ -27,6 +27,9 @@ func (m StringMap) Copy() StringMap {
 
 // Merge returns new StringMap from the original one with all values from the other merged in. The other StringMap overrides original StringMap keys.
 func (m StringMap) Merge(other StringMap) StringMap {
+	if m == nil {
+		return other
+	}
 	merged := m.Copy()
 	for k, v := range other {
 		merged[k] = v
