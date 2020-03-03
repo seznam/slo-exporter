@@ -53,22 +53,14 @@ func (n *replacer) process(path string) string {
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*requestNormalizer, error) {
-	normalizer := New()
-	if err := viperConfig.UnmarshalExact(normalizer); err != nil {
+	config := &requestNormalizerConfig{}
+	if err := viperConfig.UnmarshalExact(config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	if err := normalizer.precompileRegexps(); err != nil {
-		return nil, err
-	}
-	return normalizer, nil
+	return NewFromConfig(config)
 }
 
-// New returns requestNormalizer which allows to add Key to RequestEvent
-func New() *requestNormalizer {
-	return &requestNormalizer{}
-}
-
-type requestNormalizer struct {
+type requestNormalizerConfig struct {
 	GetParamWithEventIdentifier string
 	ReplaceRules                []replacer
 	SanitizeHashes              bool
@@ -77,6 +69,36 @@ type requestNormalizer struct {
 	SanitizeIps                 bool
 	SanitizeImages              bool
 	SanitizeFonts               bool
+}
+
+
+// New returns requestNormalizer which allows to add Key to RequestEvent
+func NewFromConfig(config *requestNormalizerConfig) (*requestNormalizer, error) {
+	normalizer := requestNormalizer{
+		getParamWithEventIdentifier: config.GetParamWithEventIdentifier,
+		replaceRules:                config.ReplaceRules,
+		sanitizeHashes:              config.SanitizeHashes,
+		sanitizeNumbers:             config.SanitizeNumbers,
+		sanitizeUids:                config.SanitizeUids,
+		sanitizeIps:                 config.SanitizeIps,
+		sanitizeImages:              config.SanitizeImages,
+		sanitizeFonts:               config.SanitizeFonts,
+	}
+	if err := normalizer.precompileRegexps(); err != nil {
+		return nil, err
+	}
+	return &normalizer, nil
+}
+
+type requestNormalizer struct {
+	getParamWithEventIdentifier string
+	replaceRules                []replacer
+	sanitizeHashes              bool
+	sanitizeNumbers             bool
+	sanitizeUids                bool
+	sanitizeIps                 bool
+	sanitizeImages              bool
+	sanitizeFonts               bool
 	observer                    prometheus.Observer
 }
 
@@ -91,12 +113,12 @@ func (rn *requestNormalizer) observeDuration(start time.Time) {
 }
 
 func (rn *requestNormalizer) precompileRegexps() error {
-	for i, rep := range rn.ReplaceRules {
+	for i, rep := range rn.replaceRules {
 		compiled, err := regexp.Compile(rep.Regexp)
 		if err != nil {
 			return fmt.Errorf("failed to compile Regexp %s: %w", rep.Regexp, err)
 		}
-		rn.ReplaceRules[i].regexpCompiled = compiled
+		rn.replaceRules[i].regexpCompiled = compiled
 	}
 	return nil
 }
@@ -105,7 +127,7 @@ func (rn *requestNormalizer) normalizePath(rawPath string) string {
 	if rawPath == "" {
 		return "/"
 	}
-	for _, rule := range rn.ReplaceRules {
+	for _, rule := range rn.replaceRules {
 		rawPath = rule.process(rawPath)
 	}
 	pathItems := strings.Split(path.Clean(rawPath), pathItemsSeparator)
@@ -115,32 +137,32 @@ func (rn *requestNormalizer) normalizePath(rawPath string) string {
 			continue
 		}
 
-		if rn.SanitizeHashes && (govalidator.IsMD5(item) || govalidator.IsSHA1(item) || govalidator.IsSHA256(item)) {
+		if rn.sanitizeHashes && (govalidator.IsMD5(item) || govalidator.IsSHA1(item) || govalidator.IsSHA256(item)) {
 			pathItems[i] = hashPlaceholder
 			continue
 		}
-		if rn.SanitizeNumbers && (govalidator.IsNumeric(item) || govalidator.IsHexadecimal(item)) {
+		if rn.sanitizeNumbers && (govalidator.IsNumeric(item) || govalidator.IsHexadecimal(item)) {
 			pathItems[i] = numberPlaceholder
 			continue
 		}
 
-		if rn.SanitizeUids && (govalidator.IsUUID(item) || govalidator.IsUUIDv4(item)) {
+		if rn.sanitizeUids && (govalidator.IsUUID(item) || govalidator.IsUUIDv4(item)) {
 			pathItems[i] = uuidPlaceholder
 			continue
 		}
 
-		if rn.SanitizeIps && govalidator.IsIP(item) {
+		if rn.sanitizeIps && govalidator.IsIP(item) {
 			pathItems[i] = ipPlaceholder
 			continue
 		}
 
 		// replace all numbers with zero in the last part of the rawPath
 		if i+1 == itemsCount {
-			if rn.SanitizeImages && imageExtensionRegex.MatchString(item) {
+			if rn.sanitizeImages && imageExtensionRegex.MatchString(item) {
 				pathItems[i] = imagePlaceholder
 				continue
 			}
-			if rn.SanitizeFonts && fontExtensionRegex.MatchString(item) {
+			if rn.sanitizeFonts && fontExtensionRegex.MatchString(item) {
 				pathItems[i] = fontPlaceholder
 				continue
 			}
@@ -153,9 +175,9 @@ func (rn *requestNormalizer) normalizePath(rawPath string) string {
 func (rn *requestNormalizer) getNormalizedEventKey(event *event.HttpRequest) string {
 	var eventIdentifiers = []string{event.Method}
 	eventIdentifiers = append(eventIdentifiers, rn.normalizePath(event.URL.Path))
-	if rn.GetParamWithEventIdentifier != "" {
+	if rn.getParamWithEventIdentifier != "" {
 		// Append all values of configured get parameter
-		operationNames, ok := event.URL.Query()[rn.GetParamWithEventIdentifier]
+		operationNames, ok := event.URL.Query()[rn.getParamWithEventIdentifier]
 		if ok {
 			for _, operation := range operationNames {
 				eventIdentifiers = append(eventIdentifiers, operation)
@@ -169,15 +191,15 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *event.HttpRequest) str
 func (rn *requestNormalizer) Run(inputEventsChan <-chan *event.HttpRequest, outputEventsChan chan<- *event.HttpRequest) {
 	go func() {
 		defer close(outputEventsChan)
-		for event := range inputEventsChan {
+		for newEvent := range inputEventsChan {
 			start := time.Now()
-			if event.EventKey != "" {
-				log.Debugf("skipping event normalization, already has Key: %s", event.EventKey)
+			if newEvent.EventKey != "" {
+				log.Debugf("skipping newEvent normalization, already has Key: %s", newEvent.EventKey)
 				continue
 			}
-			event.EventKey = rn.getNormalizedEventKey(event)
-			log.Debugf("processed event with Key: %s", event.EventKey)
-			outputEventsChan <- event
+			newEvent.EventKey = rn.getNormalizedEventKey(newEvent)
+			log.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
+			outputEventsChan <- newEvent
 			rn.observeDuration(start)
 		}
 		log.Info("input channel closed, finishing")
