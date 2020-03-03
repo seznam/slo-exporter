@@ -1,3 +1,8 @@
+# !!! ATTENTION !!!
+# Production copy of this configuration is maintained within the actual slo-exporter deployment
+# e.g. for userportal, it is located at https://gitlab.seznam.net/sklik-frontend/Proxies/tree/master/userproxy/conf/slo-exporter
+#
+
 # Every configuration key can be configured using ENV variables.
 # To set root level keys use pattern `SLO_EXPORTER_<KEYNAME>` eg `SLO_EXPORTER_WEBSERVERLISTENADDRESS="0.0.0.0:8080"`.
 # To set module level keys use pattern `SLO_EXPORTER_<MODULENAME>_<KEYNAME>` eg `SLO_EXPORTER_EVENTFILTER_FILTEREDHTTPSTATUSCODES="404,301"`.
