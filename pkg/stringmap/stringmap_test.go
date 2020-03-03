@@ -21,7 +21,7 @@ func TestStringMap_Matches(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.a.Matches(tc.b), tc.result)
+		assert.Equal(t, tc.result, tc.a.Matches(tc.b))
 	}
 }
 
@@ -43,7 +43,7 @@ func TestStringMap_Merge(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.a.Merge(tc.b), tc.result)
+		assert.Equal(t, tc.result, tc.a.Merge(tc.b))
 	}
 }
 
@@ -60,7 +60,7 @@ func TestStringMap_Keys(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.ElementsMatch(t, tc.meta.Keys(), tc.res)
+		assert.ElementsMatch(t, tc.res, tc.meta.Keys())
 	}
 }
 
@@ -72,7 +72,7 @@ func TestStringMap_Values(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.ElementsMatch(t, tc.meta.Values(), tc.res)
+		assert.ElementsMatch(t, tc.res, tc.meta.Values())
 	}
 }
 
@@ -92,7 +92,7 @@ func TestStringMap_String(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.meta.String(), tc.res)
+		assert.Equal(t, tc.res, tc.meta.String())
 	}
 }
 
@@ -112,7 +112,7 @@ func TestStringMap_Select(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.meta.Select(tc.keys), tc.res)
+		assert.Equal(t, tc.res, tc.meta.Select(tc.keys))
 	}
 }
 
@@ -128,7 +128,7 @@ func TestStringMap_Lowercase(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.meta.Lowercase(), tc.res)
+		assert.Equal(t, tc.res, tc.meta.Lowercase())
 	}
 }
 
