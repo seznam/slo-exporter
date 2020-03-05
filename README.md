@@ -3,6 +3,13 @@
 [![pipeline status](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/pipeline.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
 [![coverage report](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/coverage.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
 
+
+slo-exporter is golang tool used for
+ * reading events from different sources
+ * processing the events
+ * exporting SLO's SLI based on the processed events
+
+
 On GitLab pages you can find some Go related stuff
 - [GoDoc](https://sklik-devops.gitlab.seznam.net/slo-exporter/godoc/pkg/gitlab.seznam.net/sklik-devops/slo-exporter/)
 - [Code coverage](https://sklik-devops.gitlab.seznam.net/slo-exporter/coverage.html)
@@ -67,3 +74,28 @@ Written in Go using the [pipeline pattern](https://blog.golang.org/pipelines)
 +--------------+
 
 ```
+
+## Frequently asked questions
+
+### How to add new normalization replacement rule?
+
+Event normalization is done in [`event normalizer`](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/master/pkg/normalizer/normalizer.go).
+User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/0861216a71e7e1fe199434d8d9557786009f61f4/conf/slo_exporter.yaml#L47-58).
+
+Suppose you see a lot of events matching this regular expression `/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}` which you want to normalize, then your normalization replacement rule can look like following snippet:
+
+```yaml
+...
+modules:
+  normalizer:
+    replaceRules:
+      - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
+        # Replacement of the matched path
+        replacement: "/api/v1/ppchit/rule/0"
+```
+
+### How to deal with malformed lines?
+
+If you are seeing too many malformed lines then you should inspect [tailer package](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/master/pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
+
+
