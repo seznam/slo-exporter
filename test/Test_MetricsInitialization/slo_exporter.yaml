@@ -15,6 +15,13 @@ modules:
     positionFile: ""
     positionPersistenceInterval: "2s"
 
+  prometheusIngester:
+    apiUrl: "https://thanos.sklik-scif-ko.dev.dszn.cz"
+    queryTimeout: 10s
+    queries:
+      - query: 'up{app_label="puzzler"}'
+        interval: 3s
+
   eventFilter:
     filteredHttpStatusCodeMatchers: ["404"]
     filteredHttpHeaderMatchers: {}

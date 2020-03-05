@@ -93,7 +93,7 @@ func multiplexToChannels(srcChannel chan *event.Slo, dstChannels []chan *event.S
 func main() {
 	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
 	disableTimescale := kingpin.Flag("disable-timescale-exporter", "Do not start timescale exporter").Bool()
-	disablePrometheus := kingpin.Flag("disable-prometheus-exporter", "Do not start prometheus exporter. (App runtime metrics are still exposed)").Bool()
+	disablePrometheusExporter := kingpin.Flag("disable-prometheus-exporter", "Do not start prometheus exporter. (App runtime metrics are still exposed)").Bool()
 
 	kingpin.Parse()
 
@@ -136,12 +136,22 @@ func main() {
 		gracefulShutdownRequestChan <- struct{}{}
 	}()
 
+	//-- producers configuration
+
+	// TODO jirislav: Currently, there is no consumer of PrometheusQueryResult, so don't start the ingester
+	//prometheusIngester, err := prometheus_ingester.NewFromViper(conf.MustModuleConfig("prometheusIngester"))
+	//if err != nil {
+	//	log.Fatalf("failed to create Prometheus ingester: %+v", err)
+	//}
+
 	// Tail nginx logs and parse them to HttpRequest
 	nginxTailer, err := tailer.NewFromViper(conf.MustModuleConfig("tailer"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	nginxTailer.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("tailer"))
+
+	//-- rest of pipeline configuration
 
 	// Add the EntityKey to all RequestEvents
 	requestNormalizer, err := normalizer.NewFromViper(conf.MustModuleConfig("normalizer"))
@@ -165,7 +175,7 @@ func main() {
 	//-- start enabled exporters
 	var exporterChannels []chan *event.Slo
 
-	if !*disablePrometheus {
+	if !*disablePrometheusExporter {
 		sloEventExporter, err := prometheus_exporter.NewFromViper(prometheusRegistry, sloEventProducer.PossibleMetadataKeys(), event.PossibleResults, conf.MustModuleConfig("prometheusExporter"))
 		if err != nil {
 			log.Fatalf("failed to load SLO rules conf: %+v", err)
@@ -198,6 +208,10 @@ func main() {
 	// Pipeline definition
 	nginxEventsChan := make(chan *event.HttpRequest)
 	nginxTailer.Run(&shutdownHandler, nginxEventsChan, errChan)
+
+	// TODO jirislav: Currently, there is no consumer of PrometheusQueryResult, so don't run it
+	// prometheusQueryResultsChan := make(chan *event.PrometheusQueryResult)
+	// prometheusIngester.Run(ctx, prometheusQueryResultsChan)
 
 	normalizedEventsChan := make(chan *event.HttpRequest)
 	requestNormalizer.Run(nginxEventsChan, normalizedEventsChan)
