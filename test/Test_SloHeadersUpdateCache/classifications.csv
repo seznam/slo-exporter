@@ -1,0 +1,1 @@
+userportal,frontend-api,high_fast,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/ppchit/rule/[0-9a-f]+$"

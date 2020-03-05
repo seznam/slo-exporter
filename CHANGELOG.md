@@ -13,12 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - **BREAKING** Request event normalizer now uses regular expressions for filtering.
      - Config option `filteredHttpStatusCodes` is now `filteredHttpStatusCodeMatchers` and is list of regular expressions instead of integers.
      - Config option `filteredHttpHeaders` is now `filteredHttpHeaderMatchers` and is map of regular expression matching header name to regular expression matching header value.
- 
+ - tailer line matching regular expression is now part of configuration
+ - tailer is able to initialize event with SloClassification, if provided within log line
+
 ### Fixed
  - Refactored loading of event normalizer configuration.
  - StringMap.Without fixed logic and added tests
  - StringMap.Merge do not return empty map when merged with nil
-  
+ - update dynamic classifier cache with data from already classified event
+
 ## [1.4.0] - 2020-02-28
 
 ### Added
@@ -36,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
   - Normalize also `.ico` files as `:image`.
-   
+
 ## [1.2.2] - 2020-02-20
 
 ### Config

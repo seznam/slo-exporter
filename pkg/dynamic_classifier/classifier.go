@@ -157,7 +157,7 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 		classifiedBy         matcherType
 	)
 	if newEvent.IsClassified() {
-		if err := dc.exactMatches.set(newEvent.EventKey, classification); err != nil {
+		if err := dc.exactMatches.set(newEvent.EventKey, newEvent.SloClassification); err != nil {
 			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 		return true, nil

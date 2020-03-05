@@ -1,0 +1,9 @@
+# HELP slo_domain_slo_class_slo_app_event_key:slo_events_total Total number of SLO events exported with it's result and metadata.
+# TYPE slo_domain_slo_class_slo_app_event_key:slo_events_total counter
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",result="fail",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="availability",slo_version="1"} 0
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",result="success",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="availability",slo_version="1"} 2
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="userportal",slo_type="availability",slo_version="1"} 0
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="userportal",slo_type="availability",slo_version="1"} 1
+# HELP slo_exporter_tailer_lines_read_total Total number of lines tailed from the file.
+# TYPE slo_exporter_tailer_lines_read_total counter
+slo_exporter_tailer_lines_read_total 3

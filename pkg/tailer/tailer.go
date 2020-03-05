@@ -28,8 +28,7 @@ const (
 )
 
 var (
-	log             *logrus.Entry
-	lineParseRegexp = regexp.MustCompile(`^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"`)
+	log *logrus.Entry
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "slo_exporter",
@@ -70,6 +69,7 @@ type tailerConfig struct {
 	Reopen                      bool
 	PositionFile                string
 	PositionPersistenceInterval time.Duration
+	LoglineParseRegexp          string
 }
 
 // getDefaultPositionsFilePath derives positions file path for given tailed filename
@@ -84,6 +84,7 @@ type Tailer struct {
 	positions               *positions.Positions
 	persistPositionInterval time.Duration
 	observer                prometheus.Observer
+	lineParseRegexp         *regexp.Regexp
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*Tailer, error) {
@@ -139,7 +140,13 @@ func New(config tailerConfig) (*Tailer, error) {
 		return nil, err
 	}
 
-	return &Tailer{filename: config.TailedFile, tail: tailFile, positions: pos, persistPositionInterval: config.PositionPersistenceInterval}, nil
+	return &Tailer{
+		filename:                config.TailedFile,
+		tail:                    tailFile,
+		positions:               pos,
+		persistPositionInterval: config.PositionPersistenceInterval,
+		lineParseRegexp:         regexp.MustCompile(config.LoglineParseRegexp),
+	}, nil
 }
 
 func (t *Tailer) SetPrometheusObserver(observer prometheus.Observer) {
@@ -182,7 +189,7 @@ func (t *Tailer) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, 
 					log.Error(line.Err)
 				}
 				linesReadTotal.Inc()
-				event, err := parseLine(line.Text)
+				event, err := parseLine(t.lineParseRegexp, line.Text)
 				if err != nil {
 					malformedLinesTotal.Inc()
 					reportErrLine(line.Text, err)
@@ -270,22 +277,8 @@ func parseRequestLine(requestLine string) (method string, uri string, protocol s
 	return "", "", "", &InvalidRequestError{requestLine}
 }
 
-// parseLine parses the given line, producing a RequestEvent instance
-// - lineParseRegexp is used to parse the line
-// - RequestEvent.IP may
-func parseLine(line string) (*event.HttpRequest, error) {
-	lineData := make(map[string]string)
-
-	match := lineParseRegexp.FindStringSubmatch(line)
-	if len(match) != len(lineParseRegexp.SubexpNames()) {
-		return nil, fmt.Errorf("unable to parse line")
-	}
-	for i, name := range lineParseRegexp.SubexpNames() {
-		if i != 0 && name != "" {
-			lineData[name] = match[i]
-		}
-	}
-
+// buildEvent returns *event.HttpRequest based on input lineData
+func buildEvent(lineData map[string]string) (*event.HttpRequest, error) {
 	t, err := time.Parse(timeLayout, lineData["time"])
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse time '%s' using the format '%s': %w", lineData["time"], timeLayout, err)
@@ -312,13 +305,52 @@ func parseLine(line string) (*event.HttpRequest, error) {
 		return nil, fmt.Errorf("unable to parse url '%s': %w", requestURI, err)
 	}
 
+	classification := &event.SloClassification{
+		Domain: lineData["sloDomain"],
+		App:    lineData["sloApp"],
+		Class:  lineData["sloClass"],
+	}
+
+	var frpcStatus int
+	frpcStatusString, _ := lineData["frpcStatus"]
+	if frpcStatusString != "" {
+		frpcStatus, err = strconv.Atoi(frpcStatusString)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse frpc status '%v': %w", frpcStatusString, err)
+		}
+	} else {
+		frpcStatus = event.UndefinedFRPCStatus
+	}
+
 	return &event.HttpRequest{
-		Time:       t,
-		IP:         net.ParseIP(lineData["ip"]),
-		Duration:   duration,
-		URL:        url,
-		StatusCode: statusCode,
-		Headers:    make(map[string]string),
-		Method:     method,
+		Time:              t,
+		IP:                net.ParseIP(lineData["ip"]),
+		Duration:          duration,
+		URL:               url,
+		StatusCode:        statusCode,
+		Headers:           make(map[string]string),
+		Method:            method,
+		SloEndpoint:       lineData["sloEndpoint"],
+		SloResult:         lineData["sloResult"],
+		SloClassification: classification,
+		FRPCStatus:        frpcStatus,
 	}, nil
+}
+
+// parseLine parses the given line, producing a RequestEvent instance
+// - lineParseRegexp is used to parse the line
+func parseLine(lineParseRegexp *regexp.Regexp, line string) (*event.HttpRequest, error) {
+	lineData := make(map[string]string)
+
+	match := lineParseRegexp.FindStringSubmatch(line)
+	if len(match) != len(lineParseRegexp.SubexpNames()) {
+		return nil, fmt.Errorf("unable to parse line")
+	}
+	for i, name := range lineParseRegexp.SubexpNames() {
+		if i != 0 && name != "" {
+			lineData[name] = match[i]
+		}
+	}
+
+	return buildEvent(lineData)
 }
