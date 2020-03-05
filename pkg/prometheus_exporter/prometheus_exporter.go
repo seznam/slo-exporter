@@ -221,7 +221,7 @@ func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 	normalizedLabels := e.normalizeEventMetadata(labels)
 
 	if e.isCardinalityExceeded(newEvent.Key) {
-		log.Warnf("ev key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
+		log.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
 		normalizedLabels[e.labelNames.EventKey] = e.exceededKeyLimitPlaceholder
 	}
 
