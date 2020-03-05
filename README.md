@@ -107,6 +107,9 @@ Written in Go using the [pipeline pattern](https://blog.golang.org/pipelines)
 
 ```
 
+## Configuration
+See [conf/slo_exporter.yaml](conf/slo_exporter.yaml) for documented example.
+
 ## Frequently asked questions
 
 ### How to add new normalization replacement rule?

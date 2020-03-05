@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
 	"reflect"
-	"strconv"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -20,13 +17,20 @@ import (
 )
 
 var (
-	requestLineFormat = `{ip} - - [{time}] "{request}" {statusCode} 79 "-" uag="Go-http-client/1.1" "-" ua="10.66.112.78:80" rt="{requestTime}" uct="0.000" uht="0.000" urt="0.000" cc="static" occ="-" url="68" ourl="-"`
+	lineParseRegexp   = `^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"(?: frpc-status="(?P<frpcStatus>\d*)")?(?: slo-domain="(?P<sloDomain>[^"]*)")?(?: slo-app="(?P<sloApp>[^"]*)")?(?: slo-class="(?P<sloClass>[^"]*)")?(?: slo-endpoint="(?P<sloEndpoint>[^"]*)")?(?: slo-result="(?P<sloResult>[^"]*)")?`
+	requestLineFormat = `{ip} - - [{time}] "{request}" {statusCode} 79 "-" uag="Go-http-client/1.1" "-" ua="10.66.112.78:80" rt="{requestDuration}" frpc-status="{frpcStatus}" slo-domain="{sloDomain}" slo-app="{sloApp}" slo-class="{sloClass}" slo-endpoint="{sloEndpoint}" slo-result="{sloResult}"`
 	// provided to getRequestLine, this returns a cosidered-valid line
 	requestLineFormatMapValid = map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "34.65.133.58",
-		"request":     "GET /robots.txt HTTP/1.1",
-		"statusCode":  "200",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "34.65.133.58",
+		"request":         "GET /robots.txt HTTP/1.1",
+		"statusCode":      "200",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}
 )
 
@@ -65,6 +69,8 @@ func TestParseRequestLine(t *testing.T) {
 }
 
 type parseLineTest struct {
+	// lineContentMapping is to be used to generate the request log line via getRequestLine func
+	// (see it for what the defaults are, so that you dont have to fill them for every test case)
 	lineContentMapping map[string]string
 	isLineValid        bool
 }
@@ -72,87 +78,138 @@ type parseLineTest struct {
 var parseLineTestTable = []parseLineTest{
 	// ipv4
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "34.65.133.58",
-		"request":     "GET /robots.txt HTTP/1.1",
-		"statusCode":  "200",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "34.65.133.58",
+		"request":         "GET /robots.txt HTTP/1.1",
+		"statusCode":      "200",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, true},
 	// ipv6
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "2001:718:801:230::1",
-		"request":     "GET /robots.txt HTTP/1.1",
-		"statusCode":  "200",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "2001:718:801:230::1",
+		"request":         "GET /robots.txt HTTP/1.1",
+		"statusCode":      "200",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, true},
 	// invalid time
 	{map[string]string{"time": "32/Nov/2019:25:20:07 +0100",
-		"ip":          "2001:718:801:230::1",
-		"request":     "GET /robots.txt HTTP/1.1",
-		"statusCode":  "200x",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "2001:718:801:230::1",
+		"request":         "GET /robots.txt HTTP/1.1",
+		"statusCode":      "200x",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, false},
 	// invalid request
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "2001:718:801:230::1",
-		"request":     "invalid-request[eof]",
-		"statusCode":  "200x",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "2001:718:801:230::1",
+		"request":         "invalid-request[eof]",
+		"statusCode":      "200x",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, false},
 	// request without protocol
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "2001:718:801:230::1",
-		"request":     "GET /robots.txt",
-		"statusCode":  "301",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "2001:718:801:230::1",
+		"request":         "GET /robots.txt",
+		"statusCode":      "301",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, true},
 	// http2.0 proto request
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "2001:718:801:230::1",
-		"request":     "GET /robots.txt HTTP/2.0",
-		"statusCode":  "200",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "2001:718:801:230::1",
+		"request":         "GET /robots.txt HTTP/2.0",
+		"statusCode":      "200",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, true},
 	// zero status code
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "2001:718:801:230::1",
-		"request":     "GET /robots.txt HTTP/1.1",
-		"statusCode":  "0",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "2001:718:801:230::1",
+		"request":         "GET /robots.txt HTTP/1.1",
+		"statusCode":      "0",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, true},
 	// invalid status code
 	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":          "2001:718:801:230::1",
-		"request":     "GET /robots.txt HTTP/1.1",
-		"statusCode":  "xxx",
-		"requestTime": "0.123", // in s, as logged by nginx
+		"ip":              "2001:718:801:230::1",
+		"request":         "GET /robots.txt HTTP/1.1",
+		"statusCode":      "xxx",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "",
+		"sloDomain":       "",
+		"sloApp":          "",
+		"sloResult":       "",
+		"sloEndpoint":     "",
+		"frpcStatus":      "",
 	}, false},
+	// classified event
+	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+		"ip":              "2001:718:801:230::1",
+		"request":         "GET /robots.txt HTTP/1.1",
+		"statusCode":      "200",
+		"requestDuration": "0.123", // in s, as logged by nginx
+		"sloClass":        "critical",
+		"sloDomain":       "userportal",
+		"sloApp":          "frontend-api",
+		"sloResult":       "success",
+		"sloEndpoint":     "AdInventoryManagerInterestsQuery",
+		"frpcStatus":      "",
+	}, true},
 }
 
 func TestParseLine(t *testing.T) {
+	lineParseRegexpCompiled := regexp.MustCompile(lineParseRegexp)
 	for _, test := range parseLineTestTable {
 		requestLine := getRequestLine(test.lineContentMapping)
 
-		parsedEvent, err := parseLine(requestLine)
+		parsedEvent, err := parseLine(lineParseRegexpCompiled, requestLine)
 
 		var expectedEvent *event.HttpRequest
 
 		if test.isLineValid {
 			// line is considered valid, build the expectedEvent struct in order to compare it to the parsed one
-			duration, _ := time.ParseDuration(test.lineContentMapping["requestTime"] + "s")
-			lineTime, _ := time.Parse(timeLayout, test.lineContentMapping["time"])
-			statusCode, _ := strconv.Atoi(test.lineContentMapping["statusCode"])
-			method, requestURI, _, _ := parseRequestLine(test.lineContentMapping["request"])
-			uri, _ := url.Parse(requestURI)
 
-			expectedEvent = &event.HttpRequest{
-				Time:       lineTime,
-				IP:         net.ParseIP(test.lineContentMapping["ip"]),
-				Duration:   duration,
-				URL:        uri,
-				StatusCode: statusCode,
-				EventKey:   "",
-				Headers:    stringmap.StringMap{},
-				Method:     method,
+			expectedEvent, err = buildEvent(test.lineContentMapping)
+			if err != nil {
+				t.Fatalf("Unable to build event from test data: %w", err)
 			}
 			if !reflect.DeepEqual(expectedEvent, parsedEvent) {
 				t.Errorf("Unexpected result of parse line: %s\n%+v\nExpected:\n%+v", requestLine, parsedEvent, expectedEvent)
@@ -209,6 +266,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		Reopen:                      true,
 		PositionFile:                positionsFname,
 		PositionPersistenceInterval: persistPositionInterval,
+		LoglineParseRegexp:          lineParseRegexp,
 	}
 	tailer, err := New(config)
 	if err != nil {
