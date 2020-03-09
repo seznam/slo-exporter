@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
  - Implemented prometheus ingester
+ - Optional gracefulShutdownTimeout configuration
 
 ### Changed
  - **BREAKING** Request event normalizer now uses regular expressions for filtering.
