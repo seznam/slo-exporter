@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
@@ -244,6 +245,10 @@ func main() {
 			}
 			shutdownHandler.WaitMax(conf.GracefulShutdownTimeout)
 			shutdownCtx.Done()
+			if conf.AfterGracefulShutdownDelay > 0 {
+				log.Infof("delaying shutdown by %s", conf.AfterGracefulShutdownDelay)
+				time.Sleep(conf.AfterGracefulShutdownDelay)
+			}
 			return
 		case sig := <-sigChan:
 			log.Infof("received signal %+v", sig)

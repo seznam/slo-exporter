@@ -14,6 +14,8 @@ logLevel: "info"
 webServerListenAddress: "0.0.0.0:8080"
 # Maximum time to wait for all events to be processed after receiving SIGTERM or SIGINT.
 gracefulShutdownTimeout: "1m"
+# How long to wait after graceful shutdown before exiting. Useful to make sure metrics are scraped by Prometheus. Ideally set it to Prometheus scrape interval + 1s or more.
+afterGracefulShutdownDelay: "1s"
 
 # TODO
 # Defines architecture of the pipeline.
