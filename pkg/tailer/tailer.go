@@ -316,17 +316,14 @@ func buildEvent(lineData map[string]string) (*event.HttpRequest, error) {
 		Class:  lineData["sloClass"],
 	}
 
-	var frpcStatus int
+	frpcStatus := event.UndefinedFRPCStatus
 	frpcStatusString, _ := lineData["frpcStatus"]
 	if frpcStatusString != "" {
 		frpcStatus, err = strconv.Atoi(frpcStatusString)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse frpc status '%v': %w", frpcStatusString, err)
 		}
-	} else {
-		frpcStatus = event.UndefinedFRPCStatus
 	}
-
 	return &event.HttpRequest{
 		Time:              t,
 		IP:                net.ParseIP(lineData["ip"]),
