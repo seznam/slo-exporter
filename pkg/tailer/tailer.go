@@ -125,7 +125,7 @@ func New(config tailerConfig) (*Tailer, error) {
 	if fstat.Size() < offset {
 		pos.Remove(config.TailedFile)
 		offset = 0
-		log.Warnf("Loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
+		log.Warnf("loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
 	}
 
 	tailFile, err := tail.TailFile(config.TailedFile, tail.Config{
@@ -140,12 +140,17 @@ func New(config tailerConfig) (*Tailer, error) {
 		return nil, err
 	}
 
+	lineParseRegexp, err := regexp.Compile(config.LoglineParseRegexp)
+	if err != nil {
+		return nil, fmt.Errorf("error while compiling the line parse RE ('%s'): %w", config.LoglineParseRegexp, err)
+	}
+
 	return &Tailer{
 		filename:                config.TailedFile,
 		tail:                    tailFile,
 		positions:               pos,
 		persistPositionInterval: config.PositionPersistenceInterval,
-		lineParseRegexp:         regexp.MustCompile(config.LoglineParseRegexp),
+		lineParseRegexp:         lineParseRegexp,
 	}, nil
 }
 
