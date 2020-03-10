@@ -15,12 +15,13 @@ func New() *Config {
 }
 
 type Config struct {
-	Pipeline                []string
-	LogLevel                string
-	WebServerListenAddress  string
-	GracefulShutdownTimeout time.Duration
-	EventKeyMetadataKey     string
-	Modules                 map[string]interface{}
+	Pipeline                   []string
+	LogLevel                   string
+	WebServerListenAddress     string
+	GracefulShutdownTimeout    time.Duration
+	AfterGracefulShutdownDelay time.Duration
+	EventKeyMetadataKey        string
+	Modules                    map[string]interface{}
 }
 
 func (c *Config) setupViper() {
@@ -34,6 +35,7 @@ func (c *Config) LoadFromFile(path string) error {
 	viper.SetDefault("LogLevel", "info")
 	viper.SetDefault("WebServerListenAddress", "0.0.0.0:8080")
 	viper.SetDefault("GracefulShutdownTimeout", 20*time.Second)
+	viper.SetDefault("AfterGracefulShutdownDelay", 0)
 	yamlFile, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to open configuration file: %w", err)
