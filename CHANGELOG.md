@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## UNRELEASED
+### Changed
+- tailer line matching regular expression is now part of configuration
+- tailer is able to initialize event with SloClassification, if provided within log line
+
+### Fixed
+- update dynamic classifier cache with data from already classified event
+
 ## [2.0.0] - 2020-03-09
 ### Added
  - Implemented prometheus ingester
@@ -13,8 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - **BREAKING** Request event normalizer now uses regular expressions for filtering.
      - Config option `filteredHttpStatusCodes` is now `filteredHttpStatusCodeMatchers` and is list of regular expressions instead of integers.
      - Config option `filteredHttpHeaders` is now `filteredHttpHeaderMatchers` and is map of regular expression matching header name to regular expression matching header value.
- - tailer line matching regular expression is now part of configuration
- - tailer is able to initialize event with SloClassification, if provided within log line
 
 ### Fixed
  - Refactored loading of event normalizer configuration.
