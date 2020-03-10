@@ -5,10 +5,39 @@
 
 
 slo-exporter is golang tool used for
- * reading events from different sources
- * processing the events
- * exporting SLO's SLI based on the processed events
+ * reading events from different sources (a log file, prometheus metrics)
+ * processing the events (filtering, normalization and classification)
+ * exporting SLO's SLI (based on the processed events)
 
+slo-exporter is configured via several configuration files and/or environment variables as shown below.
+
+```plantuml
+@startuml
+
+
+component slo_exporter [
+  slo-exporter app]
+
+rectangle slo_exporter_main_cfg_envs [
+  slo-exporter main config updates via environment variables:
+  * SLO_EXPORTER_<KEYNAME> or \n* SLO_EXPORTER_<MODULENAME>_<KEYNAME>]
+
+frame slo_exporter_main_cfg_file [
+  slo-exporter main config]
+
+frame slo_exporter_slo_rules_cfg [
+  slo-exporter slo-rules config]
+
+frame slo_exporter_classification_cfg [
+  slo-exporter classification config]
+
+slo_exporter <-- slo_exporter_main_cfg_file : "--config"
+slo_exporter <-- slo_exporter_main_cfg_envs : "environment variables"
+slo_exporter_main_cfg_file <-- slo_exporter_classification_cfg : ".modules.dynamicClassifier.regexpMatchesCsvFiles\nand/or\n.modules.dynamicClassifier.exactMatchesCsvFiles"
+slo_exporter_main_cfg_file <-- slo_exporter_slo_rules_cfg : ".modules.sloEventProducer.rulesFiles"
+
+@enduml
+```
 
 On GitLab pages you can find some Go related stuff
 - [GoDoc](https://sklik-devops.gitlab.seznam.net/slo-exporter/godoc/pkg/gitlab.seznam.net/sklik-devops/slo-exporter/)
@@ -16,6 +45,9 @@ On GitLab pages you can find some Go related stuff
 
 
 ## Build
+
+It is recommended to build slo-exporter with golang 1.13+.
+
 ```bash
 make build
 ```
@@ -96,6 +128,14 @@ modules:
 
 ### How to deal with malformed lines?
 
-If you are seeing too many malformed lines then you should inspect [tailer package](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/master/pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
+Before !87. If you are seeing too many malformed lines then you should inspect [tailer package](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/master/pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
 
+After !87, slo-exporter main config supports to specify custom regular expression in field `.module.tailer.loglineParseRegexp`.
 
+### How to deploy slo-exporter?
+
+slo-exporter can be deployed as:
+ 1. sidecar container application tailing local (emptydir) (proxy) logs
+     * manifest example can be found in [userproxy repository](https://gitlab.seznam.net/sklik-frontend/Proxies/tree/master/userproxy/kubernetes)
+ 1. standalone application tailing remote logs using [`htail` web page tailer over http](https://gitlab.seznam.net/Sklik-DevOps/htail)
+     * manifest example can be found in [kubernetes directory](kubernetes/)
