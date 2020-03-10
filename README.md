@@ -111,8 +111,8 @@ Written in Go using the [pipeline pattern](https://blog.golang.org/pipelines)
 
 ### How to add new normalization replacement rule?
 
-Event normalization is done in [`event normalizer`](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/master/pkg/normalizer/normalizer.go).
-User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/0861216a71e7e1fe199434d8d9557786009f61f4/conf/slo_exporter.yaml#L47-58).
+Event normalization is done in [`event normalizer`](pkg/normalizer/normalizer.go).
+User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](conf/slo_exporter.yaml).
 
 Suppose you see a lot of events matching this regular expression `/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}` which you want to normalize, then your normalization replacement rule can look like following snippet:
 
@@ -128,7 +128,7 @@ modules:
 
 ### How to deal with malformed lines?
 
-Before !87. If you are seeing too many malformed lines then you should inspect [tailer package](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/blob/master/pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
+Before !87. If you are seeing too many malformed lines then you should inspect [tailer package](pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
 
 After !87, slo-exporter main config supports to specify custom regular expression in field `.module.tailer.loglineParseRegexp`.
 
