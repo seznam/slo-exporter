@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - tailer line matching regular expression is now part of configuration
 - tailer is able to initialize event with SloClassification, if provided within log line
+- getEventKey returns SloEndpoint if set
 
 ### Fixed
 - update dynamic classifier cache with data from already classified event

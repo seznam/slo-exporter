@@ -44,11 +44,11 @@ modules:
     #   request - HTTP request line
     #   frpcStatus - Resulting status code of the FastRPC request embedded in the HTTP request.
     #   ip - both IPv4 or IPv6
-    #   sloEndpoint - name of SLO endpoint. If non-empty, it will be used as an event key value TODO
+    #   sloEndpoint - name of SLO endpoint. If non-empty, it will be used as an event key value.
     #   sloResult - TODO
-    #   sloDomain - part of SLO classification for the given event
-    #   sloApp - part of SLO classification for the given event
-    #   sloClass - part of SLO classification for the given event
+    #   sloDomain - part of SLO classification for the given event.
+    #   sloApp - part of SLO classification for the given event.
+    #   sloClass - part of SLO classification for the given event.
     loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"(?: frpc-status="(?P<frpcStatus>\d*)")?(?: slo-domain="(?P<sloDomain>[^"]*)")?(?: slo-app="(?P<sloApp>[^"]*)")?(?: slo-class="(?P<sloClass>[^"]*)")?(?: slo-endpoint="(?P<sloEndpoint>[^"]*)")?(?: slo-result="(?P<sloResult>[^"]*)")?'
     # emptyGroupRE defines RE used to decide whether some of the RE match groups specified in loglineParseRegexp is empty and this its assigned variable should be kept unitialized
     emptyGroupRE: '^-$'
