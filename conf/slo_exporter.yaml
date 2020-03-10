@@ -42,7 +42,7 @@ modules:
     # requestDuration - in seconds
     # statusCode - HTTP status code
     # request - HTTP request line
-    # frpcStatus
+    # frpcStatus - Resulting status code of the FastRPC request embedded in the HTTP request.
     # ip
     # sloEndpoint - name of SLO endpoint. If non-empty, it will be used as an event key value TODO
     # sloResult - TODO
