@@ -163,7 +163,7 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 		},
 	}
 
-	classifier, err := New(classifierConfig{})
+	classifier, err := New(classifierConfig{RegexpMatchesCsvFiles: goldenFile(t)})
 	if err != nil {
 		t.Fatalf("unable to initialize classifier: %w", err)
 	}
@@ -187,9 +187,7 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t 
 	eventKey := "GET:/testing-endpoint"
 	eventClasses := []string{"class1", "class2"}
 
-	classifier, err := New(classifierConfig{
-		RegexpMatchesCsvFiles: goldenFile(t),
-	})
+	classifier, err := New(classifierConfig{})
 	if err != nil {
 		t.Fatalf("unable to initialize classifier: %w", err)
 	}
