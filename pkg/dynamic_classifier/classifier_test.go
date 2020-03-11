@@ -172,7 +172,10 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
 	}
 
-	classifier.Classify(classifiedEvent)
+	ok, err := classifier.Classify(classifiedEvent)
+	if !ok || err != nil {
+		t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+	}
 	classification, err = classifier.exactMatches.get(eventKey)
 	if err != nil {
 		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
@@ -191,7 +194,7 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t 
 	if err != nil {
 		t.Fatalf("unable to initialize classifier: %w", err)
 	}
-	for _, eventClass := range(eventClasses) {
+	for _, eventClass := range eventClasses {
 		classifiedEvent := &event.HttpRequest{
 			EventKey: eventKey,
 			SloClassification: &event.SloClassification{
@@ -201,7 +204,10 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t 
 			},
 		}
 
-		classifier.Classify(classifiedEvent)
+		ok, err := classifier.Classify(classifiedEvent)
+		if !ok || err != nil {
+			t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+		}
 		classification, err := classifier.exactMatches.get(eventKey)
 		if err != nil {
 			t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
