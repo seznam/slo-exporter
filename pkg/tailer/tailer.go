@@ -194,7 +194,7 @@ func (t *Tailer) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, 
 					log.Error(line.Err)
 				}
 				linesReadTotal.Inc()
-				event, err := parseLine(t.lineParseRegexp, line.Text)
+				event, err := t.processLine(line.Text)
 				if err != nil {
 					malformedLinesTotal.Inc()
 					reportErrLine(line.Text, err)
@@ -341,7 +341,7 @@ func buildEvent(lineData map[string]string) (*event.HttpRequest, error) {
 
 // parseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
-func parseLine(lineParseRegexp *regexp.Regexp, line string) (*event.HttpRequest, error) {
+func parseLine(lineParseRegexp *regexp.Regexp, line string) (map[string]string, error) {
 	lineData := make(map[string]string)
 
 	match := lineParseRegexp.FindStringSubmatch(line)
@@ -354,5 +354,13 @@ func parseLine(lineParseRegexp *regexp.Regexp, line string) (*event.HttpRequest,
 		}
 	}
 
+	return lineData, nil
+}
+
+func (t *Tailer) processLine(line string) (*event.HttpRequest, error) {
+	lineData, err := parseLine(t.lineParseRegexp, line)
+	if err != nil {
+		return nil, err
+	}
 	return buildEvent(lineData)
 }

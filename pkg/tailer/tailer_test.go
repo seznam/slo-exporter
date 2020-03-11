@@ -200,7 +200,16 @@ func TestParseLine(t *testing.T) {
 	for _, test := range parseLineTestTable {
 		requestLine := getRequestLine(test.lineContentMapping)
 
-		parsedEvent, err := parseLine(lineParseRegexpCompiled, requestLine)
+		data, err := parseLine(lineParseRegexpCompiled, requestLine)
+		if err != nil {
+			if test.isLineValid {
+				t.Fatalf("unable to parse request line '%s': %w", requestLine, err)
+			} else {
+				// the tested line is marked as not valid, Err is expected
+				continue
+			}
+		}
+		parsedEvent, err := buildEvent(data)
 
 		var expectedEvent *event.HttpRequest
 
