@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	lineParseRegexp   = `^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"(?: frpc-status="(?P<frpcStatus>\d*)")?(?: slo-domain="(?P<sloDomain>[^"]*)")?(?: slo-app="(?P<sloApp>[^"]*)")?(?: slo-class="(?P<sloClass>[^"]*)")?(?: slo-endpoint="(?P<sloEndpoint>[^"]*)")?(?: slo-result="(?P<sloResult>[^"]*)")?`
+	lineParseRegexp   = `^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"(?: frpc-status="(?P<frpcStatus>\d*|-)")?(?: slo-domain="(?P<sloDomain>[^"]*)")?(?: slo-app="(?P<sloApp>[^"]*)")?(?: slo-class="(?P<sloClass>[^"]*)")?(?: slo-endpoint="(?P<sloEndpoint>[^"]*)")?(?: slo-result="(?P<sloResult>[^"]*)")?`
+	emptyGroupRegexp  = `^$`
 	requestLineFormat = `{ip} - - [{time}] "{request}" {statusCode} 79 "-" uag="Go-http-client/1.1" "-" ua="10.66.112.78:80" rt="{requestDuration}" frpc-status="{frpcStatus}" slo-domain="{sloDomain}" slo-app="{sloApp}" slo-class="{sloClass}" slo-endpoint="{sloEndpoint}" slo-result="{sloResult}"`
 	// provided to getRequestLine, this returns a cosidered-valid line
 	requestLineFormatMapValid = map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -75,132 +76,133 @@ type parseLineTest struct {
 	isLineValid        bool
 }
 
-var parseLineTestTable = []parseLineTest{
-	// ipv4
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "34.65.133.58",
-		"request":         "GET /robots.txt HTTP/1.1",
-		"statusCode":      "200",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, true},
-	// ipv6
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "GET /robots.txt HTTP/1.1",
-		"statusCode":      "200",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, true},
-	// invalid time
-	{map[string]string{"time": "32/Nov/2019:25:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "GET /robots.txt HTTP/1.1",
-		"statusCode":      "200x",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, false},
-	// invalid request
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "invalid-request[eof]",
-		"statusCode":      "200x",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, false},
-	// request without protocol
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "GET /robots.txt",
-		"statusCode":      "301",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, true},
-	// http2.0 proto request
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "GET /robots.txt HTTP/2.0",
-		"statusCode":      "200",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, true},
-	// zero status code
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "GET /robots.txt HTTP/1.1",
-		"statusCode":      "0",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, true},
-	// invalid status code
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "GET /robots.txt HTTP/1.1",
-		"statusCode":      "xxx",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
-	}, false},
-	// classified event
-	{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
-		"ip":              "2001:718:801:230::1",
-		"request":         "GET /robots.txt HTTP/1.1",
-		"statusCode":      "200",
-		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "critical",
-		"sloDomain":       "userportal",
-		"sloApp":          "frontend-api",
-		"sloResult":       "success",
-		"sloEndpoint":     "AdInventoryManagerInterestsQuery",
-		"frpcStatus":      "",
-	}, true},
-}
+func Test_ParseLineAndBuildEvent(t *testing.T) {
+	testTable := []parseLineTest{
+		// ipv4
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "34.65.133.58",
+			"request":         "GET /robots.txt HTTP/1.1",
+			"statusCode":      "200",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, true},
+		// ipv6
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "GET /robots.txt HTTP/1.1",
+			"statusCode":      "200",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, true},
+		// invalid time
+		{map[string]string{"time": "32/Nov/2019:25:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "GET /robots.txt HTTP/1.1",
+			"statusCode":      "200x",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, false},
+		// invalid request
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "invalid-request[eof]",
+			"statusCode":      "200x",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, false},
+		// request without protocol
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "GET /robots.txt",
+			"statusCode":      "301",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, true},
+		// http2.0 proto request
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "GET /robots.txt HTTP/2.0",
+			"statusCode":      "200",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, true},
+		// zero status code
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "GET /robots.txt HTTP/1.1",
+			"statusCode":      "0",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, true},
+		// invalid status code
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "GET /robots.txt HTTP/1.1",
+			"statusCode":      "xxx",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "",
+			"sloDomain":       "",
+			"sloApp":          "",
+			"sloResult":       "",
+			"sloEndpoint":     "",
+			"frpcStatus":      "",
+		}, false},
+		// classified event
+		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+			"ip":              "2001:718:801:230::1",
+			"request":         "GET /robots.txt HTTP/1.1",
+			"statusCode":      "200",
+			"requestDuration": "0.123", // in s, as logged by nginx
+			"sloClass":        "critical",
+			"sloDomain":       "userportal",
+			"sloApp":          "frontend-api",
+			"sloResult":       "success",
+			"sloEndpoint":     "AdInventoryManagerInterestsQuery",
+			"frpcStatus":      "",
+		}, true},
+	}
 
-func TestParseLine(t *testing.T) {
 	lineParseRegexpCompiled := regexp.MustCompile(lineParseRegexp)
-	for _, test := range parseLineTestTable {
+	emptyGroupRegexpCompiled := regexp.MustCompile(emptyGroupRegexp)
+	for _, test := range testTable {
 		requestLine := getRequestLine(test.lineContentMapping)
 
-		data, err := parseLine(lineParseRegexpCompiled, requestLine)
+		data, err := parseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
 		if err != nil {
 			if test.isLineValid {
 				t.Fatalf("unable to parse request line '%s': %w", requestLine, err)
@@ -230,6 +232,45 @@ func TestParseLine(t *testing.T) {
 			}
 		}
 
+	}
+}
+
+func Test_ParseLine(t *testing.T) {
+	testTable := []parseLineTest{
+		{
+			lineContentMapping: map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
+				"ip":              "34.65.133.58",
+				"request":         "GET /robots.txt HTTP/1.1",
+				"statusCode":      "200",
+				"requestDuration": "0.123", // in s, as logged by nginx
+				"sloClass":        "-",
+				"sloDomain":       "-",
+				"sloApp":          "-",
+				"sloResult":       "-",
+				"sloEndpoint":     "-",
+				"frpcStatus":      "-",
+			},
+			isLineValid: true,
+		},
+	}
+	lineParseRegexpCompiled := regexp.MustCompile(lineParseRegexp)
+	emptyGroupRegexpCompiled := regexp.MustCompile(emptyGroupRegexp)
+
+	for _, test := range testTable {
+		requestLine := getRequestLine(test.lineContentMapping)
+		data, err := parseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
+		if err != nil {
+			t.Fatalf("unable to parse request line '%s': %w", requestLine, err)
+		}
+		for k, v := range test.lineContentMapping {
+			if !emptyGroupRegexpCompiled.MatchString(v) {
+				continue
+			}
+			// test that empty group was correctly replaced by an empty string
+			if data[k] != emptyGroupReplaceString {
+				t.Errorf("Content named group '%s':'%s' should have been normalized into form: '%s':'%s'", k, v, k, emptyGroupReplaceString)
+			}
+		}
 	}
 }
 
@@ -276,6 +317,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		PositionFile:                positionsFname,
 		PositionPersistenceInterval: persistPositionInterval,
 		LoglineParseRegexp:          lineParseRegexp,
+		EmptyGroupRE:                emptyGroupRegexp,
 	}
 	tailer, err := New(config)
 	if err != nil {
