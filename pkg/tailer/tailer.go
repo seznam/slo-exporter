@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	timeLayout string = "02/Jan/2006:15:04:05 -0700"
-	component  string = "tailer"
+	timeLayout              string = "02/Jan/2006:15:04:05 -0700"
+	component               string = "tailer"
+	emptyGroupReplaceString string = ""
 )
 
 var (
@@ -70,6 +71,7 @@ type tailerConfig struct {
 	PositionFile                string
 	PositionPersistenceInterval time.Duration
 	LoglineParseRegexp          string
+	EmptyGroupRE                string
 }
 
 // getDefaultPositionsFilePath derives positions file path for given tailed filename
@@ -85,12 +87,14 @@ type Tailer struct {
 	persistPositionInterval time.Duration
 	observer                prometheus.Observer
 	lineParseRegexp         *regexp.Regexp
+	emptyGroupRegexp        *regexp.Regexp
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*Tailer, error) {
 	viperConfig.SetDefault("Follow", true)
 	viperConfig.SetDefault("Reopen", true)
 	viperConfig.SetDefault("PositionPersistenceInterval", 2*time.Second)
+	viperConfig.SetDefault("EmptyGroupRE", "^$")
 	var config tailerConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -144,6 +148,10 @@ func New(config tailerConfig) (*Tailer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while compiling the line parse RE ('%s'): %w", config.LoglineParseRegexp, err)
 	}
+	emptyGroupRegexp, err := regexp.Compile(config.EmptyGroupRE)
+	if err != nil {
+		return nil, fmt.Errorf("error while compiling the empty group matching RE ('%s'): %w", config.EmptyGroupRE, err)
+	}
 
 	return &Tailer{
 		filename:                config.TailedFile,
@@ -151,6 +159,7 @@ func New(config tailerConfig) (*Tailer, error) {
 		positions:               pos,
 		persistPositionInterval: config.PositionPersistenceInterval,
 		lineParseRegexp:         lineParseRegexp,
+		emptyGroupRegexp:        emptyGroupRegexp,
 	}, nil
 }
 
@@ -341,7 +350,8 @@ func buildEvent(lineData map[string]string) (*event.HttpRequest, error) {
 
 // parseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
-func parseLine(lineParseRegexp *regexp.Regexp, line string) (map[string]string, error) {
+// - if content of any of the matched named groups matches emptyGroupRegexp, it is replaced by an empty string ""
+func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, line string) (map[string]string, error) {
 	lineData := make(map[string]string)
 
 	match := lineParseRegexp.FindStringSubmatch(line)
@@ -350,7 +360,11 @@ func parseLine(lineParseRegexp *regexp.Regexp, line string) (map[string]string, 
 	}
 	for i, name := range lineParseRegexp.SubexpNames() {
 		if i != 0 && name != "" {
-			lineData[name] = match[i]
+			if emptyGroupRegexp.MatchString(match[i]) {
+				lineData[name] = emptyGroupReplaceString
+			} else {
+				lineData[name] = match[i]
+			}
 		}
 	}
 
@@ -358,7 +372,7 @@ func parseLine(lineParseRegexp *regexp.Regexp, line string) (map[string]string, 
 }
 
 func (t *Tailer) processLine(line string) (*event.HttpRequest, error) {
-	lineData, err := parseLine(t.lineParseRegexp, line)
+	lineData, err := parseLine(t.lineParseRegexp, t.emptyGroupRegexp, line)
 	if err != nil {
 		return nil, err
 	}
