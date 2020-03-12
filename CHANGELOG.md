@@ -12,10 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - update dynamic classifier cache with data from already classified event
 
+### Added
+ - Add `status_code` label to dynamic classifier metric `events_processed_total`.
+
 ## [2.0.0] - 2020-03-09
 ### Added
- - Implemented prometheus ingester
- - Optional gracefulShutdownTimeout configuration
+ - Implemented prometheus ingester.
+ - Optional gracefulShutdownTimeout configuration.
 
 ### Changed
  - **BREAKING** Request event normalizer now uses regular expressions for filtering.
@@ -24,8 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
  - Refactored loading of event normalizer configuration.
- - StringMap.Without fixed logic and added tests
- - StringMap.Merge do not return empty map when merged with nil
+ - StringMap.Without fixed logic and added tests.
+ - StringMap.Merge do not return empty map when merged with nil.
 
 ## [1.4.0] - 2020-02-28
 
