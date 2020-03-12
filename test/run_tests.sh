@@ -2,6 +2,12 @@
 
 set -eo pipefail
 
+# exit with $1 status code and printing $2 to stderr
+function myexit {
+    echo "$2" > /dev/stderr
+    exit $1
+}
+
 function cleanup {
     find -type f -name logs.pos | xargs -I{} rm '{}'
     find -type d -name ${TEST_RESULT_DIR} | xargs -I{} rm -rf '{}'
@@ -42,11 +48,13 @@ for i_test in $(find "${SCRIPT_DIR}" -type d | grep ${TEST_DIR_PREFIX}) ; do
     pushd ${i_test} > /dev/null
     mkdir ${TEST_RESULT_DIR}
     ${SLO_EXPORTER} --config-file=${CONFIG_FILENAME} --disable-timescale-exporter > ${TEST_RESULT_DIR}/${SLO_EXPORTER_LOG_FILENAME} 2>&1 &
-    SLO_EXPORTER_PID=$!
     sleep 1
+    # test whether SLO_EXPORTER is running in the background (did not exited during the initialization)
+    [ -z "$(jobs %% | grep Running)" ] && \
+        myexit 1 "${SLO_EXPORTER} is not running. Exiting..."
     get_metrics > ${TEST_RESULT_DIR}/${METRICS_FILENAME}
     # kill slo exporter test instance
-    kill ${SLO_EXPORTER_PID} || true
+    kill %%
 
     evaluate_test_result
     popd > /dev/null
