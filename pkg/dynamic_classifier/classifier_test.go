@@ -124,3 +124,90 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 		}
 	}
 }
+
+func Test_DynamiClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
+	eventKey := "GET:/testing-endpoint"
+	classifiedEvent := &event.HttpRequest{
+		EventKey: eventKey,
+		SloClassification: &event.SloClassification{
+			Domain: "domain",
+			App:    "app",
+			Class:  "class",
+		},
+	}
+
+	// test that classified event updates an empty exact matches cache
+	classifier := newClassifier(t, classifierConfig{})
+	ok, err := classifier.Classify(classifiedEvent)
+	if !ok || err != nil {
+		t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+	}
+	classification, err := classifier.exactMatches.get(eventKey)
+	if err != nil {
+		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+	}
+	if !reflect.DeepEqual(classifiedEvent.SloClassification, classification) {
+		t.Errorf("event classification '%+v' did not propagate to classifier exact matches cache: %+v", classifiedEvent.SloClassification, classification)
+	}
+}
+
+// test that classified event updates dynamic classifier cache as initialized from golden file
+func Test_DynamiClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
+	eventKey := "GET:/testing-endpoint"
+	classifiedEvent := &event.HttpRequest{
+		EventKey: eventKey,
+		SloClassification: &event.SloClassification{
+			Domain: "domain",
+			App:    "app",
+			Class:  "class",
+		},
+	}
+
+	classifier := newClassifier(t, classifierConfig{RegexpMatchesCsvFiles: goldenFile(t)})
+	classification, err := classifier.exactMatches.get(eventKey)
+	if err != nil {
+		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+	}
+
+	ok, err := classifier.Classify(classifiedEvent)
+	if !ok || err != nil {
+		t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+	}
+	classification, err = classifier.exactMatches.get(eventKey)
+	if err != nil {
+		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+	}
+	if !reflect.DeepEqual(classifiedEvent.SloClassification, classification) {
+		t.Errorf("classifier cache '%+v' for event_key '%s' was not updated with classification from the classified event '%+v'.", classifiedEvent.SloClassification, eventKey, classification)
+	}
+}
+
+// test that classified event updates dynamic classifier cache build from previous classified events
+func Test_DynamiClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t *testing.T) {
+	eventKey := "GET:/testing-endpoint"
+	eventClasses := []string{"class1", "class2"}
+
+	classifier := newClassifier(t, classifierConfig{})
+	for _, eventClass := range eventClasses {
+		classifiedEvent := &event.HttpRequest{
+			EventKey: eventKey,
+			SloClassification: &event.SloClassification{
+				Domain: "domain",
+				App:    "app",
+				Class:  eventClass,
+			},
+		}
+
+		ok, err := classifier.Classify(classifiedEvent)
+		if !ok || err != nil {
+			t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+		}
+		classification, err := classifier.exactMatches.get(eventKey)
+		if err != nil {
+			t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+		}
+		if !reflect.DeepEqual(classifiedEvent.SloClassification, classification) {
+			t.Errorf("classifier cache '%+v' for event_key '%s' was not updated with classification from the classified event '%+v'.", classifiedEvent.SloClassification, eventKey, classification)
+		}
+	}
+}

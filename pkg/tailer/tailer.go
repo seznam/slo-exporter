@@ -23,13 +23,13 @@ import (
 )
 
 const (
-	timeLayout string = "02/Jan/2006:15:04:05 -0700"
-	component  string = "tailer"
+	timeLayout              string = "02/Jan/2006:15:04:05 -0700"
+	component               string = "tailer"
+	emptyGroupReplaceString string = ""
 )
 
 var (
-	log             *logrus.Entry
-	lineParseRegexp = regexp.MustCompile(`^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"`)
+	log *logrus.Entry
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "slo_exporter",
@@ -70,6 +70,8 @@ type tailerConfig struct {
 	Reopen                      bool
 	PositionFile                string
 	PositionPersistenceInterval time.Duration
+	LoglineParseRegexp          string
+	EmptyGroupRE                string
 }
 
 // getDefaultPositionsFilePath derives positions file path for given tailed filename
@@ -84,12 +86,15 @@ type Tailer struct {
 	positions               *positions.Positions
 	persistPositionInterval time.Duration
 	observer                prometheus.Observer
+	lineParseRegexp         *regexp.Regexp
+	emptyGroupRegexp        *regexp.Regexp
 }
 
 func NewFromViper(viperConfig *viper.Viper) (*Tailer, error) {
 	viperConfig.SetDefault("Follow", true)
 	viperConfig.SetDefault("Reopen", true)
 	viperConfig.SetDefault("PositionPersistenceInterval", 2*time.Second)
+	viperConfig.SetDefault("EmptyGroupRE", "^$")
 	var config tailerConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -124,7 +129,7 @@ func New(config tailerConfig) (*Tailer, error) {
 	if fstat.Size() < offset {
 		pos.Remove(config.TailedFile)
 		offset = 0
-		log.Warnf("Loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
+		log.Warnf("loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
 	}
 
 	tailFile, err := tail.TailFile(config.TailedFile, tail.Config{
@@ -139,7 +144,23 @@ func New(config tailerConfig) (*Tailer, error) {
 		return nil, err
 	}
 
-	return &Tailer{filename: config.TailedFile, tail: tailFile, positions: pos, persistPositionInterval: config.PositionPersistenceInterval}, nil
+	lineParseRegexp, err := regexp.Compile(config.LoglineParseRegexp)
+	if err != nil {
+		return nil, fmt.Errorf("error while compiling the line parse RE ('%s'): %w", config.LoglineParseRegexp, err)
+	}
+	emptyGroupRegexp, err := regexp.Compile(config.EmptyGroupRE)
+	if err != nil {
+		return nil, fmt.Errorf("error while compiling the empty group matching RE ('%s'): %w", config.EmptyGroupRE, err)
+	}
+
+	return &Tailer{
+		filename:                config.TailedFile,
+		tail:                    tailFile,
+		positions:               pos,
+		persistPositionInterval: config.PositionPersistenceInterval,
+		lineParseRegexp:         lineParseRegexp,
+		emptyGroupRegexp:        emptyGroupRegexp,
+	}, nil
 }
 
 func (t *Tailer) SetPrometheusObserver(observer prometheus.Observer) {
@@ -182,7 +203,7 @@ func (t *Tailer) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, 
 					log.Error(line.Err)
 				}
 				linesReadTotal.Inc()
-				event, err := parseLine(line.Text)
+				event, err := t.processLine(line.Text)
 				if err != nil {
 					malformedLinesTotal.Inc()
 					reportErrLine(line.Text, err)
@@ -270,22 +291,8 @@ func parseRequestLine(requestLine string) (method string, uri string, protocol s
 	return "", "", "", &InvalidRequestError{requestLine}
 }
 
-// parseLine parses the given line, producing a RequestEvent instance
-// - lineParseRegexp is used to parse the line
-// - RequestEvent.IP may
-func parseLine(line string) (*event.HttpRequest, error) {
-	lineData := make(map[string]string)
-
-	match := lineParseRegexp.FindStringSubmatch(line)
-	if len(match) != len(lineParseRegexp.SubexpNames()) {
-		return nil, fmt.Errorf("unable to parse line")
-	}
-	for i, name := range lineParseRegexp.SubexpNames() {
-		if i != 0 && name != "" {
-			lineData[name] = match[i]
-		}
-	}
-
+// buildEvent returns *event.HttpRequest based on input lineData
+func buildEvent(lineData map[string]string) (*event.HttpRequest, error) {
 	t, err := time.Parse(timeLayout, lineData["time"])
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse time '%s' using the format '%s': %w", lineData["time"], timeLayout, err)
@@ -312,13 +319,64 @@ func parseLine(line string) (*event.HttpRequest, error) {
 		return nil, fmt.Errorf("unable to parse url '%s': %w", requestURI, err)
 	}
 
+	classification := &event.SloClassification{
+		Domain: lineData["sloDomain"],
+		App:    lineData["sloApp"],
+		Class:  lineData["sloClass"],
+	}
+
+	frpcStatus := event.UndefinedFRPCStatus
+	frpcStatusString, _ := lineData["frpcStatus"]
+	if frpcStatusString != "" {
+		frpcStatus, err = strconv.Atoi(frpcStatusString)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse frpc status '%v': %w", frpcStatusString, err)
+		}
+	}
 	return &event.HttpRequest{
-		Time:       t,
-		IP:         net.ParseIP(lineData["ip"]),
-		Duration:   duration,
-		URL:        url,
-		StatusCode: statusCode,
-		Headers:    make(map[string]string),
-		Method:     method,
+		Time:              t,
+		IP:                net.ParseIP(lineData["ip"]),
+		Duration:          duration,
+		URL:               url,
+		StatusCode:        statusCode,
+		Headers:           make(map[string]string),
+		Method:            method,
+		SloEndpoint:       lineData["sloEndpoint"],
+		SloResult:         lineData["sloResult"],
+		SloClassification: classification,
+		FRPCStatus:        frpcStatus,
 	}, nil
+}
+
+// parseLine parses the given line, producing a RequestEvent instance
+// - lineParseRegexp is used to parse the line
+// - if content of any of the matched named groups matches emptyGroupRegexp, it is replaced by an empty string ""
+func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, line string) (map[string]string, error) {
+	lineData := make(map[string]string)
+
+	match := lineParseRegexp.FindStringSubmatch(line)
+	if len(match) != len(lineParseRegexp.SubexpNames()) {
+		return nil, fmt.Errorf("unable to parse line")
+	}
+	for i, name := range lineParseRegexp.SubexpNames() {
+		if i == 0 || name == "" {
+			continue
+		}
+		if emptyGroupRegexp.MatchString(match[i]) {
+			lineData[name] = emptyGroupReplaceString
+		} else {
+			lineData[name] = match[i]
+		}
+
+	}
+
+	return lineData, nil
+}
+
+func (t *Tailer) processLine(line string) (*event.HttpRequest, error) {
+	lineData, err := parseLine(t.lineParseRegexp, t.emptyGroupRegexp, line)
+	if err != nil {
+		return nil, err
+	}
+	return buildEvent(lineData)
 }
