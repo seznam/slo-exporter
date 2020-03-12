@@ -137,7 +137,7 @@ func Test_DynamiClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 	}
 
 	// test that classified event updates an empty exact matches cache
-	classifier, _ := New(classifierConfig{})
+	classifier := newClassifier(t, classifierConfig{})
 	ok, err := classifier.Classify(classifiedEvent)
 	if !ok || err != nil {
 		t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
@@ -163,10 +163,7 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 		},
 	}
 
-	classifier, err := New(classifierConfig{RegexpMatchesCsvFiles: goldenFile(t)})
-	if err != nil {
-		t.Fatalf("unable to initialize classifier: %w", err)
-	}
+	classifier := newClassifier(t, classifierConfig{RegexpMatchesCsvFiles: goldenFile(t)})
 	classification, err := classifier.exactMatches.get(eventKey)
 	if err != nil {
 		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
@@ -190,10 +187,7 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t 
 	eventKey := "GET:/testing-endpoint"
 	eventClasses := []string{"class1", "class2"}
 
-	classifier, err := New(classifierConfig{})
-	if err != nil {
-		t.Fatalf("unable to initialize classifier: %w", err)
-	}
+	classifier := newClassifier(t, classifierConfig{})
 	for _, eventClass := range eventClasses {
 		classifiedEvent := &event.HttpRequest{
 			EventKey: eventKey,
