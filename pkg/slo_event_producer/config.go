@@ -26,6 +26,7 @@ type ruleOptions struct {
 	SloMatcher             sloMatcher          `yaml:"slo_matcher"`
 	FailureCriteriaOptions []criteriumOptions  `yaml:"failure_criteria"`
 	AdditionalMetadata     stringmap.StringMap `yaml:"additional_metadata,omitempty"`
+	HonorSloResult         bool                `yaml:"honor_slo_result"`
 }
 
 type rulesConfig struct {
