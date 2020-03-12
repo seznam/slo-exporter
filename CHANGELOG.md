@@ -4,23 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## UNRELEASED
+## [Unreleased]
+
+## [2.1.0] - 2020-03-12
 ### Changed
 - tailer line matching regular expression is now part of configuration
 - tailer is able to initialize event with SloClassification, if provided within log line
-- getEventKey returns SloEndpoint if set
 
 ### Fixed
 - update dynamic classifier cache with data from already classified event
 - e2e-tests' run_tests.sh is now checking whether slo_exporter is running, before test will proceed
 
-### Added
- - Add `status_code` label to dynamic classifier metric `events_processed_total`.
-
 ## [2.0.0] - 2020-03-09
 ### Added
- - Implemented prometheus ingester.
- - Optional gracefulShutdownTimeout configuration.
+ - Implemented prometheus ingester
+ - Optional gracefulShutdownTimeout configuration
 
 ### Changed
  - **BREAKING** Request event normalizer now uses regular expressions for filtering.
@@ -29,8 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
  - Refactored loading of event normalizer configuration.
- - StringMap.Without fixed logic and added tests.
- - StringMap.Merge do not return empty map when merged with nil.
+ - StringMap.Without fixed logic and added tests
+ - StringMap.Merge do not return empty map when merged with nil
 
 ## [1.4.0] - 2020-02-28
 
