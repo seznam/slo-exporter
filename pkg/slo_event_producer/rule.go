@@ -39,6 +39,7 @@ func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 		},
 		failureCriteria:    failureCriteria,
 		additionalMetadata: opts.AdditionalMetadata,
+		honorSloResult:     opts.HonorSloResult,
 	}, nil
 }
 
@@ -46,6 +47,7 @@ type evaluationRule struct {
 	sloMatcher         event.SloClassification
 	failureCriteria    []criterium
 	additionalMetadata stringmap.StringMap
+	honorSloResult     bool
 }
 
 func (er *evaluationRule) PossibleMetadataKeys() []string {
@@ -60,7 +62,24 @@ func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
 	}
 }
 
-func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) (*event.Slo, bool) {
+// evaluateEvent and return bool on whether it is to be considered as failed
+func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) bool {
+	if er.honorSloResult && newEvent.SloResult != "" {
+		return newEvent.SloResult != string(event.Success)
+	}
+	failed := false
+	// Evaluate all criteria and if matches any, mark it as failed.
+	for _, criterium := range er.failureCriteria {
+		log.Tracef("evaluating criterium %+v", criterium)
+		if criterium.Evaluate(newEvent) {
+			failed = true
+			break
+		}
+	}
+	return failed
+}
+
+func (er *evaluationRule) proccessEvent(newEvent *event.HttpRequest) (*event.Slo, bool) {
 	eventSloClassification := newEvent.GetSloClassification()
 	if !newEvent.IsClassified() || eventSloClassification == nil {
 		return nil, false
@@ -69,15 +88,7 @@ func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) (*event.Slo
 	if !er.sloMatcher.Matches(*eventSloClassification) {
 		return nil, false
 	}
-	// Evaluate all criteria and if matches any, mark it as failed.
-	failed := false
-	for _, criterium := range er.failureCriteria {
-		log.Tracef("evaluating criterium %+v", criterium)
-		if criterium.Evaluate(newEvent) {
-			failed = true
-			break
-		}
-	}
+	failed := er.evaluateEvent(newEvent)
 
 	newSloEvent := &event.Slo{
 		Key:      newEvent.GetEventKey(),
