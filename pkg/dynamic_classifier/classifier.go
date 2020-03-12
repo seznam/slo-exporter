@@ -11,6 +11,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -28,7 +29,7 @@ var (
 			Name:      "events_processed_total",
 			Help:      "Total number of processed events by result.",
 		},
-		[]string{"result", "classified_by"},
+		[]string{"result", "classified_by", "status_code"},
 	)
 
 	errorsTotal = prometheus.NewCounterVec(
@@ -178,13 +179,13 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 	}
 
 	if classification == nil {
-		eventsTotal.WithLabelValues("unclassified", string(classifiedBy)).Inc()
+		eventsTotal.WithLabelValues("unclassified", string(classifiedBy), strconv.Itoa(newEvent.StatusCode)).Inc()
 		return false, classificationErrors
 	}
 
 	log.Debugf("event '%s' matched by %s matcher", newEvent.EventKey, classifiedBy)
 	newEvent.UpdateSLOClassification(classification)
-	eventsTotal.WithLabelValues("classified", string(classifiedBy)).Inc()
+	eventsTotal.WithLabelValues("classified", string(classifiedBy),"").Inc()
 
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
