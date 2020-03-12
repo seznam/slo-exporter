@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2020-03-13
+### Fixed
+- Fixed hanging shutdown when all modules ended without explicit termination request.
+
 ## [2.1.0] - 2020-03-12
 ### Changed
 - tailer line matching regular expression is now part of configuration
@@ -13,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - update dynamic classifier cache with data from already classified event
-- e2e-tests' run_tests.sh is now checking whether slo_exporter is running, before test will proceed
+- e2e-tests' run\_tests.sh is now checking whether slo\_exporter is running, before test will proceed
 
 ## [2.0.0] - 2020-03-09
 ### Added
