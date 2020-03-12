@@ -110,14 +110,14 @@ func main() {
 	producersContext, producersCancelFunc := context.WithCancel(context.Background())
 	defer producersCancelFunc()
 
-	var shutdownHandler = shutdown_handler.New(producersContext)
-
 	liveness := prober.NewLiveness()
 	readiness := prober.NewReadiness()
 
 	// shared error channel
 	errChan := make(chan error, 10)
 	gracefulShutdownRequestChan := make(chan struct{}, 10)
+
+	var shutdownHandler = shutdown_handler.New(producersContext, gracefulShutdownRequestChan)
 
 	// Classify event by dynamic classifier
 	dynamicClassifier, err := dynamic_classifier.NewFromViper(conf.MustModuleConfig("dynamicClassifier"))
@@ -199,6 +199,8 @@ func main() {
 		shutdownHandler.Inc()
 	}
 	//--
+
+	shutdownHandler.RequestShutdownIfAllJobsAreDone()
 
 	//-- start the rest of the pipeline
 
