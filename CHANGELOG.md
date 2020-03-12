@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - update dynamic classifier cache with data from already classified event
+- e2e-tests' run_tests.sh is now checking whether slo_exporter is running, before test will proceed
 
 ## [2.0.0] - 2020-03-09
 ### Added
