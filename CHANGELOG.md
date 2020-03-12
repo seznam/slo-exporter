@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- All unknown named groups parsed by tailer are set as HTTP headers.
 
 ## [2.1.1] - 2020-03-13
 ### Fixed
@@ -12,17 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.1.0] - 2020-03-12
 ### Changed
-- tailer line matching regular expression is now part of configuration
-- tailer is able to initialize event with SloClassification, if provided within log line
+- Tailer line matching regular expression is now part of configuration.
+- Tailer is able to initialize event with SloClassification, if provided within log line.
 
 ### Fixed
-- update dynamic classifier cache with data from already classified event
-- e2e-tests' run\_tests.sh is now checking whether slo\_exporter is running, before test will proceed
+- Update dynamic classifier cache with data from already classified event.
+- E2e-tests' run\_tests.sh is now checking whether slo\_exporter is running, before test will proceed.
 
 ## [2.0.0] - 2020-03-09
 ### Added
- - Implemented prometheus ingester
- - Optional gracefulShutdownTimeout configuration
+ - Implemented prometheus ingester.
+ - Optional gracefulShutdownTimeout configuration.
 
 ### Changed
  - **BREAKING** Request event normalizer now uses regular expressions for filtering.
@@ -31,8 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
  - Refactored loading of event normalizer configuration.
- - StringMap.Without fixed logic and added tests
- - StringMap.Merge do not return empty map when merged with nil
+ - StringMap.Without fixed logic and added tests.
+ - StringMap.Merge do not return empty map when merged with nil.
 
 ## [1.4.0] - 2020-02-28
 
