@@ -8,16 +8,25 @@ import (
 )
 
 type GracefulShutdownHandler struct {
-	ProducersContextWithCancel context.Context
-	shutdownWaitGroup          *sync.WaitGroup
+	ProducersContextWithCancel  context.Context
+	shutdownWaitGroup           *sync.WaitGroup
+	gracefulShutdownRequestChan chan struct{}
 }
 
-func New(producersContext context.Context) GracefulShutdownHandler {
+func New(producersContext context.Context, gracefulShutdownRequestChan chan struct{}) GracefulShutdownHandler {
 	var wg sync.WaitGroup
 	return GracefulShutdownHandler{
-		ProducersContextWithCancel: producersContext,
-		shutdownWaitGroup:          &wg,
+		ProducersContextWithCancel:  producersContext,
+		shutdownWaitGroup:           &wg,
+		gracefulShutdownRequestChan: gracefulShutdownRequestChan,
 	}
+}
+
+func (g GracefulShutdownHandler) RequestShutdownIfAllJobsAreDone() {
+	go func() {
+		g.shutdownWaitGroup.Wait()
+		g.gracefulShutdownRequestChan <- struct{}{}
+	}()
 }
 
 func (g GracefulShutdownHandler) Done() {
