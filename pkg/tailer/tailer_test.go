@@ -327,7 +327,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 	eventsChan := make(chan *event.HttpRequest)
 	errChan := make(chan error, 10)
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	shutdownHandler := shutdown_handler.New(ctx)
+	shutdownHandler := shutdown_handler.New(ctx, nil)
 	tailer.Run(&shutdownHandler, eventsChan, errChan)
 	shutdownHandler.Inc()
 	go countEvents(eventsChan, eventCount)
@@ -351,7 +351,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 	eventsChan = make(chan *event.HttpRequest)
 	errChan = make(chan error, 10)
 	ctx, cancelFunc = context.WithCancel(context.Background())
-	shutdownHandler = shutdown_handler.New(ctx)
+	shutdownHandler = shutdown_handler.New(ctx, nil)
 	tailer, err = New(config)
 	if err != nil {
 		return err
