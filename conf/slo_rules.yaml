@@ -12,6 +12,11 @@ rules:
     additional_metadata:
       slo_type: availability
       slo_version: 6
+    # if evaluated event's sloResult attribute is nonempty, use its content to determine the event's result (ignoring all failure_criteria)
+    # if value equals event.Result's success value -> event is considered as succesful
+    # otherwise, event is considered as failed
+    # if evaluated event's sloResult attribute is empty, failure_criteria are evaluted and events's result is set based on them.
+    honor_slo_result: True
 
   - event_type: request
     slo_matcher:

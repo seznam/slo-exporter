@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Slo_rules now support honor_slo_result.
 - All unknown named groups parsed by tailer are set as HTTP headers.
 
 ## [2.2.0] - 2020-03-16
