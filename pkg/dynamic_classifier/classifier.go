@@ -9,28 +9,26 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/iancoleman/strcase"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	classifiedEventLabel = "classified"
+	unclassifiedEventLabel = "unclassified"
+)
+
 var (
 	log *logrus.Entry
-
-	eventsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "slo_exporter",
-			Subsystem: "dynamic_classifier",
-			Name:      "events_processed_total",
-			Help:      "Total number of processed events by result.",
-		},
-		[]string{"result", "classified_by", "status_code"},
-	)
 
 	errorsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -44,30 +42,44 @@ var (
 )
 
 type classifierConfig struct {
-	ExactMatchesCsvFiles  []string
-	RegexpMatchesCsvFiles []string
+	UnclassifiedEventMetadataKeys []string
+	ExactMatchesCsvFiles          []string
+	RegexpMatchesCsvFiles         []string
 }
 
 // DynamicClassifier is classifier based on cache and regexp matches
 type DynamicClassifier struct {
-	exactMatches  matcher
-	regexpMatches matcher
-	observer      prometheus.Observer
+	exactMatches                  matcher
+	regexpMatches                 matcher
+	unclassifiedEventMetadataKeys []string
+	prometheusRegistry            prometheus.Registerer
+	eventsMetric                  *prometheus.CounterVec
+	observer                      prometheus.Observer
 }
 
-func NewFromViper(viperConfig *viper.Viper) (*DynamicClassifier, error) {
+func NewFromViper(viperConfig *viper.Viper, prometheusRegistry prometheus.Registerer) (*DynamicClassifier, error) {
 	var config classifierConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(config)
+	return New(config, prometheusRegistry)
+}
+
+func metadataKeyToLabel(metadataKey string) string {
+	return "metadata_" + strcase.ToSnake(metadataKey)
 }
 
 // New returns new instance of DynamicClassifier
-func New(conf classifierConfig) (*DynamicClassifier, error) {
+func New(conf classifierConfig, prometheusRegistry prometheus.Registerer) (*DynamicClassifier, error) {
+	sort.Strings(conf.UnclassifiedEventMetadataKeys)
 	classifier := DynamicClassifier{
-		exactMatches:  newMemoryExactMatcher(),
-		regexpMatches: newRegexpMatcher(),
+		exactMatches:                  newMemoryExactMatcher(),
+		regexpMatches:                 newRegexpMatcher(),
+		unclassifiedEventMetadataKeys: conf.UnclassifiedEventMetadataKeys,
+		prometheusRegistry:            prometheusRegistry,
+	}
+	if err := classifier.initializeEventsMetric(); err != nil {
+		return nil, fmt.Errorf("failed to initialize metric for reporting events: %w", err)
 	}
 	if err := classifier.LoadExactMatchesFromMultipleCSV(conf.ExactMatchesCsvFiles); err != nil {
 		return nil, fmt.Errorf("failed to load exact matches from CSV: %w", err)
@@ -76,6 +88,39 @@ func New(conf classifierConfig) (*DynamicClassifier, error) {
 		return nil, fmt.Errorf("failed to load regexp matches from CSV: %w", err)
 	}
 	return &classifier, nil
+}
+
+func (dc *DynamicClassifier) initializeEventsMetric() error {
+	labels := []string{"result", "classified_by", "status_code"}
+	for _, key := range dc.unclassifiedEventMetadataKeys {
+		labels = append(labels, metadataKeyToLabel(key))
+	}
+	dc.eventsMetric = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "slo_exporter",
+			Subsystem: "dynamic_classifier",
+			Name:      "events_processed_total",
+			Help:      "Total number of processed events by result.",
+		},
+		labels,
+	)
+	if err := dc.prometheusRegistry.Register(dc.eventsMetric); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (dc *DynamicClassifier) reportEvent(result, classifiedBy, statusCode string, metadata stringmap.StringMap) {
+	labels := stringmap.StringMap{"result": result, "classified_by": classifiedBy, "status_code": statusCode}
+	for _, key := range dc.unclassifiedEventMetadataKeys {
+		if result == unclassifiedEventLabel {
+			labels[metadataKeyToLabel(key)] = metadata[key]
+		} else {
+			labels[metadataKeyToLabel(key)] = ""
+		}
+
+	}
+	dc.eventsMetric.With(prometheus.Labels(labels)).Inc()
 }
 
 func (dc *DynamicClassifier) SetPrometheusObserver(observer prometheus.Observer) {
@@ -179,13 +224,13 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 	}
 
 	if classification == nil {
-		eventsTotal.WithLabelValues("unclassified", string(classifiedBy), strconv.Itoa(newEvent.StatusCode)).Inc()
+		dc.reportEvent(unclassifiedEventLabel, string(classifiedBy), strconv.Itoa(newEvent.StatusCode), newEvent.Headers)
 		return false, classificationErrors
 	}
 
 	log.Debugf("event '%s' matched by %s matcher", newEvent.EventKey, classifiedBy)
 	newEvent.UpdateSLOClassification(classification)
-	eventsTotal.WithLabelValues("classified", string(classifiedBy),"").Inc()
+	dc.reportEvent(classifiedEventLabel, string(classifiedBy), "", newEvent.Headers)
 
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
@@ -241,6 +286,5 @@ func (dc *DynamicClassifier) Run(inputEventsChan <-chan *event.HttpRequest, outp
 
 func init() {
 	log = logrus.WithFields(logrus.Fields{"component": "dynamic_classifier"})
-	prometheus.MustRegister(eventsTotal, errorsTotal)
-
+	prometheus.MustRegister(errorsTotal)
 }
