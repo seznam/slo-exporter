@@ -38,6 +38,10 @@ const (
 )
 
 var (
+	buildVersion                   = ""
+	buildRevision                  = ""
+	buildBranch                    = ""
+	buildTag                       = ""
 	prometheusRegistry             = prometheus.DefaultRegisterer
 	eventProcessingDurationSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -48,10 +52,18 @@ var (
 		},
 		[]string{"module"},
 	)
+	appBuildInfo = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "",
+		Name:      "app_build_info",
+		Help:      "Metadata metric with information about application build and version",
+		ConstLabels: prometheus.Labels{"app": "slo-exporter", "version": buildVersion, "revision": buildRevision,
+			"branch": buildBranch, "tag": buildTag, "standardized_metrics_version": "1.5.0"},
+	})
 )
 
 func init() {
-	prometheusRegistry.MustRegister(eventProcessingDurationSeconds)
+	appBuildInfo.Set(float64(1.0))
+	prometheusRegistry.MustRegister(eventProcessingDurationSeconds, appBuildInfo)
 }
 
 func setupLogging(logLevel string) error {

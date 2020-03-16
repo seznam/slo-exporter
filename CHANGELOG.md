@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2020-03-16
+### Added
+ - app_build_info metric
+
 ## [2.1.1] - 2020-03-13
 ### Fixed
 - Fixed hanging shutdown when all modules ended without explicit termination request.

@@ -16,6 +16,7 @@ image: docker.dev.dszn.cz/golang-build:stretch
 variables:
   DOCKER_NAMESPACE: sklik-devops
   KUBERNETES_NAMESPACE: sklik-devops-sandbox
+  CI_SCRIPTS_ARCHIVE_URL: https://generic.gitlab.seznam.net/ci-scripts/v1/all.tar.gz
 
 lint:
   stage: check
@@ -54,6 +55,10 @@ test-tag-version:
 
 build:
   stage: build
+  before_script:
+    - curl ${CI_SCRIPTS_ARCHIVE_URL} | tar -xz -C /
+    - source /ci/common.sh
+    - export SLO_EXPORTER_VERSION=$(get_version)
   script: |
     make build
   artifacts:
