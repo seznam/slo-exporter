@@ -4,6 +4,7 @@ package dynamic_classifier
 //revive:enable:var-naming
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 )
 
 func newClassifier(t *testing.T, config classifierConfig) *DynamicClassifier {
-	classifier, err := New(config)
+	classifier, err := New(config, prometheus.NewPedanticRegistry())
 	if err != nil {
 		t.Error(err)
 	}
@@ -125,7 +126,7 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 	}
 }
 
-func Test_DynamiClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
+func Test_DynamicClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
 	classifiedEvent := &event.HttpRequest{
 		EventKey: eventKey,
@@ -152,7 +153,7 @@ func Test_DynamiClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 }
 
 // test that classified event updates dynamic classifier cache as initialized from golden file
-func Test_DynamiClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
+func Test_DynamicClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
 	classifiedEvent := &event.HttpRequest{
 		EventKey: eventKey,
@@ -183,7 +184,7 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 }
 
 // test that classified event updates dynamic classifier cache build from previous classified events
-func Test_DynamiClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t *testing.T) {
+func Test_DynamicClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
 	eventClasses := []string{"class1", "class2"}
 
@@ -209,5 +210,19 @@ func Test_DynamiClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t 
 		if !reflect.DeepEqual(classifiedEvent.SloClassification, classification) {
 			t.Errorf("classifier cache '%+v' for event_key '%s' was not updated with classification from the classified event '%+v'.", classifiedEvent.SloClassification, eventKey, classification)
 		}
+	}
+}
+
+
+func Test_DynamicClassifier_Classify_metadataKeyToLabel(t *testing.T) {
+	testCases := map[string]string{
+		"foo": "metadata_foo",
+		"fooBar": "metadata_foo_bar",
+		"FooBar": "metadata_foo_bar",
+		"foobar": "metadata_foobar",
+		"": "metadata_",
+	}
+	for input, output := range testCases {
+		assert.Equal(t, output, metadataKeyToLabel(input))
 	}
 }

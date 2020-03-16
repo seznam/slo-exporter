@@ -13,11 +13,11 @@ logLevel: "info"
 # Address where the web interface should listen on.
 webServerListenAddress: "0.0.0.0:8080"
 # Maximum time to wait for all events to be processed after receiving SIGTERM or SIGINT.
-maximumGracefulShutdownDuration: "1m"
+maximumGracefulShutdownDuration: "10s"
 # How long to wait after processing pipeline has been shutdown before stopping http server w metric serving.
 # Useful to make sure metrics are scraped by Prometheus. Ideally set it to Prometheus scrape interval + 1s or more.
 # Should be less or equal to maximumGracefulShutdownDuration
-minimumGracefulShutdownDuration: "21s"
+minimumGracefulShutdownDuration: "1s"
 
 # TODO
 # Defines architecture of the pipeline.
@@ -52,8 +52,7 @@ modules:
     #   sloApp - part of SLO classification for the given event.
     #   sloClass - part of SLO classification for the given event.
     # All other named groups will be added to to the request event as headers.
-    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".* frpc-status="(?P<frpcStatus>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
-    # emptyGroupRE defines RE used to decide whether some of the RE match groups specified in loglineParseRegexp is empty and this its assigned variable should be kept unitialized
+    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'    # emptyGroupRE defines RE used to decide whether some of the RE match groups specified in loglineParseRegexp is empty and this its assigned variable should be kept unitialized
     emptyGroupRE: '^-$'
 
 
@@ -118,6 +117,10 @@ modules:
     # Paths to CSV files containing regexp match classification rules.
     regexpMatchesCsvFiles:
       - "conf/userportal.csv"
+    # Metadata key names of the event which will be added to the `events_processed_total` metric if the event cannot be classified.
+    # Name of the resulting label will be converted to snake case and prefixed with `metadata_`
+    unclassifiedEventMetadataKeys:
+      - "userAgent"
 
   # PROCESSOR Module which generated SLO events out of HTTP request events.
   sloEventProducer:
