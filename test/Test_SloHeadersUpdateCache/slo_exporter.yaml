@@ -1,7 +1,6 @@
 
 logLevel: "debug"
 webServerListenAddress: "0.0.0.0:8080"
-gracefulShutdownTimeout: "1m"
 
 pipeline: []
 

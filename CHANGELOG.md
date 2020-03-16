@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Slo_rules now support honor_slo_result.
 - All unknown named groups parsed by tailer are set as HTTP headers.
 
+### Fixed
+- Delayed graceful shutdown.
+
+### Changed
+- **BREAKING** Graceful shutdown timeout conf options.
+  - gracefulShutdownTimeout replaced with maximumGracefulShutdownDuration.
+  - afterGracefulShutdownDelay replaced with minimumGracefulShutdownDuration.
+
 ## [2.2.0] - 2020-03-16
 ### Added
  - app_build_info metric

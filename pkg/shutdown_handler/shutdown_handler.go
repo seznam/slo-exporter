@@ -4,7 +4,6 @@ import (
 	"context"
 	log "github.com/sirupsen/logrus"
 	"sync"
-	"time"
 )
 
 type GracefulShutdownHandler struct {
@@ -37,10 +36,8 @@ func (g GracefulShutdownHandler) Inc() {
 	g.shutdownWaitGroup.Add(1)
 }
 
-func (g GracefulShutdownHandler) WaitMax(timeout time.Duration) {
-	log.Infof("waiting configured graceful shutdown timeout %s", timeout)
-
-	timer := time.NewTimer(timeout)
+func (g GracefulShutdownHandler) Wait(shutdownCtx context.Context) {
+	log.Infof("waiting configured graceful shutdown timeout")
 
 	// Now wait for what happens first (either timeout or wait group finishes)
 	waitGroupDone := make(chan struct{})
@@ -52,7 +49,7 @@ func (g GracefulShutdownHandler) WaitMax(timeout time.Duration) {
 	select {
 	case <-waitGroupDone:
 		log.Info("all processes finished voluntarily, what a respect")
-	case <-timer.C:
+	case <-shutdownCtx.Done():
 		log.Warn("time's up! gonna kill everyone who didn't finish until now")
 	}
 }

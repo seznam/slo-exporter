@@ -3,18 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"github.com/gorilla/mux"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -252,16 +250,17 @@ func main() {
 			log.Info("gracefully shutting down")
 			readiness.NotOk(fmt.Errorf("shutting down"))
 
-			shutdownCtx, _ := context.WithTimeout(producersContext, conf.GracefulShutdownTimeout)
+			// request shutdown the processing pipeline
 			producersCancelFunc()
+			shutdownCtx, _ := context.WithTimeout(context.Background(), conf.MaximumGracefulShutdownDuration)
+			shutdownHandler.Wait(shutdownCtx)
+
+			// shutdown the http server, with delay (if configured)
+			delayedShutdownContext, _ := context.WithTimeout(shutdownCtx, conf.MinimumGracefulShutdownDuration)
+			// Wait until any of the context expires
+			<-delayedShutdownContext.Done()
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
 				log.Errorf("failed to gracefully shutdown HTTP server %+v. ", err)
-			}
-			shutdownHandler.WaitMax(conf.GracefulShutdownTimeout)
-			shutdownCtx.Done()
-			if conf.AfterGracefulShutdownDelay > 0 {
-				log.Infof("delaying shutdown by %s", conf.AfterGracefulShutdownDelay)
-				time.Sleep(conf.AfterGracefulShutdownDelay)
 			}
 			return
 		case sig := <-sigChan:
