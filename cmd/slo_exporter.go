@@ -130,7 +130,7 @@ func main() {
 	var shutdownHandler = shutdown_handler.New(producersContext, gracefulShutdownRequestChan)
 
 	// Classify event by dynamic classifier
-	dynamicClassifier, err := dynamic_classifier.NewFromViper(conf.MustModuleConfig("dynamicClassifier"))
+	dynamicClassifier, err := dynamic_classifier.NewFromViper(conf.MustModuleConfig("dynamicClassifier"), prometheus.DefaultRegisterer)
 	if err != nil {
 		log.Fatalf("failed to initialize dynamic classifier: %+v", err)
 	}

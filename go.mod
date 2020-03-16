@@ -11,6 +11,7 @@ require (
 	github.com/grafana/loki v6.7.8+incompatible
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
+	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/lib/pq v1.3.0
 	github.com/prometheus/client_golang v1.3.0
 	github.com/prometheus/common v0.7.0
