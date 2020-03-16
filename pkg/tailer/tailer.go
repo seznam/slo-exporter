@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
 	"net"
 	"net/url"
@@ -26,9 +27,23 @@ const (
 	timeLayout              string = "02/Jan/2006:15:04:05 -0700"
 	component               string = "tailer"
 	emptyGroupReplaceString string = ""
+
+	timeGroupName            = "time"
+	requestDurationGroupName = "requestDuration"
+	statusCodeGroupName      = "statusCode"
+	requestGroupName         = "request"
+	frpcStatusGroupName      = "frpcStatus"
+	ipGroupName              = "ip"
+	sloEndpointGroupName     = "sloEndpoint"
+	sloResultGroupName       = "sloResult"
+	sloDomainGroupName       = "sloDomain"
+	sloAppGroupName          = "sloApp"
+	sloClassGroupName        = "sloClass"
 )
 
 var (
+	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, frpcStatusGroupName, ipGroupName, sloEndpointGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
+
 	log *logrus.Entry
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
@@ -292,57 +307,58 @@ func parseRequestLine(requestLine string) (method string, uri string, protocol s
 }
 
 // buildEvent returns *event.HttpRequest based on input lineData
-func buildEvent(lineData map[string]string) (*event.HttpRequest, error) {
-	t, err := time.Parse(timeLayout, lineData["time"])
+func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
+	t, err := time.Parse(timeLayout, lineData[timeGroupName])
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse time '%s' using the format '%s': %w", lineData["time"], timeLayout, err)
+		return nil, fmt.Errorf("unable to parse time '%s' using the format '%s': %w", lineData[timeGroupName], timeLayout, err)
 	}
 
-	requestDuration := lineData["requestDuration"] + "s"
+	requestDuration := lineData[requestDurationGroupName] + "s"
 	duration, err := time.ParseDuration(requestDuration)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse duration '%s': %w", requestDuration, err)
 	}
 
-	statusCode, err := strconv.Atoi(lineData["statusCode"])
+	statusCode, err := strconv.Atoi(lineData[statusCodeGroupName])
 	if err != nil {
 		return nil, fmt.Errorf("invalid HTTP status code '%d': %w", statusCode, err)
 	}
 
-	method, requestURI, _, err := parseRequestLine(lineData["request"])
+	method, requestURI, _, err := parseRequestLine(lineData[requestGroupName])
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse request line '%s': %w", lineData["request"], err)
+		return nil, fmt.Errorf("unable to parse request line '%s': %w", lineData[requestGroupName], err)
 	}
 
-	url, err := url.Parse(requestURI)
+	parsedUrl, err := url.Parse(requestURI)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse url '%s': %w", requestURI, err)
+		return nil, fmt.Errorf("unable to parse parsedUrl '%s': %w", requestURI, err)
 	}
 
 	classification := &event.SloClassification{
-		Domain: lineData["sloDomain"],
-		App:    lineData["sloApp"],
-		Class:  lineData["sloClass"],
+		Domain: lineData[sloDomainGroupName],
+		App:    lineData[sloAppGroupName],
+		Class:  lineData[sloClassGroupName],
 	}
 
 	frpcStatus := event.UndefinedFRPCStatus
-	frpcStatusString, _ := lineData["frpcStatus"]
+	frpcStatusString, _ := lineData[frpcStatusGroupName]
 	if frpcStatusString != "" {
 		frpcStatus, err = strconv.Atoi(frpcStatusString)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse frpc status '%v': %w", frpcStatusString, err)
 		}
 	}
+
 	return &event.HttpRequest{
 		Time:              t,
-		IP:                net.ParseIP(lineData["ip"]),
+		IP:                net.ParseIP(lineData[ipGroupName]),
 		Duration:          duration,
-		URL:               url,
+		URL:               parsedUrl,
 		StatusCode:        statusCode,
-		Headers:           make(map[string]string),
+		Headers:           lineData.Copy().Without(knownGroupNames),
 		Method:            method,
-		SloEndpoint:       lineData["sloEndpoint"],
-		SloResult:         lineData["sloResult"],
+		SloEndpoint:       lineData[sloEndpointGroupName],
+		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
 		FRPCStatus:        frpcStatus,
 	}, nil

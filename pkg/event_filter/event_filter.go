@@ -91,7 +91,7 @@ func (ef *RequestEventFilter) matches(event *event.HttpRequest) bool {
 	}
 	if ef.headersMatch(event.Headers) {
 		filteredEventsTotal.WithLabelValues("http_header").Inc()
-		log.WithField("event", event).Debugf("matched event because of status code")
+		log.WithField("event", event).Debugf("matched event because of HTTP headers")
 		return true
 	}
 	return false

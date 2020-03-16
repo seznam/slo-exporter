@@ -18,9 +18,9 @@ import (
 
 var (
 	lineParseRegexp   = `^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"(?: frpc-status="(?P<frpcStatus>\d*|-)")?(?: slo-domain="(?P<sloDomain>[^"]*)")?(?: slo-app="(?P<sloApp>[^"]*)")?(?: slo-class="(?P<sloClass>[^"]*)")?(?: slo-endpoint="(?P<sloEndpoint>[^"]*)")?(?: slo-result="(?P<sloResult>[^"]*)")?`
-	emptyGroupRegexp  = `^$`
-	requestLineFormat = `{ip} - - [{time}] "{request}" {statusCode} 79 "-" uag="Go-http-client/1.1" "-" ua="10.66.112.78:80" rt="{requestDuration}" frpc-status="{frpcStatus}" slo-domain="{sloDomain}" slo-app="{sloApp}" slo-class="{sloClass}" slo-endpoint="{sloEndpoint}" slo-result="{sloResult}"`
-	// provided to getRequestLine, this returns a cosidered-valid line
+	emptyGroupRegexp  = `^-$`
+	requestLineFormat = `{ip} - - [{time}] "{request}" {statusCode} 79 "-" uag="-" "-" ua="10.66.112.78:80" rt="{requestDuration}" frpc-status="{frpcStatus}" slo-domain="{sloDomain}" slo-app="{sloApp}" slo-class="{sloClass}" slo-endpoint="{sloEndpoint}" slo-result="{sloResult}"`
+	// provided to getRequestLine, this returns a considered-valid line
 	requestLineFormatMapValid = map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
 		"ip":              "34.65.133.58",
 		"request":         "GET /robots.txt HTTP/1.1",
@@ -90,6 +90,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, true},
 		// ipv6
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -103,6 +105,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, true},
 		// invalid time
 		{map[string]string{"time": "32/Nov/2019:25:20:07 +0100",
@@ -116,6 +120,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, false},
 		// invalid request
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -129,6 +135,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, false},
 		// request without protocol
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -142,6 +150,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, true},
 		// http2.0 proto request
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -155,6 +165,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, true},
 		// zero status code
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -168,6 +180,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, true},
 		// invalid status code
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -181,6 +195,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "",
 			"sloEndpoint":     "",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, false},
 		// classified event
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -194,6 +210,8 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloResult":       "success",
 			"sloEndpoint":     "AdInventoryManagerInterestsQuery",
 			"frpcStatus":      "",
+			"userAgent":       "",
+			"referer":         "",
 		}, true},
 	}
 
@@ -223,7 +241,7 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 				t.Fatalf("Unable to build event from test data: %w", err)
 			}
 			if !reflect.DeepEqual(expectedEvent, parsedEvent) {
-				t.Errorf("Unexpected result of parse line: %s\n%+v\nExpected:\n%+v", requestLine, parsedEvent, expectedEvent)
+				t.Errorf("Unexpected result of parse line: %s\nGot: %+v\nExpected: %+v", requestLine, parsedEvent, expectedEvent)
 			}
 		} else {
 			// line is not valid, just check that err is returned
