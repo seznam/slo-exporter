@@ -141,11 +141,11 @@ func Test_DynamicClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 	classifier := newClassifier(t, classifierConfig{})
 	ok, err := classifier.Classify(classifiedEvent)
 	if !ok || err != nil {
-		t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+		t.Fatalf("unable to classify tested event %+v: %v", classifiedEvent, err)
 	}
 	classification, err := classifier.exactMatches.get(eventKey)
 	if err != nil {
-		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+		t.Fatalf("error while getting the tested event key from exact Matches classifier: %v", err)
 	}
 	if !reflect.DeepEqual(classifiedEvent.SloClassification, classification) {
 		t.Errorf("event classification '%+v' did not propagate to classifier exact matches cache: %+v", classifiedEvent.SloClassification, classification)
@@ -167,16 +167,16 @@ func Test_DynamicClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 	classifier := newClassifier(t, classifierConfig{RegexpMatchesCsvFiles: goldenFile(t)})
 	classification, err := classifier.exactMatches.get(eventKey)
 	if err != nil {
-		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+		t.Fatalf("error while getting the tested event key from exact Matches classifier: %v", err)
 	}
 
 	ok, err := classifier.Classify(classifiedEvent)
 	if !ok || err != nil {
-		t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+		t.Fatalf("unable to classify tested event %+v: %v", classifiedEvent, err)
 	}
 	classification, err = classifier.exactMatches.get(eventKey)
 	if err != nil {
-		t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+		t.Fatalf("error while getting the tested event key from exact Matches classifier: %v", err)
 	}
 	if !reflect.DeepEqual(classifiedEvent.SloClassification, classification) {
 		t.Errorf("classifier cache '%+v' for event_key '%s' was not updated with classification from the classified event '%+v'.", classifiedEvent.SloClassification, eventKey, classification)
@@ -201,11 +201,11 @@ func Test_DynamicClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t
 
 		ok, err := classifier.Classify(classifiedEvent)
 		if !ok || err != nil {
-			t.Fatalf("unable to classify tested event %+v: %w", classifiedEvent, err)
+			t.Fatalf("unable to classify tested event %+v: %v", classifiedEvent, err)
 		}
 		classification, err := classifier.exactMatches.get(eventKey)
 		if err != nil {
-			t.Fatalf("error while getting the tested event key from exact Matches classifier: %w", err)
+			t.Fatalf("error while getting the tested event key from exact Matches classifier: %v", err)
 		}
 		if !reflect.DeepEqual(classifiedEvent.SloClassification, classification) {
 			t.Errorf("classifier cache '%+v' for event_key '%s' was not updated with classification from the classified event '%+v'.", classifiedEvent.SloClassification, eventKey, classification)

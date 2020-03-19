@@ -1,7 +1,7 @@
 # HELP slo_domain_slo_class_slo_app_event_key:slo_events_total Total number of SLO events exported with it's result and metadata.
 # TYPE slo_domain_slo_class_slo_app_event_key:slo_events_total counter
-slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="ppchit_rule",le="",percentile="",result="fail",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="availability",slo_version="1"} 0
-slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="ppchit_rule",le="",percentile="",result="success",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="availability",slo_version="1"} 1
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="ppchit_rule",result="fail",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="availability",slo_version="1"} 0
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="ppchit_rule",result="success",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="availability",slo_version="1"} 1
 slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="ppchit_rule",le="16.0",percentile="99",result="fail",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="latency99",slo_version="1"} 0
 slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="ppchit_rule",le="16.0",percentile="99",result="success",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="latency99",slo_version="1"} 1
 slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="ppchit_rule",le="8.0",percentile="90",result="fail",slo_app="frontend-api",slo_class="critical",slo_domain="userportal",slo_type="latency90",slo_version="1"} 0

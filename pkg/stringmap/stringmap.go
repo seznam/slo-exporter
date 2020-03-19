@@ -63,11 +63,30 @@ func (m StringMap) Keys() []string {
 	return keys
 }
 
+// Keys returns sorted list of StringMap keys.
+func (m StringMap) SortedKeys() []string {
+	keys := m.Keys()
+	sort.Strings(keys)
+	return keys
+}
+
 // Values returns non-ordered list of StringMap values.
 func (m StringMap) Values() []string {
 	var values []string
 	for _, v := range m {
 		values = append(values, v)
+	}
+	return values
+}
+
+// ValuesByKeys returns list of corresponding StringMap values for the given keys in appropriate order.
+func (m StringMap) ValuesByKeys(keys []string) []string {
+	var values []string
+	for _, key := range keys {
+		val, ok := m[key]
+		if ok {
+			values = append(values, val)
+		}
 	}
 	return values
 }
@@ -125,10 +144,13 @@ func (m StringMap) Select(keys []string) StringMap {
 
 // Without returns new StringMap with without specified keys from the original StringMap.
 func (m StringMap) Without(keys []string) StringMap {
+	if m == nil {
+		return nil
+	}
 	if len(keys) == 0 {
 		return m
 	}
-	other := m
+	other := m.Copy()
 	for _, key := range keys {
 		if _, ok := other[key]; ok {
 			delete(other, key)

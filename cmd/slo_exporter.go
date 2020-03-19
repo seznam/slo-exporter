@@ -110,7 +110,7 @@ func main() {
 
 	conf := config.New()
 	if err := conf.LoadFromFile(*configFilePath); err != nil {
-		log.Fatalf("failed to load configuration file: %w", err)
+		log.Fatalf("failed to load configuration file: %v", err)
 	}
 
 	if err := setupLogging(conf.LogLevel); err != nil {
@@ -187,7 +187,7 @@ func main() {
 	var exporterChannels []chan *event.Slo
 
 	if !*disablePrometheusExporter {
-		sloEventExporter, err := prometheus_exporter.NewFromViper(prometheusRegistry, sloEventProducer.PossibleMetadataKeys(), event.PossibleResults, conf.MustModuleConfig("prometheusExporter"))
+		sloEventExporter, err := prometheus_exporter.NewFromViper(prometheusRegistry, conf.MustModuleConfig("prometheusExporter"))
 		if err != nil {
 			log.Fatalf("failed to load SLO rules conf: %+v", err)
 		}
