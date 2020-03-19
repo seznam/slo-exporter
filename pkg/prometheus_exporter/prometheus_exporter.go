@@ -68,9 +68,7 @@ type prometheusExporterConfig struct {
 }
 
 type PrometheusSloEventExporter struct {
-	aggregatedMetricsSet        *aggregatedCounterSet
-	knownLabels                 []string
-	validEventResults           []event.Result
+	aggregatedMetricsSet        *aggregatedCounterVectorSet
 	metricName                  string
 	labelNames                  labelsNamesConfig
 	eventKeyLimit               int
@@ -88,7 +86,7 @@ func (e *InvalidSloEventResult) Error() string {
 	return fmt.Sprintf("result '%s' is not valid. Expected one of: %+v", e.result, e.validResults)
 }
 
-func NewFromViper(metricRegistry prometheus.Registerer, possibleLabels []string, possibleResults []event.Result, viperConfig *viper.Viper) (*PrometheusSloEventExporter, error) {
+func NewFromViper(metricRegistry prometheus.Registerer, viperConfig *viper.Viper) (*PrometheusSloEventExporter, error) {
 	config := prometheusExporterConfig{}
 	viperConfig.SetDefault("MetricName", "slo_events_total")
 	viperConfig.SetDefault("LabelNames.Result", "result")
@@ -100,31 +98,30 @@ func NewFromViper(metricRegistry prometheus.Registerer, possibleLabels []string,
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(metricRegistry, possibleLabels, possibleResults, config)
+	return New(metricRegistry, config)
 }
 
-func New(metricRegistry prometheus.Registerer, possibleLabels []string, possibleResults []event.Result, config prometheusExporterConfig) (*PrometheusSloEventExporter, error) {
-	knownLabels := append(possibleLabels, config.LabelNames.keys()...)
-
+func New(metricRegistry prometheus.Registerer, config prometheusExporterConfig) (*PrometheusSloEventExporter, error) {
 	// initialize and register Prometheus metrics
 	eventKeyCardinalityLimit.Set(float64(config.MaximumUniqueEventKeys))
 	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeys)
 
-	newAggregatedMetricsSet, err := newAggregatedCounterSet(metricRegistry, config.MetricName, knownLabels, config.LabelNames)
+	aggregationLabels := []string{config.LabelNames.SloDomain, config.LabelNames.SloClass, config.LabelNames.SloApp, config.LabelNames.EventKey}
+	newAggregatedMetricsSet, err := newAggregatedCounterVectorSet(metricRegistry, config.MetricName, metricHelp, aggregationLabels)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PrometheusSloEventExporter{
-		aggregatedMetricsSet:        newAggregatedMetricsSet,
-		knownLabels:                 knownLabels,
-		validEventResults:           possibleResults,
-		metricName:                  config.MetricName,
-		labelNames:                  config.LabelNames,
+		aggregatedMetricsSet: newAggregatedMetricsSet,
+		metricName:           config.MetricName,
+		labelNames:           config.LabelNames,
+
 		eventKeyLimit:               config.MaximumUniqueEventKeys,
 		exceededKeyLimitPlaceholder: config.ExceededKeyLimitPlaceholder,
 		eventKeyCache:               map[string]int{},
-		observer:                    nil,
+
+		observer: nil,
 	}, nil
 }
 
@@ -159,15 +156,6 @@ func (e *PrometheusSloEventExporter) observeDuration(start time.Time) {
 	}
 }
 
-// make sure that eventMetadata contains exactly the expected set, so that it passed Prometheus library sanity checks
-func (e *PrometheusSloEventExporter) normalizeEventMetadata(eventMetadata stringmap.StringMap) stringmap.StringMap {
-	normalized := stringmap.StringMap{}
-	for _, k := range e.knownLabels {
-		normalized[k] = ""
-	}
-	return normalized.Merge(eventMetadata.Select(e.knownLabels))
-}
-
 func (e *PrometheusSloEventExporter) isCardinalityExceeded(eventKey string) bool {
 	if e.eventKeyLimit == 0 {
 		// unlimited
@@ -185,7 +173,7 @@ func (e *PrometheusSloEventExporter) isCardinalityExceeded(eventKey string) bool
 }
 
 func (e *PrometheusSloEventExporter) isValidResult(result event.Result) bool {
-	for _, validEventResult := range e.validEventResults {
+	for _, validEventResult := range event.PossibleResults {
 		if validEventResult == result {
 			return true
 		}
@@ -195,7 +183,7 @@ func (e *PrometheusSloEventExporter) isValidResult(result event.Result) bool {
 
 // for given ev metadata, initialize exposed metric for all possible result label values
 func (e *PrometheusSloEventExporter) initializeMetricForGivenMetadata(metadata stringmap.StringMap) {
-	for _, result := range e.validEventResults {
+	for _, result := range event.PossibleResults {
 		metadata[e.labelNames.Result] = string(result)
 		e.aggregatedMetricsSet.add(0, metadata)
 	}
@@ -213,22 +201,20 @@ func (e *PrometheusSloEventExporter) labelsFromEvent(sloEvent *event.Slo) string
 
 func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 	if !e.isValidResult(newEvent.Result) {
-		return &InvalidSloEventResult{string(newEvent.Result), e.validEventResults}
+		return &InvalidSloEventResult{string(newEvent.Result), event.PossibleResults}
 	}
 
 	labels := e.labelsFromEvent(newEvent)
-	// Drop all unexpected labels
-	normalizedLabels := e.normalizeEventMetadata(labels)
 
 	if e.isCardinalityExceeded(newEvent.Key) {
 		log.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
-		normalizedLabels[e.labelNames.EventKey] = e.exceededKeyLimitPlaceholder
+		labels[e.labelNames.EventKey] = e.exceededKeyLimitPlaceholder
 	}
 
-	e.initializeMetricForGivenMetadata(normalizedLabels)
+	e.initializeMetricForGivenMetadata(labels)
 
 	// add result to metadata
-	normalizedLabels[e.labelNames.Result] = string(newEvent.Result)
-	e.aggregatedMetricsSet.inc(normalizedLabels)
+	labels[e.labelNames.Result] = string(newEvent.Result)
+	e.aggregatedMetricsSet.inc(labels)
 	return nil
 }

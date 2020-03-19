@@ -1,78 +1,135 @@
 package prometheus_exporter
 
 import (
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"strings"
+	"sync"
 )
-
-func newAggregatedCounterSet(registry prometheus.Registerer, metricName string, possibleLabels []string, labelNames labelsNamesConfig) (*aggregatedCounterSet, error) {
-	// Will have all labels domain, class, app, event key.
-	perEndpointCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain, labelNames.SloClass, labelNames.SloApp, labelNames.EventKey}, []string{})
-	if err != nil {
-		return nil, err
-	}
-	// Will have only labels domain, class, app.
-	perAppCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain, labelNames.SloClass, labelNames.SloApp}, []string{labelNames.EventKey})
-	if err != nil {
-		return nil, err
-	}
-	// Will have all labels domain, class.
-	perClassCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain, labelNames.SloClass}, []string{labelNames.SloApp, labelNames.EventKey})
-	if err != nil {
-		return nil, err
-	}
-	// Will have all labels domain.
-	perDomainCounter, err := newAggregatedCounter(registry, metricName, metricHelp, possibleLabels, []string{labelNames.SloDomain}, []string{labelNames.SloClass, labelNames.SloApp, labelNames.EventKey})
-	if err != nil {
-		return nil, err
-	}
-	return &aggregatedCounterSet{aggregatedMetrics: []*aggregatedCounter{perEndpointCounter, perAppCounter, perClassCounter, perDomainCounter}}, nil
-}
-
-type aggregatedCounterSet struct {
-	aggregatedMetrics []*aggregatedCounter
-}
-
-func (s *aggregatedCounterSet) inc(labels stringmap.StringMap) {
-	for _, metric := range s.aggregatedMetrics {
-		metric.inc(labels)
-	}
-}
-
-func (s *aggregatedCounterSet) add(value float64, labels stringmap.StringMap) {
-	for _, metric := range s.aggregatedMetrics {
-		metric.add(value, labels)
-	}
-}
 
 func aggregatedMetricName(metricName string, aggregatedLabels ...string) string {
 	return strings.Join(aggregatedLabels, "_") + ":" + metricName
 }
 
-func newAggregatedCounter(registry prometheus.Registerer, metricName, metricHelp string, possibleLabels []string, aggregatedLabels []string, labelsToDrop []string) (*aggregatedCounter, error) {
-	newAggregatedCounter := aggregatedCounter{
-		labelsToDrop: stringmap.NewFromKeys(labelsToDrop),
-		counter: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: aggregatedMetricName(metricName, aggregatedLabels...),
-			Help: metricHelp,
-		}, possibleLabels),
+// newAggregatedCounterVector creates set of counters which will create set of cascade aggregation level metrics by dropping aggregation labels.
+func newAggregatedCounterVectorSet(registry prometheus.Registerer, metricName, metricHelp string, aggregationLabels []string) (*aggregatedCounterVectorSet, error) {
+	vectorSet := aggregatedCounterVectorSet{
+		aggregatedMetrics: []aggregatedCounterVector{},
 	}
-	if err := registry.Register(newAggregatedCounter.counter); err != nil {
+	// Generate new metric vector for every label aggregation level.
+	for i := 1; i <= len(aggregationLabels); i++ {
+		newVector, err := newCounterVector(registry, aggregatedMetricName(metricName, aggregationLabels[:i]...), metricHelp)
+		if err != nil {
+			return nil, err
+		}
+		vectorSet.aggregatedMetrics = append(vectorSet.aggregatedMetrics, aggregatedCounterVector{
+			vector:       newVector,
+			labelsToDrop: aggregationLabels[i:],
+		})
+	}
+	return &vectorSet, nil
+}
+
+type aggregatedCounterVector struct {
+	vector       *counterVector
+	labelsToDrop []string
+}
+
+func (v *aggregatedCounterVector) inc(labels stringmap.StringMap) {
+	v.add(1, labels)
+}
+
+func (v *aggregatedCounterVector) add(value float64, labels stringmap.StringMap) {
+	v.vector.add(value, labels.Without(v.labelsToDrop))
+}
+
+type aggregatedCounterVectorSet struct {
+	aggregatedMetrics []aggregatedCounterVector
+}
+
+func (s *aggregatedCounterVectorSet) inc(labels stringmap.StringMap) {
+	s.add(1, labels)
+}
+
+func (s *aggregatedCounterVectorSet) add(value float64, labels stringmap.StringMap) {
+	for _, metric := range s.aggregatedMetrics {
+		metric.add(value, labels)
+	}
+}
+
+func newCounterVector(registry prometheus.Registerer, name, help string) (*counterVector, error) {
+	newVector := counterVector{
+		name:     name,
+		help:     help,
+		counters: map[string]*counter{},
+		mtx:      sync.RWMutex{},
+	}
+	if err := registry.Register(newVector); err != nil {
 		return nil, err
 	}
-	return &newAggregatedCounter, nil
+	return &newVector, nil
 }
 
-type aggregatedCounter struct {
-	labelsToDrop stringmap.StringMap
-	counter      *prometheus.CounterVec
+type counter struct {
+	value       float64
+	labelNames  []string
+	labelValues []string
 }
 
-func (c *aggregatedCounter) inc(labels stringmap.StringMap) {
-	c.add(1, labels)
+func (e *counter) add(value float64) {
+	e.value += value
 }
 
-func (c *aggregatedCounter) add(value float64, labels stringmap.StringMap) {
-	c.counter.With(prometheus.Labels(labels.Merge(c.labelsToDrop))).Add(value)
+func (e *counter) inc() {
+	e.add(1)
+}
+
+type counterVector struct {
+	name     string
+	help     string
+	counters map[string]*counter
+	mtx      sync.RWMutex
+}
+
+func (e *counterVector) add(value float64, labels stringmap.StringMap) {
+	e.mtx.Lock()
+	defer e.mtx.Unlock()
+	newCounter, ok := e.counters[labels.String()]
+	if !ok {
+		labelNames := labels.SortedKeys()
+		newCounter = &counter{
+			value:       0,
+			labelNames:  labelNames,
+			labelValues: labels.ValuesByKeys(labelNames),
+		}
+		e.counters[labels.String()] = newCounter
+	}
+	newCounter.add(value)
+}
+
+func (e *counterVector) inc(labels stringmap.StringMap) {
+	e.add(1, labels)
+}
+
+func (e counterVector) Describe(chan<- *prometheus.Desc) {
+	// We do not know the labels beforehand, so we disable registration time checks by not sending any result to channel.
+	return
+}
+
+func (e counterVector) Collect(ch chan<- prometheus.Metric) {
+	e.mtx.RLock()
+	defer e.mtx.RUnlock()
+	for _, c := range e.counters {
+		newMetric, err := prometheus.NewConstMetric(
+			prometheus.NewDesc(e.name, e.help, c.labelNames, nil),
+			prometheus.CounterValue,
+			c.value,
+			c.labelValues...
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		ch <- newMetric
+	}
 }

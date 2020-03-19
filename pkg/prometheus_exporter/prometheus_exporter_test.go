@@ -31,43 +31,6 @@ type testNormalizeEventMetadata struct {
 	expectedOutput stringmap.StringMap
 }
 
-func Test_normalizeEventMetadata(t *testing.T) {
-	testCases := []testNormalizeEventMetadata{
-		testNormalizeEventMetadata{
-			knownLabels:    []string{"b", "c"},
-			input:          stringmap.StringMap{"b": "b", "c": "c"},
-			expectedOutput: stringmap.StringMap{"b": "b", "c": "c", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
-		},
-		testNormalizeEventMetadata{
-			knownLabels:    []string{"b", "c"},
-			input:          stringmap.StringMap{"a": "a", "b": "b", "c": "c"},
-			expectedOutput: stringmap.StringMap{"b": "b", "c": "c", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
-		},
-		testNormalizeEventMetadata{
-			knownLabels:    []string{"b", "c"},
-			input:          stringmap.StringMap{"c": "c", "d": "d"},
-			expectedOutput: stringmap.StringMap{"b": "", "c": "c", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
-		},
-		testNormalizeEventMetadata{
-			knownLabels:    []string{"b", "c"},
-			input:          stringmap.StringMap{"d": "d", "e": "e"},
-			expectedOutput: stringmap.StringMap{"b": "", "c": "", conf.LabelNames.EventKey: "", conf.LabelNames.Result: "", conf.LabelNames.SloDomain: "", conf.LabelNames.SloClass: "", conf.LabelNames.SloApp: ""},
-		},
-	}
-	for _, testCase := range testCases {
-		p, err := New(prometheus.NewRegistry(), testCase.knownLabels, event.PossibleResults, conf)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		assert.Equal(t, testCase.expectedOutput, p.normalizeEventMetadata(testCase.input))
-	}
-}
-
-var (
-	labels = []string{"a", "b"}
-)
-
 type testProcessEvent struct {
 	ev              *event.Slo
 	expectedMetrics string
@@ -111,7 +74,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 
 	for _, test := range testCases {
 		reg := prometheus.NewPedanticRegistry()
-		exporter, err := New(reg, labels, event.PossibleResults, conf)
+		exporter, err := New(reg, conf)
 		if err != nil {
 			t.Error(err)
 			return
@@ -127,7 +90,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
-	exporter, err := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
+	exporter, err := New(prometheus.NewPedanticRegistry(), conf)
 	if err != nil {
 		t.Error(err)
 		return
@@ -142,7 +105,7 @@ func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
-	exporter, err := New(prometheus.NewPedanticRegistry(), []string{}, event.PossibleResults, conf)
+	exporter, err := New(prometheus.NewPedanticRegistry(), conf)
 	if err != nil {
 		t.Error(err)
 		return

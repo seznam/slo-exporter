@@ -32,7 +32,7 @@ SCRIPT_DIR=$( dirname "$(readlink -f $0)" )
 SLO_EXPORTER="${SCRIPT_DIR}/../slo_exporter"
 
 TEST_DIR_PREFIX="Test_"
-TEST_RESULT_DIR="test_ouput"
+TEST_RESULT_DIR="test_output"
 
 CONFIG_FILENAME="slo_exporter.yaml"
 METRICS_URL="http://localhost:8080/metrics"
