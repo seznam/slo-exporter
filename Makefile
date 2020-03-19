@@ -27,4 +27,10 @@ clean-compose:
 	$(DOCKER_COMPOSE) rm --force --stop -v
 	docker volume rm slo-exporter_log-volume || true
 
+clean:
+	rm -rf slo_exporter coverage.out
+	find . -type f -name "*.pos" -exec rm -f {} \;
+	find . -type d -name "test_output" -prune -exec rm -rf {} \;
+
+
 .PHONY: build lint test test-and-coverage compose clean-compose e2e-test

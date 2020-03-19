@@ -13,7 +13,7 @@ var (
 	didNotMatchAnyRule = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "slo_exporter",
 		Subsystem: "slo_event_producer",
-		Name:      "events_not_matching_any_rule",
+		Name:      "events_not_matching_any_rule_total",
 		Help:      "Total number of events not matching any SLO rule.",
 	})
 
