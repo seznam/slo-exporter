@@ -1,31 +1,31 @@
 # HELP slo_domain:slo_events_total Total number of SLO events exported with it's result and metadata.
 # TYPE slo_domain:slo_events_total counter
-slo_domain:slo_events_total{event_key="",le="",percentile="",result="fail",slo_app="",slo_class="",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
-slo_domain:slo_events_total{event_key="",le="",percentile="",result="success",slo_app="",slo_class="",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
-slo_domain:slo_events_total{event_key="",le="16.0",percentile="99",result="fail",slo_app="",slo_class="",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 0
-slo_domain:slo_events_total{event_key="",le="16.0",percentile="99",result="success",slo_app="",slo_class="",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 1
-slo_domain:slo_events_total{event_key="",le="8.0",percentile="90",result="fail",slo_app="",slo_class="",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 0
-slo_domain:slo_events_total{event_key="",le="8.0",percentile="90",result="success",slo_app="",slo_class="",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 1
+slo_domain:slo_events_total{result="fail",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
+slo_domain:slo_events_total{result="success",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
+slo_domain:slo_events_total{le="16.0",percentile="99",result="fail",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 0
+slo_domain:slo_events_total{le="16.0",percentile="99",result="success",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 1
+slo_domain:slo_events_total{le="8.0",percentile="90",result="fail",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 0
+slo_domain:slo_events_total{le="8.0",percentile="90",result="success",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 1
 # HELP slo_domain_slo_class:slo_events_total Total number of SLO events exported with it's result and metadata.
 # TYPE slo_domain_slo_class:slo_events_total counter
-slo_domain_slo_class:slo_events_total{event_key="",le="",percentile="",result="fail",slo_app="",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
-slo_domain_slo_class:slo_events_total{event_key="",le="",percentile="",result="success",slo_app="",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
-slo_domain_slo_class:slo_events_total{event_key="",le="16.0",percentile="99",result="fail",slo_app="",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 0
-slo_domain_slo_class:slo_events_total{event_key="",le="16.0",percentile="99",result="success",slo_app="",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 1
-slo_domain_slo_class:slo_events_total{event_key="",le="8.0",percentile="90",result="fail",slo_app="",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 0
-slo_domain_slo_class:slo_events_total{event_key="",le="8.0",percentile="90",result="success",slo_app="",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 1
+slo_domain_slo_class:slo_events_total{result="fail",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
+slo_domain_slo_class:slo_events_total{result="success",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
+slo_domain_slo_class:slo_events_total{le="16.0",percentile="99",result="fail",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 0
+slo_domain_slo_class:slo_events_total{le="16.0",percentile="99",result="success",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 1
+slo_domain_slo_class:slo_events_total{le="8.0",percentile="90",result="fail",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 0
+slo_domain_slo_class:slo_events_total{le="8.0",percentile="90",result="success",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 1
 # HELP slo_domain_slo_class_slo_app:slo_events_total Total number of SLO events exported with it's result and metadata.
 # TYPE slo_domain_slo_class_slo_app:slo_events_total counter
-slo_domain_slo_class_slo_app:slo_events_total{event_key="",le="",percentile="",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
-slo_domain_slo_class_slo_app:slo_events_total{event_key="",le="",percentile="",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
-slo_domain_slo_class_slo_app:slo_events_total{event_key="",le="16.0",percentile="99",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 0
-slo_domain_slo_class_slo_app:slo_events_total{event_key="",le="16.0",percentile="99",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 1
-slo_domain_slo_class_slo_app:slo_events_total{event_key="",le="8.0",percentile="90",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 0
-slo_domain_slo_class_slo_app:slo_events_total{event_key="",le="8.0",percentile="90",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 1
+slo_domain_slo_class_slo_app:slo_events_total{result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
+slo_domain_slo_class_slo_app:slo_events_total{result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
+slo_domain_slo_class_slo_app:slo_events_total{le="16.0",percentile="99",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 0
+slo_domain_slo_class_slo_app:slo_events_total{le="16.0",percentile="99",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 1
+slo_domain_slo_class_slo_app:slo_events_total{le="8.0",percentile="90",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 0
+slo_domain_slo_class_slo_app:slo_events_total{le="8.0",percentile="90",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 1
 # HELP slo_domain_slo_class_slo_app_event_key:slo_events_total Total number of SLO events exported with it's result and metadata.
 # TYPE slo_domain_slo_class_slo_app_event_key:slo_events_total counter
-slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",le="",percentile="",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
-slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",le="",percentile="",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 0
+slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="availability",slo_version="1"} 1
 slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",le="16.0",percentile="99",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 0
 slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",le="16.0",percentile="99",result="success",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency99",slo_version="1"} 1
 slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="GET:/api/v1/ppchit/rule/0",le="8.0",percentile="90",result="fail",slo_app="frontend-api",slo_class="high_fast",slo_domain="testdomain",slo_type="latency90",slo_version="1"} 0

@@ -223,7 +223,7 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 		data, err := parseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
 		if err != nil {
 			if test.isLineValid {
-				t.Fatalf("unable to parse request line '%s': %w", requestLine, err)
+				t.Fatalf("unable to parse request line '%s': %v", requestLine, err)
 			} else {
 				// the tested line is marked as not valid, Err is expected
 				continue
@@ -238,7 +238,7 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 
 			expectedEvent, err = buildEvent(test.lineContentMapping)
 			if err != nil {
-				t.Fatalf("Unable to build event from test data: %w", err)
+				t.Fatalf("Unable to build event from test data: %v", err)
 			}
 			if !reflect.DeepEqual(expectedEvent, parsedEvent) {
 				t.Errorf("Unexpected result of parse line: %s\nGot: %+v\nExpected: %+v", requestLine, parsedEvent, expectedEvent)
@@ -278,7 +278,7 @@ func Test_ParseLine(t *testing.T) {
 		requestLine := getRequestLine(test.lineContentMapping)
 		data, err := parseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
 		if err != nil {
-			t.Fatalf("unable to parse request line '%s': %w", requestLine, err)
+			t.Fatalf("unable to parse request line '%s': %v", requestLine, err)
 		}
 		for k, v := range test.lineContentMapping {
 			if !emptyGroupRegexpCompiled.MatchString(v) {
