@@ -356,6 +356,7 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		URL:               parsedUrl,
 		StatusCode:        statusCode,
 		Headers:           lineData.Copy().Without(knownGroupNames),
+		Metadata:          lineData,
 		Method:            method,
 		SloEndpoint:       lineData[sloEndpointGroupName],
 		SloResult:         lineData[sloResultGroupName],

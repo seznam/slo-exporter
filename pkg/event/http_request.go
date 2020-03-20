@@ -21,6 +21,7 @@ type HttpRequest struct {
 	URL               *url.URL
 	EventKey          string
 	Headers           stringmap.StringMap // name:value, header name is in lower-case
+	Metadata          stringmap.StringMap
 	Method            string
 	SloEndpoint       string
 	SloResult         string

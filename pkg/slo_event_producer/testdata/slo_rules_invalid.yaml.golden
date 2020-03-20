@@ -1,6 +1,7 @@
 rules:
   - event_type: request
-    failure_crittttttteria:
-      - criterium: requestStatusHigherThan
+    failure_condddddddditions:
+      - operator: numberHigherThan
+        key: "statusCode"
         value: 500
     hahahahaha:

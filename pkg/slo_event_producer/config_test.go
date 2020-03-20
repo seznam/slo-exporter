@@ -23,8 +23,8 @@ func TestConfig_loadFromFile(t *testing.T) {
 				{
 					EventType:  "request",
 					SloMatcher: sloMatcher{Domain: "domain"},
-					FailureCriteriaOptions: []criteriumOptions{
-						{Criterium: "requestStatusHigherThan", Value: "500"},
+					FailureConditionsOptions: []operatorOptions{
+						{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				}}},
@@ -49,6 +49,6 @@ func TestConfig_loadFromFile(t *testing.T) {
 			assert.Error(t, err)
 			continue
 		}
-		assert.Equal(t, config, c.expectedConfig)
+		assert.Equal(t, c.expectedConfig, config, "failed config test for path %s", c.path)
 	}
 }

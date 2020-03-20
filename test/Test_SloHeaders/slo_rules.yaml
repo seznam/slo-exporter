@@ -2,8 +2,9 @@ rules:
   - event_type: request
     slo_matcher:
       domain: userportal
-    failure_criteria:
-      - criterium: requestStatusHigherThan
+    failure_conditions:
+      - operator: numberHigherThan
+        key: statusCode
         value: 499
     additional_metadata:
       slo_type: availability
@@ -13,8 +14,9 @@ rules:
     slo_matcher:
       domain: userportal
       class: critical
-    failure_criteria:
-      - criterium: requestDurationHigherThan
+    failure_conditions:
+      - operator: durationHigherThan
+        key: requestDuration
         value: 8.0s
     additional_metadata:
       slo_version: 1
@@ -26,8 +28,9 @@ rules:
     slo_matcher:
       domain: userportal
       class: critical
-    failure_criteria:
-      - criterium: requestDurationHigherThan
+    failure_conditions:
+      - operator: durationHigherThan
+        key: requestDuration
         value: 16.0s
     additional_metadata:
       slo_version: 1
