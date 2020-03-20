@@ -71,7 +71,6 @@ type requestNormalizerConfig struct {
 	SanitizeFonts               bool
 }
 
-
 // New returns requestNormalizer which allows to add Key to RequestEvent
 func NewFromConfig(config *requestNormalizerConfig) (*requestNormalizer, error) {
 	normalizer := requestNormalizer{
@@ -195,10 +194,10 @@ func (rn *requestNormalizer) Run(inputEventsChan <-chan *event.HttpRequest, outp
 			start := time.Now()
 			if newEvent.EventKey != "" {
 				log.Debugf("skipping newEvent normalization, already has Key: %s", newEvent.EventKey)
-				continue
+			} else {
+				newEvent.EventKey = rn.getNormalizedEventKey(newEvent)
+				log.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
 			}
-			newEvent.EventKey = rn.getNormalizedEventKey(newEvent)
-			log.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
 			outputEventsChan <- newEvent
 			rn.observeDuration(start)
 		}
