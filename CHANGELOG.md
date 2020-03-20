@@ -3,18 +3,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [Unreleased]
+## [3.1.0] - 2020-03-20
+
+### Refactored
+- If eventKey matching group in tailer RE is nonempty, its value is propagated to HttpRequest.EventKey.
 
 ## [3.0.0] - 2020-03-20
 ### Fixed
 - Inconsistencies in aggregated SLO metrics exposed to Prometheus.
+- Normalizer now does not drop event if eventKey already set.
 
 ### Refactored
 - Refactored prometheus exporter to implement Collector interface and to not require known labels beforehand.
 
 ### Changed
 - **BREAKING** Event filter module now filters using metadata using `metadataFilter`. Old `filteredHttpStatusCodeMatchers` and `filteredHttpHeaderMatchers` were dropped.
-- **BREAKING** Failure criteria configuration synatx of sloEventProducer module has changed. 
+- **BREAKING** Failure criteria configuration synatx of sloEventProducer module has changed.
     - `failure_criteria` is now `failure_conditions`
     - `criterium` is now called `operator`
     - Operators are evaluated on event metadata. `key` field was added in order to specify on which metadata is the given operator to be evaluated.
