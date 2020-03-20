@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored prometheus exporter to implement Collector interface and to not require known labels beforehand.
 
 ### Changed
+- **BREAKING** Event filter module now filters using metadata using `metadataFilter`. Old `filteredHttpStatusCodeMatchers` and `filteredHttpHeaderMatchers` were dropped.
 - **BREAKING** Failure criteria configuration synatx of sloEventProducer module has changed. 
     - `failure_criteria` is now `failure_conditions`
     - `criterium` is now called `operator`
