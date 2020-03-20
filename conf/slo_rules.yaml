@@ -1,7 +1,7 @@
 rules:
   - event_type: request
     slo_matcher:
-      domain: userportal
+      domain: test-domain
     failure_conditions:
       - operator: numberHigherThan
         key: statusCode
@@ -17,12 +17,12 @@ rules:
 
   - event_type: request
     slo_matcher:
-      domain: userportal
+      domain: test-domain
       class: critical
     failure_conditions:
-      - operator: durationHigherThan
+      - operator: numberHigherThan
         key: requestDuration
-        value: 0.8s
+        value: 1
     additional_metadata:
       slo_version: 6
       slo_type: latency90

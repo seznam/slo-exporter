@@ -8,7 +8,6 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -22,8 +21,8 @@ var (
 		Namespace: "slo_exporter",
 		Subsystem: component,
 		Name:      "filtered_events_total",
-		Help:      "Total number of filtered events by reason.",
-	}, []string{"matcher"})
+		Help:      "Total number of filtered events by metadata_key.",
+	}, []string{"metadata_key"})
 )
 
 func init() {
@@ -32,22 +31,20 @@ func init() {
 }
 
 type eventFilterConfig struct {
-	FilteredHttpStatusCodeMatchers []string
-	FilteredHttpHeaderMatchers     stringmap.StringMap
+	MetadataFilter stringmap.StringMap
 }
 
-type httpHeaderMatcher struct {
+type metadataMatcher struct {
 	nameRegexp  *regexp.Regexp
 	valueRegexp *regexp.Regexp
 }
 
-type RequestEventFilter struct {
-	statusMatchers []*regexp.Regexp
-	headerMatchers []httpHeaderMatcher
-	observer       prometheus.Observer
+type EventFilter struct {
+	metadataMatchers []metadataMatcher
+	observer         prometheus.Observer
 }
 
-func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
+func NewFromViper(viperConfig *viper.Viper) (*EventFilter, error) {
 	var config eventFilterConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -55,85 +52,62 @@ func NewFromViper(viperConfig *viper.Viper) (*RequestEventFilter, error) {
 	return NewFromConfig(config)
 }
 
-func NewFromConfig(config eventFilterConfig) (*RequestEventFilter, error) {
-	filter := RequestEventFilter{
-		statusMatchers: []*regexp.Regexp{},
-		headerMatchers: []httpHeaderMatcher{},
+func NewFromConfig(config eventFilterConfig) (*EventFilter, error) {
+	filter := EventFilter{
+		metadataMatchers: []metadataMatcher{},
 	}
-	// Load status code matchers
-	for _, statusMatcher := range config.FilteredHttpStatusCodeMatchers {
-		regexpMatcher, err := regexp.Compile(statusMatcher)
-		if err != nil {
-			return nil, fmt.Errorf("invalid status code matcher regular expression: %v", err)
-		}
-		filter.statusMatchers = append(filter.statusMatchers, regexpMatcher)
-	}
-	// Load HTTP header matchers
-	for nameMatcher, valueMatcher := range config.FilteredHttpHeaderMatchers {
+	for nameMatcher, valueMatcher := range config.MetadataFilter {
 		nameRegexpMatcher, err := regexp.Compile(nameMatcher)
 		if err != nil {
-			return nil, fmt.Errorf("invalid HTTP header name matcher regular expression: %v", err)
+			return nil, fmt.Errorf("invalid event metadata name matcher regular expression: %v", err)
 		}
 		valueRegexpMatcher, err := regexp.Compile(valueMatcher)
 		if err != nil {
-			return nil, fmt.Errorf("invalid HTTP header value matcher regular expression: %v", err)
+			return nil, fmt.Errorf("invalid event metadata value matcher regular expression: %v", err)
 		}
-		filter.headerMatchers = append(filter.headerMatchers, httpHeaderMatcher{nameRegexp: nameRegexpMatcher, valueRegexp: valueRegexpMatcher})
+		filter.metadataMatchers = append(filter.metadataMatchers, metadataMatcher{nameRegexp: nameRegexpMatcher, valueRegexp: valueRegexpMatcher})
 	}
 	return &filter, nil
 }
 
-func (ef *RequestEventFilter) matches(event *event.HttpRequest) bool {
-	if ef.statusMatch(event.StatusCode) {
-		filteredEventsTotal.WithLabelValues("status_code").Inc()
-		log.WithField("event", event).Debugf("matched event because of status code")
-		return true
-	}
-	if ef.headersMatch(event.Headers) {
-		filteredEventsTotal.WithLabelValues("http_header").Inc()
-		log.WithField("event", event).Debugf("matched event because of HTTP headers")
+func (ef *EventFilter) matches(event *event.HttpRequest) bool {
+	matches, matchedKey := ef.metadataMatch(event.Metadata)
+	if matches {
+		filteredEventsTotal.WithLabelValues(matchedKey).Inc()
+		log.WithField("event", event).Debugf("dropping event because of matching event metadata key %s", matchedKey)
 		return true
 	}
 	return false
 }
 
-func (ef *RequestEventFilter) statusMatch(testedStatus int) bool {
-	for _, matcher := range ef.statusMatchers {
-		if matcher.MatchString(strconv.Itoa(testedStatus)) {
-			return true
-		}
-	}
-	return false
-}
-
-func (ef *RequestEventFilter) headersMatch(testedHeaders stringmap.StringMap) bool {
-	for _, matcher := range ef.headerMatchers {
-		for headerName, headerValue := range testedHeaders {
-			if matcher.nameRegexp.MatchString(headerName) && matcher.valueRegexp.MatchString(headerValue) {
-				return true
+func (ef *EventFilter) metadataMatch(testedMetadata stringmap.StringMap) (bool, string) {
+	for _, matcher := range ef.metadataMatchers {
+		for metadataName, metadataValue := range testedMetadata {
+			if matcher.nameRegexp.MatchString(metadataName) && matcher.valueRegexp.MatchString(metadataValue) {
+				return true, metadataName
 			}
 		}
 	}
-	return false
+	return false, ""
 }
 
-func (ef *RequestEventFilter) SetPrometheusObserver(observer prometheus.Observer) {
+func (ef *EventFilter) SetPrometheusObserver(observer prometheus.Observer) {
 	ef.observer = observer
 }
 
-func (ef *RequestEventFilter) observeDuration(start time.Time) {
+func (ef *EventFilter) observeDuration(start time.Time) {
 	if ef.observer != nil {
 		ef.observer.Observe(time.Since(start).Seconds())
 	}
 }
 
-func (ef *RequestEventFilter) Run(in <-chan *event.HttpRequest, out chan<- *event.HttpRequest) {
+func (ef *EventFilter) Run(in <-chan *event.HttpRequest, out chan<- *event.HttpRequest) {
 	go func() {
 		defer close(out)
-		for event := range in {
+		for newEvent := range in {
 			start := time.Now()
-			if !ef.matches(event) {
-				out <- event
+			if !ef.matches(newEvent) {
+				out <- newEvent
 			}
 			ef.observeDuration(start)
 		}
