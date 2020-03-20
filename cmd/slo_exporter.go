@@ -5,270 +5,196 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_ingester"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/handler"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/timescale_exporter"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
-const (
-	// global limit for unique eventKeys
-	// TODO add to config once https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/merge_requests/50 is merged
-	prometheusExporterLimit int = 1000
-	// same as above, but also duplicit with slo_event_producer/rule:eventKeyMetadataKey
-	eventKeyLabel string = "event_key"
-)
-
 var (
-	buildVersion                   = ""
-	buildRevision                  = ""
-	buildBranch                    = ""
-	buildTag                       = ""
+	// Set using ldflags during build.
+	buildVersion  = ""
+	buildRevision = ""
+	buildBranch   = ""
+	buildTag      = ""
+
+	appName                        = "slo_exporter"
 	prometheusRegistry             = prometheus.DefaultRegisterer
+	wrappedPrometheusRegistry      = prometheus.WrapRegistererWithPrefix(appName+"_", prometheusRegistry)
 	eventProcessingDurationSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "slo_exporter",
-			Name:      "event_processing_duration_seconds",
-			Help:      "Duration histogram of event processing per module.",
-			Buckets:   prometheus.ExponentialBuckets(0.0005, 5, 6),
+			Name:    "event_processing_duration_seconds",
+			Help:    "Duration histogram of event processing per module.",
+			Buckets: prometheus.ExponentialBuckets(0.0005, 5, 6),
 		},
 		[]string{"module"},
 	)
 	appBuildInfo = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "",
-		Name:      "app_build_info",
-		Help:      "Metadata metric with information about application build and version",
+		Name: "app_build_info",
+		Help: "Metadata metric with information about application build and version",
 		ConstLabels: prometheus.Labels{"app": "slo-exporter", "version": buildVersion, "revision": buildRevision,
 			"branch": buildBranch, "tag": buildTag, "standardized_metrics_version": "1.5.0"},
 	})
 )
 
 func init() {
-	appBuildInfo.Set(float64(1.0))
-	prometheusRegistry.MustRegister(eventProcessingDurationSeconds, appBuildInfo)
+	appBuildInfo.Set(1)
+	prometheusRegistry.MustRegister(appBuildInfo)
+	wrappedPrometheusRegistry.MustRegister(eventProcessingDurationSeconds)
 }
 
-func setupLogging(logLevel string) error {
-	log.SetOutput(os.Stdout)
-	log.SetFormatter(&log.TextFormatter{
+// Factory to instantiate pipeline modules
+func moduleFactory(moduleName string, logger *logrus.Entry, conf *viper.Viper) (pipeline.Module, error) {
+	switch moduleName {
+	case "tailer":
+		return tailer.NewFromViper(conf, logger)
+	case "prometheusIngester":
+		return prometheus_ingester.NewFromViper(conf, logger)
+	case "normalizer":
+		return normalizer.NewFromViper(conf, logger)
+	case "eventFilter":
+		return event_filter.NewFromViper(conf, logger)
+	case "dynamicClassifier":
+		return dynamic_classifier.NewFromViper(conf, logger)
+	case "sloEventProducer":
+		return slo_event_producer.NewFromViper(conf, logger)
+	case "prometheusExporter":
+		return prometheus_exporter.NewFromViper(conf, logger)
+	default:
+		return nil, fmt.Errorf("unknown module %s", moduleName)
+	}
+}
+
+func setupLogger(logLevel string) (*logrus.Logger, error) {
+	lvl, err := logrus.ParseLevel(logLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	newLogger := logrus.New()
+	newLogger.SetOutput(os.Stdout)
+	newLogger.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
 		FullTimestamp: true,
 	})
-	lvl, err := log.ParseLevel(logLevel)
-	if err != nil {
-		return err
-	}
-	log.SetLevel(lvl)
-	return nil
+	newLogger.SetLevel(lvl)
+	return newLogger, nil
 }
 
-func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober, dch *handler.DynamicClassifierHandler) *http.Server {
+func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober) (*http.Server, *mux.Router) {
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/liveness", liveness.HandleFunc)
 	router.HandleFunc("/readiness", readiness.HandleFunc)
-	// TODO: mby dump format by content-type?
-	router.HandleFunc("/dynamic_classifier/matchers/{matcher}", dch.DumpCSV)
-	return &http.Server{Addr: listenAddr, Handler: router}
-}
-
-// TODO FUSAKLA temporary workaround to multiplex one event to multiple channels, we should think if we can do better
-func multiplexToChannels(srcChannel chan *event.Slo, dstChannels []chan *event.Slo) {
-	for e := range srcChannel {
-		for _, ch := range dstChannels {
-			newEvent := e.Copy()
-			ch <- &newEvent
-		}
-	}
-	for _, ch := range dstChannels {
-		close(ch)
-	}
+	return &http.Server{Addr: listenAddr, Handler: router}, router
 }
 
 func main() {
 	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
-	disableTimescale := kingpin.Flag("disable-timescale-exporter", "Do not start timescale exporter").Bool()
-	disablePrometheusExporter := kingpin.Flag("disable-prometheus-exporter", "Do not start prometheus exporter. (App runtime metrics are still exposed)").Bool()
-
+	logLevel := kingpin.Flag("log-level", "Log level (error, warn, info, debug,trace).").Default("info").String()
 	kingpin.Parse()
+	envLogLevel, ok := syscall.Getenv("SLO_EXPORTER_LOGLEVEL")
+	if ok {
+		logLevel = &envLogLevel
+	}
 
-	conf := config.New()
+	logger, err := setupLogger(*logLevel)
+	if err != nil {
+		log.Fatalf("invalid specified log level %+v, error: %+v", logLevel, err)
+	}
+
+	conf := config.New(logger.WithField("component", "config"))
 	if err := conf.LoadFromFile(*configFilePath); err != nil {
-		log.Fatalf("failed to load configuration file: %v", err)
+		logger.Fatalf("failed to load configuration file: %v", err)
 	}
 
-	if err := setupLogging(conf.LogLevel); err != nil {
-		log.Fatalf("invalid specified log level %+v, error: %+v", conf.LogLevel, err)
+	liveness, err := prober.NewLiveness(prometheusRegistry, logger.WithField("component", "prober"))
+	if err != nil {
+		logger.Fatalf("failed to initialize liveness prober: %v", err)
 	}
-
-	producersContext, producersCancelFunc := context.WithCancel(context.Background())
-	defer producersCancelFunc()
-
-	liveness := prober.NewLiveness()
-	readiness := prober.NewReadiness()
+	readiness, err := prober.NewReadiness(prometheusRegistry, logger.WithField("component", "prober"))
+	if err != nil {
+		logger.Fatalf("failed to initialize readiness prober: %v", err)
+	}
 
 	// shared error channel
 	errChan := make(chan error, 10)
 	gracefulShutdownRequestChan := make(chan struct{}, 10)
 
-	var shutdownHandler = shutdown_handler.New(producersContext, gracefulShutdownRequestChan)
-
-	// Classify event by dynamic classifier
-	dynamicClassifier, err := dynamic_classifier.NewFromViper(conf.MustModuleConfig("dynamicClassifier"), prometheus.DefaultRegisterer)
-	if err != nil {
-		log.Fatalf("failed to initialize dynamic classifier: %+v", err)
-	}
-	dynamicClassifier.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("dynamic_classifier"))
-	dynamicClassifierHandler := handler.NewDynamicClassifierHandler(dynamicClassifier)
-
 	// Start default server
-	defaultServer := setupDefaultServer(conf.WebServerListenAddress, liveness, readiness, dynamicClassifierHandler)
+	defaultServer, router := setupDefaultServer(conf.WebServerListenAddress, liveness, readiness)
 	go func() {
-		log.Infof("HTTP server listening on %+v", defaultServer.Addr)
+		logger.Infof("HTTP server listening on http://%+v", defaultServer.Addr)
 		if err := defaultServer.ListenAndServe(); err != nil {
 			errChan <- err
 		}
 		gracefulShutdownRequestChan <- struct{}{}
 	}()
 
-	//-- producers configuration
-
-	// TODO jirislav: Currently, there is no consumer of PrometheusQueryResult, so don't start the ingester
-	//prometheusIngester, err := prometheus_ingester.NewFromViper(conf.MustModuleConfig("prometheusIngester"))
-	//if err != nil {
-	//	log.Fatalf("failed to create Prometheus ingester: %+v", err)
-	//}
-
-	// Tail nginx logs and parse them to HttpRequest
-	nginxTailer, err := tailer.NewFromViper(conf.MustModuleConfig("tailer"))
+	// Initialize the pipeline
+	pipelineManager, err := pipeline.NewManager(moduleFactory, conf, logger.WithField("component", "pipeline_manager"))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("failed to initialize the pipeline: %v", err)
 	}
-	nginxTailer.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("tailer"))
-
-	//-- rest of pipeline configuration
-
-	// Add the EntityKey to all RequestEvents
-	requestNormalizer, err := normalizer.NewFromViper(conf.MustModuleConfig("normalizer"))
-	if err != nil {
-		log.Fatal(err)
+	if err := pipelineManager.RegisterPrometheusMetrics(prometheusRegistry, wrappedPrometheusRegistry); err != nil {
+		logger.Fatalf("failed to register pipeline metrics: %v", err)
 	}
-	requestNormalizer.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("normalizer"))
+	pipelineManager.RegisterWebInterface(router)
 
-	eventFilter, err := event_filter.NewFromViper(conf.MustModuleConfig("eventFilter"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	eventFilter.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("event_filter"))
-
-	sloEventProducer, err := slo_event_producer.NewFromViper(conf.MustModuleConfig("sloEventProducer"))
-	if err != nil {
-		log.Fatalf("failed to load SLO rules conf: %+v", err)
-	}
-	sloEventProducer.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("slo_event_producer"))
-
-	//-- start enabled exporters
-	var exporterChannels []chan *event.Slo
-
-	if !*disablePrometheusExporter {
-		sloEventExporter, err := prometheus_exporter.NewFromViper(prometheusRegistry, conf.MustModuleConfig("prometheusExporter"))
-		if err != nil {
-			log.Fatalf("failed to load SLO rules conf: %+v", err)
-		}
-		sloEventExporter.SetPrometheusObserver(eventProcessingDurationSeconds.WithLabelValues("prometheus_exporter"))
-		prometheusSloEventsChan := make(chan *event.Slo)
-		exporterChannels = append(exporterChannels, prometheusSloEventsChan)
-		sloEventExporter.Run(&shutdownHandler, prometheusSloEventsChan)
-		shutdownHandler.Inc()
-	}
-
-	if !*disableTimescale {
-		timescaleExporter, err := timescale_exporter.NewFromViper(conf.MustModuleConfig("timescaleExporter"))
-		if err != nil {
-			log.Fatalf("failed to initialize timescale exporter: %+v", err)
-		}
-		timescaleSloEventsChan := make(chan *event.Slo)
-		exporterChannels = append(exporterChannels, timescaleSloEventsChan)
-		timescaleExporter.Run(&shutdownHandler, timescaleSloEventsChan)
-		shutdownHandler.Inc()
-	}
-	//--
-
-	shutdownHandler.RequestShutdownIfAllJobsAreDone()
-
-	//-- start the rest of the pipeline
+	// Start the pipeline items `processing
+	pipelineManager.StartPipeline()
 
 	// listen for OS signals
 	sigChan := make(chan os.Signal, 3)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	// Pipeline definition
-	nginxEventsChan := make(chan *event.HttpRequest)
-	nginxTailer.Run(&shutdownHandler, nginxEventsChan, errChan)
-
-	// TODO jirislav: Currently, there is no consumer of PrometheusQueryResult, so don't run it
-	// prometheusQueryResultsChan := make(chan *event.PrometheusQueryResult)
-	// prometheusIngester.Run(ctx, prometheusQueryResultsChan)
-
-	normalizedEventsChan := make(chan *event.HttpRequest)
-	requestNormalizer.Run(nginxEventsChan, normalizedEventsChan)
-
-	filteredEventsChan := make(chan *event.HttpRequest)
-	eventFilter.Run(normalizedEventsChan, filteredEventsChan)
-
-	classifiedEventsChan := make(chan *event.HttpRequest)
-	dynamicClassifier.Run(filteredEventsChan, classifiedEventsChan)
-
-	sloEventsChan := make(chan *event.Slo)
-	sloEventProducer.Run(classifiedEventsChan, sloEventsChan)
-
-	// Replicate events to multiple channels
-	go multiplexToChannels(sloEventsChan, exporterChannels)
-	//--
-
 	readiness.Ok()
-	defer log.Info("see ya!")
+	defer logger.Info("see you next time!")
 	for {
 		select {
 		case <-gracefulShutdownRequestChan:
-			log.Info("gracefully shutting down")
+			logger.Info("gracefully shutting down")
 			readiness.NotOk(fmt.Errorf("shutting down"))
 
-			// request shutdown the processing pipeline
-			producersCancelFunc()
+			pipelineManager.StopPipeline()
 			shutdownCtx, _ := context.WithTimeout(context.Background(), conf.MaximumGracefulShutdownDuration)
-			shutdownHandler.Wait(shutdownCtx)
 
 			// shutdown the http server, with delay (if configured)
 			delayedShutdownContext, _ := context.WithTimeout(shutdownCtx, conf.MinimumGracefulShutdownDuration)
 			// Wait until any of the context expires
 			<-delayedShutdownContext.Done()
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
-				log.Errorf("failed to gracefully shutdown HTTP server %+v. ", err)
+				logger.Errorf("failed to gracefully shutdown HTTP server %+v. ", err)
 			}
 			return
 		case sig := <-sigChan:
-			log.Infof("received signal %+v", sig)
+			logger.Infof("received signal %+v", sig)
 			gracefulShutdownRequestChan <- struct{}{}
 		case err := <-errChan:
-			log.Errorf("encountered error: %+v", err)
+			logger.Errorf("encountered error: %+v", err)
 			gracefulShutdownRequestChan <- struct{}{}
+		case <-time.NewTicker(time.Second).C:
+			if pipelineManager.Done() {
+				logger.Info("finished processing all logs")
+				gracefulShutdownRequestChan <- struct{}{}
+			}
 		}
 	}
 

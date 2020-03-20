@@ -2,16 +2,14 @@ package config
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"time"
 )
 
-type ModuleConfigYaml []byte
-
-func New() *Config {
-	return &Config{}
+func New(logger *logrus.Entry) *Config {
+	return &Config{logger: logger}
 }
 
 type Config struct {
@@ -22,6 +20,7 @@ type Config struct {
 	MinimumGracefulShutdownDuration time.Duration
 	EventKeyMetadataKey             string
 	Modules                         map[string]interface{}
+	logger                          *logrus.Entry
 }
 
 func (c *Config) setupViper() {
@@ -63,7 +62,7 @@ func (c *Config) ModuleConfig(moduleName string) (*viper.Viper, error) {
 func (c *Config) MustModuleConfig(moduleName string) *viper.Viper {
 	conf, err := c.ModuleConfig(moduleName)
 	if err != nil {
-		log.Fatalf("failed to load %s configuration: %+v", moduleName, err)
+		c.logger.Fatalf("failed to load %s configuration: %+v", moduleName, err)
 	}
 	return conf
 }

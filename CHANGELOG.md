@@ -5,7 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
+### Changed
+- **BREAKING** Failure criteria configuration synatx of sloEventProducer module has changed. 
+    - `failure_citeria` is now `failure_conditions`
+    - `criterium` is now called `operator`
+    - Operators are evaluated on event metadata. `key` field was added in order to specify on which metadata is the given operator to be evaluated.
+    - Old criteria were dropped and newly available operators are `matchesRegexp`, `numberHigherThan` and `durationHigherThan`.
+    - Example of new failure conditions syntax:
+      ```yaml
+      failure_conditions:
+          - operator: matchesRegexp
+            key: "metadataKey"
+            value: ".*"
+      ```
+      
 ## [3.2.0] - 2020-03-24
 ### Refactored
 - HttpRequest.Headers, HttpRequest.Metadata is now filled only with data not matching conf.tailer.emptyGroupRE.

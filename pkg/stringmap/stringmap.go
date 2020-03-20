@@ -7,14 +7,6 @@ import (
 	"strings"
 )
 
-func NewFromKeys(keys []string) StringMap {
-	newStringMap := StringMap{}
-	for _, k := range keys {
-		newStringMap[k] = ""
-	}
-	return newStringMap
-}
-
 func NewFromMetric(labels model.Metric) StringMap {
 	newStringMap := StringMap{}
 	for name, value := range labels {
@@ -22,7 +14,6 @@ func NewFromMetric(labels model.Metric) StringMap {
 	}
 	return newStringMap
 }
-
 
 type StringMap map[string]string
 
@@ -57,7 +48,7 @@ func (m StringMap) NewWith(key, value string) StringMap {
 // Keys returns non-ordered list of StringMap keys.
 func (m StringMap) Keys() []string {
 	var keys []string
-	for k, _ := range m {
+	for k := range m {
 		keys = append(keys, k)
 	}
 	return keys

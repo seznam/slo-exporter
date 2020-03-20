@@ -5,7 +5,7 @@ package slo_event_producer
 
 import (
 	"github.com/go-test/deep"
-	"github.com/stretchr/testify/assert"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
@@ -57,7 +57,7 @@ func TestSloEventProducer(t *testing.T) {
 
 	for _, tc := range testCases {
 		out := make(chan *event.Slo, 100)
-		testedEvaluator, err := NewEventEvaluatorFromConfig(&tc.rulesConfig)
+		testedEvaluator, err := NewEventEvaluatorFromConfig(&tc.rulesConfig, logrus.NewEntry(logrus.New()))
 		if err != nil {
 			t.Errorf("error when loading config: %v error: %v", tc.rulesConfig, err)
 			continue
@@ -72,32 +72,4 @@ func TestSloEventProducer(t *testing.T) {
 			t.Errorf("events are different %+v, \nexpected: %+v\n result: %+v\n input event metadata: %+v", diff, tc.expectedSloEvents, results, tc.inputEvent.Metadata)
 		}
 	}
-}
-
-func TestSloEventProducer_PossibleMetadataKeys(t *testing.T) {
-	config := rulesConfig{Rules: []ruleOptions{
-		{
-			EventType:                "request",
-			SloMatcher:               sloMatcher{},
-			FailureConditionsOptions: []operatorOptions{},
-			AdditionalMetadata:       stringmap.StringMap{"test1": "foo"},
-		},
-		{
-			EventType:                "request",
-			SloMatcher:               sloMatcher{},
-			FailureConditionsOptions: []operatorOptions{},
-			AdditionalMetadata:       stringmap.StringMap{"test2": "bar"},
-		},
-	},
-	}
-	expectedKeys := []string{"test1", "test2"}
-
-	evaluator, err := NewEventEvaluatorFromConfig(&config)
-	if err != nil {
-		t.Error(err)
-	}
-	possibleKeys := evaluator.PossibleMetadataKeys()
-
-	assert.ElementsMatch(t, possibleKeys, expectedKeys)
-
 }

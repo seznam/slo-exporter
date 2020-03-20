@@ -1,6 +1,7 @@
 package event_filter
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
@@ -28,7 +29,7 @@ func TestEventFilter_headersMatch(t *testing.T) {
 		{metadata: stringmap.StringMap{"User-Agent": "Firefox"}, shouldMatch: true},
 		{metadata: stringmap.StringMap{"User-Agent foo": "Firefox bar"}, shouldMatch: true},
 	}
-	eventFilter, err := NewFromConfig(config)
+	eventFilter, err := NewFromConfig(config, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,7 +46,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 			"(?i)statusCode": "301|404",
 		},
 	}
-	eventFilter, err := NewFromConfig(config)
+	eventFilter, err := NewFromConfig(config, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Error(err)
 	}

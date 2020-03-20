@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	log          *logrus.Entry
 	ErrorDefault = fmt.Errorf("initializing")
 
 	status = prometheus.NewGaugeVec(
@@ -21,29 +20,38 @@ var (
 	)
 )
 
-func init() {
-	log = logrus.WithField("component", "prober")
-	prometheus.DefaultRegisterer.MustRegister(status)
-}
-
-// NewLiveness returns prober to be used as a liveness probe
-func NewLiveness() *Prober {
-	p := Prober{
-		name:      "liveness",
-		statusMtx: sync.Mutex{},
+// NewLiveness returns prober to be used as a liveness probe.
+func NewLiveness(registry prometheus.Registerer, logger *logrus.Entry) (*Prober, error) {
+	p, err := newProber(registry, logger, "liveness")
+	if err != nil {
+		return nil, err
 	}
 	p.Ok()
-	return &p
+	return p, nil
 }
 
-// NewReadiness returns prober to be used as a readiness rpobe
-func NewReadiness() *Prober {
-	p := Prober{
-		name:      "readiness",
-		statusMtx: sync.Mutex{},
+// NewReadiness returns prober to be used as a readiness probe.
+func NewReadiness(registry prometheus.Registerer, logger *logrus.Entry) (*Prober, error) {
+	p, err := newProber(registry, logger, "readiness")
+	if err != nil {
+		return nil, err
 	}
 	p.NotOk(ErrorDefault)
-	return &p
+	return p, nil
+}
+
+func newProber(registry prometheus.Registerer, logger *logrus.Entry, name string) (*Prober, error) {
+	p := Prober{
+		name:      name,
+		statusMtx: sync.Mutex{},
+		logger:    logger,
+	}
+	if err := registry.Register(status); err != nil {
+		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+			return nil, err
+		}
+	}
+	return &p, nil
 }
 
 // Prober is struct holding information about status
@@ -51,6 +59,7 @@ type Prober struct {
 	name      string
 	status    error
 	statusMtx sync.Mutex
+	logger    *logrus.Entry
 }
 
 // Ok sets the Prober to correct status
@@ -83,11 +92,11 @@ func (p *Prober) setStatus(err error) {
 	p.statusMtx.Lock()
 	defer p.statusMtx.Unlock()
 	if p.status != nil && err == nil {
-		log.Infof("changing %s status to ok", p.name)
+		p.logger.Infof("changing %s status to ok", p.name)
 		status.WithLabelValues(p.name).Set(1)
 	}
 	if p.status == nil && err != nil {
-		log.Warnf("changing %s status to not ok, reason: %+v", p.name, err)
+		p.logger.Warnf("changing %s status to not ok, reason: %+v", p.name, err)
 		status.WithLabelValues(p.name).Set(0)
 	}
 	p.status = err

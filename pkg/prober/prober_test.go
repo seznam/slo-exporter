@@ -1,6 +1,8 @@
 package prober
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -8,7 +10,8 @@ import (
 )
 
 func TestProber(t *testing.T) {
-	p := Prober{}
+	p, err := NewLiveness(prometheus.NewRegistry(), logrus.NewEntry(logrus.New()))
+	assert.NoError(t, err)
 	p.Ok()
 	assert.Equal(t, nil, p.IsOk())
 	p.NotOk(ErrorDefault)
@@ -18,7 +21,8 @@ func TestProber(t *testing.T) {
 }
 
 func TestProber_HandleFunc(t *testing.T) {
-	p := Prober{}
+	p, err := NewLiveness(prometheus.NewRegistry(), logrus.NewEntry(logrus.New()))
+	assert.NoError(t, err)
 	req, err := http.NewRequest("GET", "/liveness", nil)
 	if err != nil {
 		t.Fatal(err)
