@@ -23,7 +23,6 @@ type HttpRequest struct {
 	Headers           stringmap.StringMap // name:value, header name is in lower-case
 	Metadata          stringmap.StringMap
 	Method            string
-	SloEndpoint       string
 	SloResult         string
 	SloClassification *SloClassification
 	FRPCStatus        int
@@ -60,14 +59,6 @@ func (e HttpRequest) GetSloClassification() *SloClassification {
 
 func (e HttpRequest) GetTimeOccurred() time.Time {
 	return e.Time
-}
-
-// GetEventKey returns event identifier (called RPC name,...). It can be used as a key to group occurrence of given event through time.
-func (e HttpRequest) GetEventKey() string {
-	if e.SloEndpoint != "" {
-		return e.SloEndpoint
-	}
-	return e.EventKey
 }
 
 func (e HttpRequest) String() string {

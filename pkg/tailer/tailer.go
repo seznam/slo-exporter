@@ -358,7 +358,7 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		Headers:           lineData.Copy().Without(knownGroupNames),
 		Metadata:          lineData,
 		Method:            method,
-		SloEndpoint:       lineData[sloEndpointGroupName],
+		EventKey:          lineData[sloEndpointGroupName],
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
 		FRPCStatus:        frpcStatus,
