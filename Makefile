@@ -29,7 +29,7 @@ clean-compose:
 
 clean:
 	rm -rf slo_exporter coverage.out
-	find . -type f -name "*.pos" -exec rm -f {} \;
+	find . -type f -name "*.pos" -prune -exec rm -f {} \;
 	find . -type d -name "test_output" -prune -exec rm -rf {} \;
 
 

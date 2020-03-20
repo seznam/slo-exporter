@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Refactored
 - Refactored prometheus exporter to implement Collector interface and to not require known labels beforehand.
 
+### Changed
+- **BREAKING** Failure criteria configuration synatx of sloEventProducer module has changed. 
+    - `failure_criteria` is now `failure_conditions`
+    - `criterium` is now called `operator`
+    - Operators are evaluated on event metadata. `key` field was added in order to specify on which metadata is the given operator to be evaluated.
+    - Old criteria were dropped and newly available operators are `matchesRegexp`, `numberHigherThan` and `durationHigherThan`.
+    - Example of new failure conditions syntax:
+      ```yaml
+      failure_conditions:
+          - operator: matchesRegexp
+            key: "metadataKey"
+            value: ".*"
+      ```
+
 ## [2.4.0] - 2020-03-16
 ### Added
 - Possibility to add additional metadata labels to `events_processed_total` metric of dynamic classifier using `unclassifiedEventMetadataKeys`.

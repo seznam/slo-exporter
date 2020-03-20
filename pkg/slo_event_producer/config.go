@@ -16,17 +16,18 @@ type sloMatcher struct {
 	App    string `yaml:"app"`
 }
 
-type criteriumOptions struct {
-	Criterium string `yaml:"criterium"`
-	Value     string `yaml:"value"`
+type operatorOptions struct {
+	Operator string `yaml:"operator"`
+	Key      string `yaml:"key"`
+	Value    string `yaml:"value"`
 }
 
 type ruleOptions struct {
-	EventType              string              `yaml:"event_type"`
-	SloMatcher             sloMatcher          `yaml:"slo_matcher"`
-	FailureCriteriaOptions []criteriumOptions  `yaml:"failure_criteria"`
-	AdditionalMetadata     stringmap.StringMap `yaml:"additional_metadata,omitempty"`
-	HonorSloResult         bool                `yaml:"honor_slo_result"`
+	EventType                string              `yaml:"event_type"`
+	SloMatcher               sloMatcher          `yaml:"slo_matcher"`
+	FailureConditionsOptions []operatorOptions   `yaml:"failure_conditions"`
+	AdditionalMetadata       stringmap.StringMap `yaml:"additional_metadata,omitempty"`
+	HonorSloResult           bool                `yaml:"honor_slo_result"`
 }
 
 type rulesConfig struct {
