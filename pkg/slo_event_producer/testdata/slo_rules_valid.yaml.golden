@@ -2,8 +2,9 @@ rules:
   - event_type: request
     slo_matcher:
         domain: domain
-    failure_criteria:
-      - criterium: requestStatusHigherThan
+    failure_conditions:
+      - operator: numberHigherThan
+        key: "statusCode"
         value: 500
     additional_metadata:
       slo_type: availability

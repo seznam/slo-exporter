@@ -58,7 +58,7 @@ func (re *requestEventEvaluator) Evaluate(newEvent *event.HttpRequest, outChan c
 	defer timer.ObserveDuration()
 	matchedRulesCount := 0
 	for _, rule := range re.rules {
-		newSloEvent, matched := rule.proccessEvent(newEvent)
+		newSloEvent, matched := rule.processEvent(newEvent)
 		if !matched {
 			continue
 		}

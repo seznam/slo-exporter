@@ -23,13 +23,13 @@ func init() {
 }
 
 func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
-	var failureCriteria []criterium
-	for _, criteriumOpts := range opts.FailureCriteriaOptions {
-		criterium, err := newCriterium(criteriumOpts)
+	var failureConditions []operator
+	for _, operatorOpts := range opts.FailureConditionsOptions {
+		operator, err := newOperator(operatorOpts)
 		if err != nil {
 			return nil, err
 		}
-		failureCriteria = append(failureCriteria, criterium)
+		failureConditions = append(failureConditions, operator)
 	}
 	return &evaluationRule{
 		sloMatcher: event.SloClassification{
@@ -37,7 +37,7 @@ func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 			App:    opts.SloMatcher.App,
 			Class:  opts.SloMatcher.Class,
 		},
-		failureCriteria:    failureCriteria,
+		failureConditions:  failureConditions,
 		additionalMetadata: opts.AdditionalMetadata,
 		honorSloResult:     opts.HonorSloResult,
 	}, nil
@@ -45,7 +45,7 @@ func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 
 type evaluationRule struct {
 	sloMatcher         event.SloClassification
-	failureCriteria    []criterium
+	failureConditions  []operator
 	additionalMetadata stringmap.StringMap
 	honorSloResult     bool
 }
@@ -69,9 +69,13 @@ func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) bool {
 	}
 	failed := false
 	// Evaluate all criteria and if matches any, mark it as failed.
-	for _, criterium := range er.failureCriteria {
-		log.Tracef("evaluating criterium %+v", criterium)
-		if criterium.Evaluate(newEvent) {
+	for _, operator := range er.failureConditions {
+		log.Tracef("evaluating operator %+v", operator)
+		result, err := operator.Evaluate(newEvent)
+		if err != nil {
+			log.Warnf("failed to evaluate operator %v on event %v: %v", operator, newEvent, err)
+		}
+		if result {
 			failed = true
 			break
 		}
@@ -79,7 +83,7 @@ func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) bool {
 	return failed
 }
 
-func (er *evaluationRule) proccessEvent(newEvent *event.HttpRequest) (*event.Slo, bool) {
+func (er *evaluationRule) processEvent(newEvent *event.HttpRequest) (*event.Slo, bool) {
 	eventSloClassification := newEvent.GetSloClassification()
 	if !newEvent.IsClassified() || eventSloClassification == nil {
 		return nil, false
