@@ -76,13 +76,12 @@ modules:
           purpose: "to_demonstrate_slo_exporter_conf_syntax"
 
 
-  # PROCESSOR Module allowing to filter out HTTP requests.
+  # PROCESSOR Module allowing to filter out events.
   eventFilter:
-    # List of Go regular expressions matching HTTP status codes to be filtered out.
-    filteredHttpStatusCodeMatchers: ["301", "302", "40[045]", "411"]
-    # Map of Go regular expression matching HTTP header name to Go regular expression matching HTTP header value. Any HTTP header matching both is filtered out.
-    filteredHttpHeaderMatchers:
-      "(?i)user-agent": "(?i)(?:sentry|blackbox-exporter|kube-probe)"
+    # Map of Go regular expression matching event metadata key to Go regular expression matching metadata value. Any event with metadata matching any of those will be dropped.
+    metadataFilter:
+      "(?i)statusCode": "30[12]|40[045]|411"
+      "(?i)userAgent": "(?i)(?:sentry|blackbox-exporter|kube-probe)"
 
   # PROCESSOR Module doing sanitization of HTTP request path anf generating unique key for the event.
   normalizer:

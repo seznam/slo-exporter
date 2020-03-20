@@ -16,8 +16,8 @@ modules:
     emptyGroupRE: '^-$'
 
   eventFilter:
-    filteredHttpStatusCodeMatchers: ["404"]
-    filteredHttpHeaderMatchers: {}
+    metadataFilter:
+      "(?i)statusCode": "404"
 
 
   normalizer:
