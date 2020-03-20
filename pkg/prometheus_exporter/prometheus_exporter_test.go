@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"strings"
@@ -23,12 +24,6 @@ var conf = prometheusExporterConfig{
 		EventKey:  "event_key",
 	},
 	MaximumUniqueEventKeys: 2,
-}
-
-type testNormalizeEventMetadata struct {
-	knownLabels    []string
-	input          stringmap.StringMap
-	expectedOutput stringmap.StringMap
 }
 
 type testProcessEvent struct {
@@ -74,7 +69,10 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 
 	for _, test := range testCases {
 		reg := prometheus.NewPedanticRegistry()
-		exporter, err := New(reg, conf)
+		exporter, err := New(conf, logrus.NewEntry(logrus.New()))
+		assert.NoError(t, err)
+		err = exporter.RegisterMetrics(reg, reg)
+		assert.NoError(t, err)
 		if err != nil {
 			t.Error(err)
 			return
@@ -90,7 +88,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
-	exporter, err := New(prometheus.NewPedanticRegistry(), conf)
+	exporter, err := New(conf, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Error(err)
 		return
@@ -105,7 +103,7 @@ func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
-	exporter, err := New(prometheus.NewPedanticRegistry(), conf)
+	exporter, err := New(conf, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Error(err)
 		return

@@ -23,18 +23,12 @@ const (
 	imagePlaceholder       = ":image"
 	fontPlaceholder        = ":font"
 	pathItemsSeparator     = "/"
-	component              = "normalizer"
 )
 
 var (
-	log                 *logrus.Entry
 	imageExtensionRegex = regexp.MustCompile(`(?i)\.(?:png|jpg|jpeg|svg|tif|tiff|gif|ico)$`)
 	fontExtensionRegex  = regexp.MustCompile(`(?i)\.(?:ttf|woff)$`)
 )
-
-func init() {
-	log = logrus.WithField("component", component)
-}
 
 type replacer struct {
 	regexpCompiled *regexp.Regexp
@@ -52,12 +46,12 @@ func (n *replacer) process(path string) string {
 	return path
 }
 
-func NewFromViper(viperConfig *viper.Viper) (*requestNormalizer, error) {
+func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*requestNormalizer, error) {
 	config := &requestNormalizerConfig{}
 	if err := viperConfig.UnmarshalExact(config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return NewFromConfig(config)
+	return NewFromConfig(config, logger)
 }
 
 type requestNormalizerConfig struct {
@@ -72,7 +66,7 @@ type requestNormalizerConfig struct {
 }
 
 // New returns requestNormalizer which allows to add Key to RequestEvent
-func NewFromConfig(config *requestNormalizerConfig) (*requestNormalizer, error) {
+func NewFromConfig(config *requestNormalizerConfig, logger *logrus.Entry) (*requestNormalizer, error) {
 	normalizer := requestNormalizer{
 		getParamWithEventIdentifier: config.GetParamWithEventIdentifier,
 		replaceRules:                config.ReplaceRules,
@@ -82,6 +76,8 @@ func NewFromConfig(config *requestNormalizerConfig) (*requestNormalizer, error) 
 		sanitizeIps:                 config.SanitizeIps,
 		sanitizeImages:              config.SanitizeImages,
 		sanitizeFonts:               config.SanitizeFonts,
+		outputChannel:               make(chan *event.HttpRequest),
+		logger:                      logger,
 	}
 	if err := normalizer.precompileRegexps(); err != nil {
 		return nil, err
@@ -99,6 +95,30 @@ type requestNormalizer struct {
 	sanitizeImages              bool
 	sanitizeFonts               bool
 	observer                    prometheus.Observer
+	inputChannel                chan *event.HttpRequest
+	outputChannel               chan *event.HttpRequest
+	done                        bool
+	logger                      *logrus.Entry
+}
+
+func (rn *requestNormalizer) String() string {
+	return "normalizer"
+}
+
+func (rn *requestNormalizer) Done() bool {
+	return rn.done
+}
+
+func (rn *requestNormalizer) SetInputChannel(channel chan *event.HttpRequest) {
+	rn.inputChannel = channel
+}
+
+func (rn *requestNormalizer) OutputChannel() chan *event.HttpRequest {
+	return rn.outputChannel
+}
+
+func (rn *requestNormalizer) Stop() {
+	return
 }
 
 func (rn *requestNormalizer) SetPrometheusObserver(observer prometheus.Observer) {
@@ -187,20 +207,23 @@ func (rn *requestNormalizer) getNormalizedEventKey(event *event.HttpRequest) str
 }
 
 // Run event replacer receiving events and filling their Key if not already filled.
-func (rn *requestNormalizer) Run(inputEventsChan <-chan *event.HttpRequest, outputEventsChan chan<- *event.HttpRequest) {
+func (rn *requestNormalizer) Run() {
 	go func() {
-		defer close(outputEventsChan)
-		for newEvent := range inputEventsChan {
+		defer func() {
+			close(rn.outputChannel)
+			rn.done = true
+		}()
+		for newEvent := range rn.inputChannel {
 			start := time.Now()
 			if newEvent.EventKey != "" {
-				log.Debugf("skipping newEvent normalization, already has Key: %s", newEvent.EventKey)
+				rn.logger.Debugf("skipping newEvent normalization, already has Key: %s", newEvent.EventKey)
 			} else {
 				newEvent.EventKey = rn.getNormalizedEventKey(newEvent)
-				log.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
+				rn.logger.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
 			}
-			outputEventsChan <- newEvent
+			rn.outputChannel <- newEvent
 			rn.observeDuration(start)
 		}
-		log.Info("input channel closed, finishing")
+		rn.logger.Info("input channel closed, finishing")
 	}()
 }

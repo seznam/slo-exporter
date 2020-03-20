@@ -4,7 +4,7 @@ package dynamic_classifier
 //revive:enable:var-naming
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"path/filepath"
@@ -14,7 +14,7 @@ import (
 )
 
 func newClassifier(t *testing.T, config classifierConfig) *DynamicClassifier {
-	classifier, err := New(config, prometheus.NewPedanticRegistry())
+	classifier, err := New(config, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,13 +31,13 @@ func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 	}
 	classifier := newClassifier(t, config)
 
-	expectedExactMatches := newMemoryExactMatcher()
-	expectedExactMatches.exactMatches["GET:/testing-endpoint"] = newSloClassification("test-domain", "test-app", "test-class")
+	expectedClassification := newSloClassification("test-domain", "test-app", "test-class")
+	expectedExactMatches := newMemoryExactMatcher(logrus.NewEntry(logrus.New()))
+	expectedExactMatches.exactMatches["GET:/testing-endpoint"] = expectedClassification
 
-	if !reflect.DeepEqual(classifier.exactMatches, expectedExactMatches) {
-		t.Errorf("Loaded data from csv and expected data does not match: %+v != %+v", classifier.exactMatches, expectedExactMatches)
-	}
-
+	classification, err := classifier.exactMatches.get("GET:/testing-endpoint")
+	assert.NoError(t, err)
+	assert.Equal(t, classification, expectedClassification)
 }
 
 func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
@@ -46,16 +46,17 @@ func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 	}
 	classifier := newClassifier(t, config)
 
+	expectedClassification := newSloClassification("test-domain", "test-app", "test-class")
 	expectedRegexpSloClassification := &regexpSloClassification{
 		regexpCompiled: regexp.MustCompile(".*"),
-		classification: newSloClassification("test-domain", "test-app", "test-class"),
+		classification: expectedClassification,
 	}
-	expectedExactMatches := newRegexpMatcher()
+	expectedExactMatches := newRegexpMatcher(logrus.NewEntry(logrus.New()))
 	expectedExactMatches.matchers = append(expectedExactMatches.matchers, expectedRegexpSloClassification)
 
-	if !reflect.DeepEqual(classifier.regexpMatches, expectedExactMatches) {
-		t.Errorf("Loaded data from csv and expected data does not match: %+v != %+v", classifier.regexpMatches, expectedExactMatches)
-	}
+	classification, err := classifier.regexpMatches.get("foo")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedClassification, classification)
 
 }
 
@@ -75,19 +76,19 @@ func TestClassificationByExactMatches(t *testing.T) {
 	}
 
 	for _, ec := range data {
-		event := &event.HttpRequest{
+		newEvent := &event.HttpRequest{
 			EventKey:          ec.endpoint,
 			SloClassification: ec.expectedClassification,
 		}
 
-		ok, err := classifier.Classify(event)
+		ok, err := classifier.Classify(newEvent)
 		if err != nil {
-			t.Fatalf("Failed to classify %+v - %+v", event, err)
+			t.Fatalf("Failed to classify %+v - %+v", newEvent, err)
 		}
 
 		assert.Equal(t, ec.expectedOk, ok)
-		if !reflect.DeepEqual(ec.expectedClassification, event.SloClassification) {
-			t.Errorf("Classification does not match %+v != %+v", ec.expectedClassification, event.SloClassification)
+		if !reflect.DeepEqual(ec.expectedClassification, newEvent.SloClassification) {
+			t.Errorf("Classification does not match %+v != %+v", ec.expectedClassification, newEvent.SloClassification)
 		}
 	}
 }
@@ -109,19 +110,19 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 	}
 
 	for _, ec := range data {
-		event := &event.HttpRequest{
+		newEvent := &event.HttpRequest{
 			EventKey:          ec.endpoint,
 			SloClassification: ec.expectedClassification,
 		}
 
-		ok, err := classifier.Classify(event)
+		ok, err := classifier.Classify(newEvent)
 		if err != nil {
-			t.Fatalf("Failed to classify %+v - %+v", event, err)
+			t.Fatalf("Failed to classify %+v - %+v", newEvent, err)
 		}
 
 		assert.Equal(t, ec.expectedOk, ok)
-		if !reflect.DeepEqual(ec.expectedClassification, event.SloClassification) {
-			t.Errorf("Classification does not match %+v != %+v", ec.expectedClassification, event.SloClassification)
+		if !reflect.DeepEqual(ec.expectedClassification, newEvent.SloClassification) {
+			t.Errorf("Classification does not match %+v != %+v", ec.expectedClassification, newEvent.SloClassification)
 		}
 	}
 }
@@ -213,14 +214,13 @@ func Test_DynamicClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t
 	}
 }
 
-
 func Test_DynamicClassifier_Classify_metadataKeyToLabel(t *testing.T) {
 	testCases := map[string]string{
-		"foo": "metadata_foo",
+		"foo":    "metadata_foo",
 		"fooBar": "metadata_foo_bar",
 		"FooBar": "metadata_foo_bar",
 		"foobar": "metadata_foobar",
-		"": "metadata_",
+		"":       "metadata_",
 	}
 	for input, output := range testCases {
 		assert.Equal(t, output, metadataKeyToLabel(input))

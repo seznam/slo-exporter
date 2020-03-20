@@ -11,24 +11,12 @@ import (
 	"time"
 )
 
-const (
-	component = "event_filter"
-)
-
 var (
-	log                 *logrus.Entry
 	filteredEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "slo_exporter",
-		Subsystem: component,
-		Name:      "filtered_events_total",
-		Help:      "Total number of filtered events by metadata_key.",
+		Name: "filtered_events_total",
+		Help: "Total number of filtered events by metadata_key.",
 	}, []string{"metadata_key"})
 )
-
-func init() {
-	log = logrus.WithFields(logrus.Fields{"component": component})
-	prometheus.MustRegister(filteredEventsTotal)
-}
 
 type eventFilterConfig struct {
 	MetadataFilter stringmap.StringMap
@@ -42,19 +30,51 @@ type metadataMatcher struct {
 type EventFilter struct {
 	metadataMatchers []metadataMatcher
 	observer         prometheus.Observer
+	logger           *logrus.Entry
+	inputChannel     chan *event.HttpRequest
+	outputChannel    chan *event.HttpRequest
+	done             bool
 }
 
-func NewFromViper(viperConfig *viper.Viper) (*EventFilter, error) {
+func (ef *EventFilter) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+	return wrappedRegistry.Register(filteredEventsTotal)
+}
+
+func (ef *EventFilter) String() string {
+	return "eventFilter"
+}
+
+func (ef *EventFilter) Done() bool {
+	return ef.done
+}
+
+func (ef *EventFilter) Stop() {
+	return
+}
+
+func (ef *EventFilter) SetInputChannel(channel chan *event.HttpRequest) {
+	ef.inputChannel = channel
+}
+
+func (ef *EventFilter) OutputChannel() chan *event.HttpRequest {
+	return ef.outputChannel
+}
+
+func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*EventFilter, error) {
 	var config eventFilterConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return NewFromConfig(config)
+	return NewFromConfig(config, logger)
 }
 
-func NewFromConfig(config eventFilterConfig) (*EventFilter, error) {
+func NewFromConfig(config eventFilterConfig, logger *logrus.Entry) (*EventFilter, error) {
 	filter := EventFilter{
 		metadataMatchers: []metadataMatcher{},
+		outputChannel:    make(chan *event.HttpRequest),
+		inputChannel:     make(chan *event.HttpRequest),
+		done:             false,
+		logger:           logger,
 	}
 	for nameMatcher, valueMatcher := range config.MetadataFilter {
 		nameRegexpMatcher, err := regexp.Compile(nameMatcher)
@@ -74,7 +94,7 @@ func (ef *EventFilter) matches(event *event.HttpRequest) bool {
 	matches, matchedKey := ef.metadataMatch(event.Metadata)
 	if matches {
 		filteredEventsTotal.WithLabelValues(matchedKey).Inc()
-		log.WithField("event", event).Debugf("dropping event because of matching event metadata key %s", matchedKey)
+		ef.logger.WithField("event", event).Debugf("dropping event because of matching event metadata key %s", matchedKey)
 		return true
 	}
 	return false
@@ -101,16 +121,19 @@ func (ef *EventFilter) observeDuration(start time.Time) {
 	}
 }
 
-func (ef *EventFilter) Run(in <-chan *event.HttpRequest, out chan<- *event.HttpRequest) {
+func (ef *EventFilter) Run() {
 	go func() {
-		defer close(out)
-		for newEvent := range in {
+		defer func() {
+			close(ef.outputChannel)
+			ef.done = true
+		}()
+		for newEvent := range ef.inputChannel {
 			start := time.Now()
 			if !ef.matches(newEvent) {
-				out <- newEvent
+				ef.outputChannel <- newEvent
 			}
 			ef.observeDuration(start)
 		}
-		log.Info("input channel closed, finishing")
+		ef.logger.Info("input channel closed, finishing")
 	}()
 }
