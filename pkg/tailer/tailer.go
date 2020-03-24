@@ -364,13 +364,10 @@ func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, 
 		return nil, fmt.Errorf("unable to parse line")
 	}
 	for i, name := range lineParseRegexp.SubexpNames() {
-		if i == 0 || name == "" {
+		if i == 0 || name == "" || emptyGroupRegexp.MatchString(match[i]) {
 			continue
 		}
-		if !emptyGroupRegexp.MatchString(match[i]) {
-			lineData[name] = match[i]
-		}
-
+		lineData[name] = match[i]
 	}
 
 	return lineData, nil
