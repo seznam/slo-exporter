@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-const (
-	UndefinedFRPCStatus = 0
-)
-
 // HttpRequest represents single event as received by an EventsProcessor instance
 type HttpRequest struct {
 	Time              time.Time
@@ -25,7 +21,6 @@ type HttpRequest struct {
 	Method            string
 	SloResult         string
 	SloClassification *SloClassification
-	FRPCStatus        int
 }
 
 // UpdateSLOClassification updates SloClassification field

@@ -31,7 +31,6 @@ const (
 	requestDurationGroupName = "requestDuration"
 	statusCodeGroupName      = "statusCode"
 	requestGroupName         = "request"
-	frpcStatusGroupName      = "frpcStatus"
 	ipGroupName              = "ip"
 	sloEndpointGroupName     = "sloEndpoint"
 	sloResultGroupName       = "sloResult"
@@ -41,7 +40,7 @@ const (
 )
 
 var (
-	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, frpcStatusGroupName, ipGroupName, sloEndpointGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
+	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloEndpointGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
 
 	log *logrus.Entry
 
@@ -339,15 +338,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		Class:  lineData[sloClassGroupName],
 	}
 
-	frpcStatus := event.UndefinedFRPCStatus
-	frpcStatusString, _ := lineData[frpcStatusGroupName]
-	if frpcStatusString != "" {
-		frpcStatus, err = strconv.Atoi(frpcStatusString)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse frpc status '%v': %w", frpcStatusString, err)
-		}
-	}
-
 	return &event.HttpRequest{
 		Time:              t,
 		IP:                net.ParseIP(lineData[ipGroupName]),
@@ -360,7 +350,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		EventKey:          lineData["eventKey"],
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
-		FRPCStatus:        frpcStatus,
 	}, nil
 }
 
