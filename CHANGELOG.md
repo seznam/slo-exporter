@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [3.2.0] - 2020-03-24
 ### Refactored
 - HttpRequest.Headers, HttpRequest.Metadata is now filled only with data not matching conf.tailer.emptyGroupRE.
 - Drop frpcStatus as a dedicated atribute for HttpRequest.
