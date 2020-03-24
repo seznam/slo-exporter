@@ -26,12 +26,12 @@ var (
 		"request":         "GET /robots.txt HTTP/1.1",
 		"statusCode":      "200",
 		"requestDuration": "0.123", // in s, as logged by nginx
-		"sloClass":        "",
-		"sloDomain":       "",
-		"sloApp":          "",
-		"sloResult":       "",
-		"sloEndpoint":     "",
-		"frpcStatus":      "",
+		"sloClass":        "-",
+		"sloDomain":       "-",
+		"sloApp":          "-",
+		"sloResult":       "-",
+		"sloEndpoint":     "-",
+		"frpcStatus":      "-",
 	}
 )
 
@@ -84,14 +84,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "GET /robots.txt HTTP/1.1",
 			"statusCode":      "200",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, true},
 		// ipv6
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -99,14 +99,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "GET /robots.txt HTTP/1.1",
 			"statusCode":      "200",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, true},
 		// invalid time
 		{map[string]string{"time": "32/Nov/2019:25:20:07 +0100",
@@ -114,14 +114,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "GET /robots.txt HTTP/1.1",
 			"statusCode":      "200x",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, false},
 		// invalid request
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -129,14 +129,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "invalid-request[eof]",
 			"statusCode":      "200x",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, false},
 		// request without protocol
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -144,14 +144,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "GET /robots.txt",
 			"statusCode":      "301",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, true},
 		// http2.0 proto request
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -159,14 +159,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "GET /robots.txt HTTP/2.0",
 			"statusCode":      "200",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, true},
 		// zero status code
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -174,14 +174,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "GET /robots.txt HTTP/1.1",
 			"statusCode":      "0",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, true},
 		// invalid status code
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -189,14 +189,14 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"request":         "GET /robots.txt HTTP/1.1",
 			"statusCode":      "xxx",
 			"requestDuration": "0.123", // in s, as logged by nginx
-			"sloClass":        "",
-			"sloDomain":       "",
-			"sloApp":          "",
-			"sloResult":       "",
-			"sloEndpoint":     "",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"sloClass":        "-",
+			"sloDomain":       "-",
+			"sloApp":          "-",
+			"sloResult":       "-",
+			"sloEndpoint":     "-",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, false},
 		// classified event
 		{map[string]string{"time": "12/Nov/2019:10:20:07 +0100",
@@ -209,9 +209,9 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 			"sloApp":          "frontend-api",
 			"sloResult":       "success",
 			"sloEndpoint":     "AdInventoryManagerInterestsQuery",
-			"frpcStatus":      "",
-			"userAgent":       "",
-			"referer":         "",
+			"frpcStatus":      "-",
+			"userAgent":       "-",
+			"referer":         "-",
 		}, true},
 	}
 
@@ -236,6 +236,12 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 		if test.isLineValid {
 			// line is considered valid, build the expectedEvent struct in order to compare it to the parsed one
 
+			// first, drop all data which matches emptyGroupRegexpCompiled, as they should not be included in the data provided to buildEvent
+			for k, v := range test.lineContentMapping {
+				if emptyGroupRegexpCompiled.MatchString(v) {
+					delete(test.lineContentMapping, k)
+				}
+			}
 			expectedEvent, err = buildEvent(test.lineContentMapping)
 			if err != nil {
 				t.Fatalf("Unable to build event from test data: %v", err)
@@ -285,8 +291,8 @@ func Test_ParseLine(t *testing.T) {
 				continue
 			}
 			// test that empty group was correctly replaced by an empty string
-			if data[k] != emptyGroupReplaceString {
-				t.Errorf("Content named group '%s':'%s' should have been normalized into form: '%s':'%s'", k, v, k, emptyGroupReplaceString)
+			if _, ok := data[k]; ok {
+				t.Errorf("Content named group '%s':'%s' should not have been included in the resulting stringmap (as value matches emptyGroupRegexp: '%s'): %+v", k, v, emptyGroupRegexp, data)
 			}
 		}
 	}

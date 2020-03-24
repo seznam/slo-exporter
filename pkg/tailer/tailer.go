@@ -24,9 +24,8 @@ import (
 )
 
 const (
-	timeLayout              string = "02/Jan/2006:15:04:05 -0700"
-	component               string = "tailer"
-	emptyGroupReplaceString string = ""
+	timeLayout string = "02/Jan/2006:15:04:05 -0700"
+	component  string = "tailer"
 
 	timeGroupName            = "time"
 	requestDurationGroupName = "requestDuration"
@@ -379,9 +378,7 @@ func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, 
 		if i == 0 || name == "" {
 			continue
 		}
-		if emptyGroupRegexp.MatchString(match[i]) {
-			lineData[name] = emptyGroupReplaceString
-		} else {
+		if !emptyGroupRegexp.MatchString(match[i]) {
 			lineData[name] = match[i]
 		}
 
