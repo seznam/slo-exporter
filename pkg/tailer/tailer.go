@@ -24,15 +24,13 @@ import (
 )
 
 const (
-	timeLayout              string = "02/Jan/2006:15:04:05 -0700"
-	component               string = "tailer"
-	emptyGroupReplaceString string = ""
+	timeLayout string = "02/Jan/2006:15:04:05 -0700"
+	component  string = "tailer"
 
 	timeGroupName            = "time"
 	requestDurationGroupName = "requestDuration"
 	statusCodeGroupName      = "statusCode"
 	requestGroupName         = "request"
-	frpcStatusGroupName      = "frpcStatus"
 	ipGroupName              = "ip"
 	sloEndpointGroupName     = "sloEndpoint"
 	sloResultGroupName       = "sloResult"
@@ -42,7 +40,7 @@ const (
 )
 
 var (
-	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, frpcStatusGroupName, ipGroupName, sloEndpointGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
+	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloEndpointGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
 
 	log *logrus.Entry
 
@@ -340,15 +338,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		Class:  lineData[sloClassGroupName],
 	}
 
-	frpcStatus := event.UndefinedFRPCStatus
-	frpcStatusString, _ := lineData[frpcStatusGroupName]
-	if frpcStatusString != "" {
-		frpcStatus, err = strconv.Atoi(frpcStatusString)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse frpc status '%v': %w", frpcStatusString, err)
-		}
-	}
-
 	return &event.HttpRequest{
 		Time:              t,
 		IP:                net.ParseIP(lineData[ipGroupName]),
@@ -361,7 +350,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		EventKey:          lineData["eventKey"],
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
-		FRPCStatus:        frpcStatus,
 	}, nil
 }
 
@@ -376,15 +364,10 @@ func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, 
 		return nil, fmt.Errorf("unable to parse line")
 	}
 	for i, name := range lineParseRegexp.SubexpNames() {
-		if i == 0 || name == "" {
+		if i == 0 || name == "" || emptyGroupRegexp.MatchString(match[i]) {
 			continue
 		}
-		if emptyGroupRegexp.MatchString(match[i]) {
-			lineData[name] = emptyGroupReplaceString
-		} else {
-			lineData[name] = match[i]
-		}
-
+		lineData[name] = match[i]
 	}
 
 	return lineData, nil
