@@ -5,24 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.0.0] 2020-03-26
 ### Changed
-- **BREAKING** Failure criteria configuration synatx of sloEventProducer module has changed. 
-    - `failure_citeria` is now `failure_conditions`
-    - `criterium` is now called `operator`
-    - Operators are evaluated on event metadata. `key` field was added in order to specify on which metadata is the given operator to be evaluated.
-    - Old criteria were dropped and newly available operators are `matchesRegexp`, `numberHigherThan` and `durationHigherThan`.
-    - Example of new failure conditions syntax:
-      ```yaml
-      failure_conditions:
-          - operator: matchesRegexp
-            key: "metadataKey"
-            value: ".*"
-      ```
+- **BREAKING** Pipeline structure is now defined using the `pipeline` configuration option.
+    For more information see [the architecture documentation](README.md#architecture).
+- **BREAKING** The `log_level` configuration option was removed and replaced with the `--log-level` command line flag.
+    Also it can be still configured with the ENV variable `SLO_EXPORTER_LOGLEVEL`.
+- **BREAKING** The `--disable-timescale-exporter` and `--disable-prometheus-exporter` flags were dropped 
+    in favor of dynamic pipeline structure configuration.
+- **BREAKING** The timescale exporter was dropped.
       
 ## [3.2.0] - 2020-03-24
 ### Refactored
 - HttpRequest.Headers, HttpRequest.Metadata is now filled only with data not matching conf.tailer.emptyGroupRE.
-- Drop frpcStatus as a dedicated atribute for HttpRequest.
+- Drop frpcStatus as a dedicated attribute for HttpRequest.
 
 ## [3.1.0] - 2020-03-20
 
