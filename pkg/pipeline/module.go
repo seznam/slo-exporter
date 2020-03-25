@@ -12,10 +12,18 @@ type moduleFactoryFunction func(moduleName string, logger *logrus.Entry, conf *v
 
 type ModuleConstructor func(viperConfig *viper.Viper) (Module, error)
 
+type EventProcessingDurationObserver interface {
+	Observe(float64)
+}
+
 type Module interface {
 	Run()
 	Stop()
 	Done() bool
+}
+
+type ObservableModule interface {
+	RegisterEventProcessingDurationObserver(observer EventProcessingDurationObserver)
 }
 
 type PrometheusInstrumentedModule interface {

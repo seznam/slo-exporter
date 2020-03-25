@@ -2,9 +2,9 @@ package normalizer
 
 import (
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"path"
 	"regexp"
 	"strings"
@@ -94,7 +94,7 @@ type requestNormalizer struct {
 	sanitizeIps                 bool
 	sanitizeImages              bool
 	sanitizeFonts               bool
-	observer                    prometheus.Observer
+	observer                    pipeline.EventProcessingDurationObserver
 	inputChannel                chan *event.HttpRequest
 	outputChannel               chan *event.HttpRequest
 	done                        bool
@@ -121,7 +121,7 @@ func (rn *requestNormalizer) Stop() {
 	return
 }
 
-func (rn *requestNormalizer) SetPrometheusObserver(observer prometheus.Observer) {
+func (rn *requestNormalizer) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	rn.observer = observer
 }
 

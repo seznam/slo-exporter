@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
 	"net"
@@ -84,7 +85,7 @@ type Tailer struct {
 	tail                    *tail.Tail
 	positions               *positions.Positions
 	persistPositionInterval time.Duration
-	observer                prometheus.Observer
+	observer                pipeline.EventProcessingDurationObserver
 	lineParseRegexp         *regexp.Regexp
 	emptyGroupRegexp        *regexp.Regexp
 	outputChannel           chan *event.HttpRequest
@@ -177,7 +178,7 @@ func New(config tailerConfig, logger *logrus.Entry) (*Tailer, error) {
 	}, nil
 }
 
-func (t *Tailer) SetPrometheusObserver(observer prometheus.Observer) {
+func (t *Tailer) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	t.observer = observer
 }
 

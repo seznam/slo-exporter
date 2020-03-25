@@ -7,7 +7,7 @@
 | Input event    | `raw`        |
 | Output event   | `raw`        |
 
-This module allows you to normalize some event data. 
+This module allows you to normalize some event data.
 By normalization it is meant to remove unique sequences from the data so they can be grouped
 and then umber of unique records is not that high.
 
