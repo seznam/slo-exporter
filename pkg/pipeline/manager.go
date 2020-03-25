@@ -11,6 +11,17 @@ import (
 	"strings"
 )
 
+var (
+	eventProcessingDurationSeconds = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "event_processing_duration_seconds",
+			Help:    "Duration histogram of event processing per module.",
+			Buckets: prometheus.ExponentialBuckets(0.0005, 5, 6),
+		},
+		[]string{"module"},
+	)
+)
+
 func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logger *logrus.Entry) (*Manager, error) {
 	manager := Manager{
 		pipeline: []pipelineItem{},
@@ -22,6 +33,7 @@ func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logg
 		if err != nil {
 			return nil, fmt.Errorf("failed to create pipeline module: %w", err)
 		}
+		manager.observeModuleEventProcessingDuration(newPipelineItem)
 		if err := manager.addModuleToPipeline(newPipelineItem); err != nil {
 			return nil, err
 		}
@@ -65,7 +77,17 @@ func (m *Manager) Done() bool {
 	return true
 }
 
+func (m *Manager) observeModuleEventProcessingDuration(item pipelineItem) {
+	observableModule, ok := item.module.(ObservableModule)
+	if ok {
+		observableModule.RegisterEventProcessingDurationObserver(eventProcessingDurationSeconds.WithLabelValues(item.name))
+	}
+}
+
 func (m *Manager) RegisterPrometheusMetrics(rootRegistry prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+	if err := rootRegistry.Register(eventProcessingDurationSeconds); err != nil {
+		return err
+	}
 	m.logger.Info("registering Prometheus metrics of pipeline modules")
 	for _, m := range m.pipeline {
 		promModule, ok := m.module.(PrometheusInstrumentedModule)

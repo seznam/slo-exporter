@@ -35,18 +35,10 @@ var (
 	buildBranch   = ""
 	buildTag      = ""
 
-	appName                        = "slo_exporter"
-	prometheusRegistry             = prometheus.DefaultRegisterer
-	wrappedPrometheusRegistry      = prometheus.WrapRegistererWithPrefix(appName+"_", prometheusRegistry)
-	eventProcessingDurationSeconds = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "event_processing_duration_seconds",
-			Help:    "Duration histogram of event processing per module.",
-			Buckets: prometheus.ExponentialBuckets(0.0005, 5, 6),
-		},
-		[]string{"module"},
-	)
-	appBuildInfo = prometheus.NewGauge(prometheus.GaugeOpts{
+	appName                   = "slo_exporter"
+	prometheusRegistry        = prometheus.DefaultRegisterer
+	wrappedPrometheusRegistry = prometheus.WrapRegistererWithPrefix(appName+"_", prometheusRegistry)
+	appBuildInfo              = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "app_build_info",
 		Help: "Metadata metric with information about application build and version",
 		ConstLabels: prometheus.Labels{"app": "slo-exporter", "version": buildVersion, "revision": buildRevision,
@@ -57,7 +49,6 @@ var (
 func init() {
 	appBuildInfo.Set(1)
 	prometheusRegistry.MustRegister(appBuildInfo)
-	wrappedPrometheusRegistry.MustRegister(eventProcessingDurationSeconds)
 }
 
 // Factory to instantiate pipeline modules

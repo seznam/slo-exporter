@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
 	"net/http"
@@ -59,7 +60,7 @@ type DynamicClassifier struct {
 	regexpMatches                 matcher
 	unclassifiedEventMetadataKeys []string
 	eventsMetric                  *prometheus.CounterVec
-	observer                      prometheus.Observer
+	observer                      pipeline.EventProcessingDurationObserver
 	inputChannel                  chan *event.HttpRequest
 	outputChannel                 chan *event.HttpRequest
 	logger                        *logrus.Entry
@@ -173,7 +174,7 @@ func (dc *DynamicClassifier) reportEvent(result, classifiedBy, statusCode string
 	dc.eventsMetric.With(prometheus.Labels(labels)).Inc()
 }
 
-func (dc *DynamicClassifier) SetPrometheusObserver(observer prometheus.Observer) {
+func (dc *DynamicClassifier) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	dc.observer = observer
 }
 

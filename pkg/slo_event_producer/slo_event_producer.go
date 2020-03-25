@@ -8,6 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -59,7 +60,7 @@ func New(config sloEventProducerConfig, logger *logrus.Entry) (*SloEventProducer
 
 type SloEventProducer struct {
 	eventEvaluator *EventEvaluator
-	observer       prometheus.Observer
+	observer       pipeline.EventProcessingDurationObserver
 	inputChannel   chan *event.HttpRequest
 	outputChannel  chan *event.Slo
 	logger         *logrus.Entry
@@ -96,7 +97,7 @@ func (sep *SloEventProducer) Done() bool {
 	return sep.done
 }
 
-func (sep *SloEventProducer) SetPrometheusObserver(observer prometheus.Observer) {
+func (sep *SloEventProducer) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	sep.observer = observer
 }
 

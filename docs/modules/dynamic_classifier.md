@@ -11,22 +11,22 @@ The SLO calculation is based on some domains and classes which group together
 events by their functionality but also priority or demands on their quality.
 
 This is called classification and for the SLO calculation you need to assign those events
-to their domains and classes. These information how to classify them 
-can be specified using CSV files or they can come along with the event. 
+to their domains and classes. These information how to classify them
+can be specified using CSV files or they can come along with the event.
 
-This module checks if the incoming event isn't already classified and if it isn't, it checks 
+This module checks if the incoming event isn't already classified and if it isn't, it checks
 the CSV file specifications if they can classify the event and adds the classification if possible.
 
 The motivation behind this is that application itself can has the classification defined in it's code.
 Then it just passes it along with the event (HTTP request in headers for example) and there is no need
-to has the classification held centrally somewhere. 
+to has the classification held centrally somewhere.
 
-There is one issue, for example when generating SLO events from proxy log which proxies traffic to web 
-server sending those classification along. It the application stops working, it won't send the 
-classification, so we wouldn't know how to classify it. To mitigate this issue this module also 
-caches all the classifications of input events which are already classified. 
+There is one issue, for example when generating SLO events from proxy log which proxies traffic to web
+server sending those classification along. It the application stops working, it won't send the
+classification, so we wouldn't know how to classify it. To mitigate this issue this module also
+caches all the classifications of input events which are already classified.
 This way it can classify the events even if the application goes down if the were called before.
-  
+
 
 `moduleConfig`
 ```yaml

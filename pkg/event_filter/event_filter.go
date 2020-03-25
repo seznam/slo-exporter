@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"regexp"
 	"time"
@@ -29,7 +30,7 @@ type metadataMatcher struct {
 
 type EventFilter struct {
 	metadataMatchers []metadataMatcher
-	observer         prometheus.Observer
+	observer         pipeline.EventProcessingDurationObserver
 	logger           *logrus.Entry
 	inputChannel     chan *event.HttpRequest
 	outputChannel    chan *event.HttpRequest
@@ -111,7 +112,7 @@ func (ef *EventFilter) metadataMatch(testedMetadata stringmap.StringMap) (bool, 
 	return false, ""
 }
 
-func (ef *EventFilter) SetPrometheusObserver(observer prometheus.Observer) {
+func (ef *EventFilter) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	ef.observer = observer
 }
 

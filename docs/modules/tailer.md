@@ -10,7 +10,7 @@ This module is able to tail file and parse each line using regular expression wi
 Those named groups are used to initiate the produced event.
 It persists the last read position to file, so it can continue if restarted.
 
-It can be used for example to tail proxy log and create events from it 
+It can be used for example to tail proxy log and create events from it
 so you can calculate SLO for your HTTP servers etc.
 
 `moduleConfig`

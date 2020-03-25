@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"time"
 )
@@ -61,7 +62,7 @@ type PrometheusSloEventExporter struct {
 	eventKeyLimit               int
 	exceededKeyLimitPlaceholder string
 	eventKeyCache               map[string]int
-	observer                    prometheus.Observer
+	observer                    pipeline.EventProcessingDurationObserver
 
 	inputChannel chan *event.Slo
 	done         bool
@@ -164,7 +165,7 @@ func (e *PrometheusSloEventExporter) Run() {
 	}()
 }
 
-func (e *PrometheusSloEventExporter) SetPrometheusObserver(observer prometheus.Observer) {
+func (e *PrometheusSloEventExporter) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	e.observer = observer
 }
 

@@ -6,7 +6,7 @@
 | Module type    | `ingester`           |
 | Input event    | `SLO`                |
 
-This module exposes the SLO metrics in Prometheus format, so they can be 
+This module exposes the SLO metrics in Prometheus format, so they can be
 scraped, computed, visualized and alerted on.
 
 SLO is often computed over long time ranges such as 4 weeks. 
