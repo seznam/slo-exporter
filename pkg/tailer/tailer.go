@@ -220,7 +220,7 @@ func (t *Tailer) Run() {
 			t.positions.Stop()
 			ticker.Stop()
 			t.tail.Cleanup()
-			defer close(t.outputChannel)
+			close(t.outputChannel)
 			t.done = true
 		}()
 		quitting := false

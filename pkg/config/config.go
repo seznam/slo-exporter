@@ -17,7 +17,7 @@ type Config struct {
 	LogLevel                        string
 	WebServerListenAddress          string
 	MaximumGracefulShutdownDuration time.Duration
-	MinimumGracefulShutdownDuration time.Duration
+	AfterPipelineShutdownDelay      time.Duration
 	EventKeyMetadataKey             string
 	Modules                         map[string]interface{}
 	logger                          *logrus.Entry
@@ -34,7 +34,7 @@ func (c *Config) LoadFromFile(path string) error {
 	viper.SetDefault("LogLevel", "info")
 	viper.SetDefault("WebServerListenAddress", "0.0.0.0:8080")
 	viper.SetDefault("MaximumGracefulShutdownDuration", 20*time.Second)
-	viper.SetDefault("MinimumGracefulShutdownDuration", 0*time.Second)
+	viper.SetDefault("AfterPipelineShutdownDelay", 0*time.Second)
 	yamlFile, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to open configuration file: %w", err)

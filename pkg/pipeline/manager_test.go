@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sirupsen/logrus"
@@ -79,7 +80,8 @@ func TestManager_StartPipeline(t *testing.T) {
 func TestManager_StopPipeline(t *testing.T) {
 	manager, err := newTestManager()
 	assert.NoError(t, err)
-	manager.StopPipeline()
+	ctx := context.Background()
+	<-manager.StopPipeline(ctx)
 	assert.True(t, manager.Done())
 }
 
@@ -160,22 +162,5 @@ func Test_newPipelineItem(t *testing.T) {
 		assert.NoError(t, err)
 		_, err = m.newPipelineItem(tt.moduleName, config.New(logrus.NewEntry(logrus.New())), testModuleFactory)
 		assert.Equal(t, tt.expErr, err != nil)
-	}
-}
-
-func Test_newItemName(t *testing.T) {
-	tests := []struct {
-		moduleName string
-		itemName   string
-	}{
-		{moduleName: "foo", itemName: "foo"},
-		{moduleName: "test_module", itemName: "test_module1"},
-		{moduleName: "testModule", itemName: "test_module1"},
-	}
-
-	for _, tt := range tests {
-		m, err := newTestManager()
-		assert.NoError(t, err)
-		assert.Equal(t, tt.itemName, m.newItemName(tt.moduleName))
 	}
 }
