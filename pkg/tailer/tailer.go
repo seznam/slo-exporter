@@ -31,7 +31,6 @@ const (
 	statusCodeGroupName      = "statusCode"
 	requestGroupName         = "request"
 	ipGroupName              = "ip"
-	sloEndpointGroupName     = "sloEndpoint"
 	sloResultGroupName       = "sloResult"
 	sloDomainGroupName       = "sloDomain"
 	sloAppGroupName          = "sloApp"
@@ -39,9 +38,7 @@ const (
 )
 
 var (
-	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloEndpointGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
-
-	log *logrus.Entry
+	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 
@@ -371,7 +368,7 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		Headers:           lineData.Copy().Without(knownGroupNames),
 		Metadata:          lineData,
 		Method:            method,
-		EventKey:          lineData[sloEndpointGroupName],
+		EventKey:          lineData["eventKey"],
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
 	}, nil
