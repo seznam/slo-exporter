@@ -34,7 +34,8 @@ The pipeline can be composed dynamically but there are some basic rules it needs
   - Type of produced event by the preceding module must match the ingested type of the following one.
 
 ## Configuration
-Slo exporter is configured using one YAML file. Path to this file is configured using the `--config-file` flag.
+Slo exporter itself is configured using one YAML file. Path to this file is configured using the `--config-file` flag.
+Additional configuration files might be needed by some pipeline modules depending on their needs and if they are used in the pipeline at all.
 ```bash
 slo_exporter --config-file=config.yaml
 ```

@@ -33,7 +33,7 @@ positionPersistenceInterval: "2s"
 #   request - HTTP request line
 #   frpcStatus - Resulting status code of the FastRPC request embedded in the HTTP request.
 #   ip - both IPv4 or IPv6
-#   sloEndpoint - name of SLO endpoint. If non-empty, it will be used as an event key value.
+#   eventKey - If non-empty, it will be used as an eventKey value in the resulting event.
 #   sloResult - see 'honor_slo_result' in 'modules.sloEventProducer.rulesFiles'
 #   sloDomain - part of SLO classification for the given event.
 #   sloApp - part of SLO classification for the given event.

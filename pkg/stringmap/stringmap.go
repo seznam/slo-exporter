@@ -48,7 +48,7 @@ func (m StringMap) NewWith(key, value string) StringMap {
 // Keys returns non-ordered list of StringMap keys.
 func (m StringMap) Keys() []string {
 	var keys []string
-	for k := range m {
+	for k, _ := range m {
 		keys = append(keys, k)
 	}
 	return keys

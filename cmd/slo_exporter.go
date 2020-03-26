@@ -169,7 +169,7 @@ func main() {
 			// Add the delay after pipeline shutdown.
 			delayedShutdownContext, _ := context.WithTimeout(shutdownCtx, conf.AfterPipelineShutdownDelay)
 			// Wait until any of the context expires
-			logger.Info("waiting the configured delay %s after pipeline has finished", conf.AfterPipelineShutdownDelay)
+			logger.Infof("waiting the configured delay %s after pipeline has finished", conf.AfterPipelineShutdownDelay)
 			<-delayedShutdownContext.Done()
 
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
