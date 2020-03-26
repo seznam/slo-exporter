@@ -28,10 +28,10 @@ There is set of implemented modules to be used and are divided to three basic ty
 
 
 ### Pipeline rules
-The pipeline can be composed dynamically but there are some basic rules which needs be followed:
-  - At the beginning of the pipeline can be only `producer` module.
-  - `producer` module can be found only at the beginning of the pipeline.
-  - Type of produced event of the preceding module must match the ingested type of the following one.
+The pipeline can be composed dynamically but there are some basic rules it needs to follow:
+  - `ingester` module cannot be at the beginning of pipeline.
+  - `ingester` module can only be linked to preceding `producer` module.
+  - Type of produced event by the preceding module must match the ingested type of the following one.
 
 ## Configuration
 Slo exporter is configured using one YAML file. Path to this file is configured using the `--config-file` flag.

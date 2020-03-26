@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING** The `--disable-timescale-exporter` and `--disable-prometheus-exporter` flags were dropped 
     in favor of dynamic pipeline structure configuration.
 - **BREAKING** The timescale exporter was dropped.
+- **BREAKING** The `minimumGracefulShutdownDuration` configuration option was replaced with `afterPipelineShutdownDelay` to be more intuitive.
       
 ## [3.2.0] - 2020-03-24
 ### Refactored

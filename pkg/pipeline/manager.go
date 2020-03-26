@@ -1,14 +1,15 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/iancoleman/strcase"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
-	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -64,8 +65,26 @@ func (m *Manager) StartPipeline() {
 
 }
 
-func (m *Manager) StopPipeline() {
+func (m *Manager) StopPipeline(ctx context.Context) chan struct{} {
 	m.pipeline[0].module.Stop()
+	stoppedChan := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				m.logger.Warn("Shutdown context expired before pipeline managed to process all events.")
+				return
+			default:
+				if m.Done() {
+					close(stoppedChan)
+					m.logger.Info("Pipeline finished processing all events and successfully stopped.")
+					return
+				}
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+	return stoppedChan
 }
 
 func (m *Manager) Done() bool {
@@ -94,7 +113,7 @@ func (m *Manager) RegisterPrometheusMetrics(rootRegistry prometheus.Registerer, 
 		if !ok {
 			continue
 		}
-		wrappedRegistry := prometheus.WrapRegistererWithPrefix(m.name+"_", wrappedRegistry)
+		wrappedRegistry := prometheus.WrapRegistererWithPrefix(strcase.ToSnake(m.name)+"_", wrappedRegistry)
 		if err := promModule.RegisterMetrics(rootRegistry, wrappedRegistry); err != nil {
 			return fmt.Errorf("error registering metrics of module %s: %w", m.name, err)
 		}
@@ -145,13 +164,13 @@ func linkModules(previous, next Module) error {
 	case RawEventProducerModule:
 		nextRaw, ok := next.(RawEventIngesterModule)
 		if !ok {
-			return fmt.Errorf("trying to link raw event producer %s with slo event ingester %v", previous, next)
+			return fmt.Errorf("trying to link raw event producer %s with slo event ingester %s", previous, next)
 		}
 		nextRaw.SetInputChannel(previous.(RawEventProducerModule).OutputChannel())
 	case SloEventProducerModule:
 		nextRaw, ok := next.(SloEventIngesterModule)
 		if !ok {
-			return fmt.Errorf("trying to link SLO event producer %s with raw event ingester %v", previous, next)
+			return fmt.Errorf("trying to link SLO event producer %s with raw event ingester %s", previous, next)
 		}
 		nextRaw.SetInputChannel(previous.(SloEventProducerModule).OutputChannel())
 	}
@@ -187,30 +206,17 @@ func (m *Manager) addModuleToPipeline(newItem pipelineItem) error {
 	return nil
 }
 
-func (m *Manager) newItemName(moduleName string) string {
-	iterator := 0
-	newItemName := strcase.ToSnake(moduleName)
-	for _, i := range m.pipeline {
-		if i.name == newItemName {
-			iterator++
-			newItemName += strconv.Itoa(iterator)
-		}
-	}
-	return newItemName
-}
-
 func (m *Manager) newPipelineItem(moduleName string, config *config.Config, factoryFunction moduleFactoryFunction) (pipelineItem, error) {
-	newItemName := m.newItemName(moduleName)
 	moduleConfig, err := config.ModuleConfig(moduleName)
 	if err != nil {
 		return pipelineItem{}, fmt.Errorf("failed to load configuration for module %s: %w", moduleName, err)
 	}
-	newModule, err := factoryFunction(moduleName, m.logger.WithField("component", newItemName), moduleConfig)
+	newModule, err := factoryFunction(moduleName, m.logger.WithField("component", moduleName), moduleConfig)
 	if err != nil {
 		return pipelineItem{}, fmt.Errorf("failed to initialize module %s from config: %w", moduleName, err)
 	}
 	return pipelineItem{
-		name:   newItemName,
+		name:   moduleName,
 		module: newModule,
 	}, nil
 }

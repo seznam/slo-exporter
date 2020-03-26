@@ -163,14 +163,15 @@ func main() {
 		case <-gracefulShutdownRequestChan:
 			logger.Info("gracefully shutting down")
 			readiness.NotOk(fmt.Errorf("shutting down"))
-
-			pipelineManager.StopPipeline()
 			shutdownCtx, _ := context.WithTimeout(context.Background(), conf.MaximumGracefulShutdownDuration)
 
-			// shutdown the http server, with delay (if configured)
-			delayedShutdownContext, _ := context.WithTimeout(shutdownCtx, conf.MinimumGracefulShutdownDuration)
+			<-pipelineManager.StopPipeline(shutdownCtx)
+			// Add the delay after pipeline shutdown.
+			delayedShutdownContext, _ := context.WithTimeout(shutdownCtx, conf.AfterPipelineShutdownDelay)
 			// Wait until any of the context expires
+			logger.Info("waiting the configured delay %s after pipeline has finished", conf.AfterPipelineShutdownDelay)
 			<-delayedShutdownContext.Done()
+
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
 				logger.Errorf("failed to gracefully shutdown HTTP server %+v. ", err)
 			}
