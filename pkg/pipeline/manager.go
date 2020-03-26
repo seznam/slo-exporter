@@ -138,7 +138,7 @@ func linkModules(previous, next Module) error {
 		return fmt.Errorf("trying to link to module %s which is not a producer", previous)
 	}
 	if !isIngester(next) {
-		return fmt.Errorf("trying to link module %s ro previous module but it is not an ingester", next)
+		return fmt.Errorf("trying to link module %s to previous module but it is not an ingester", next)
 	}
 	// Check if event types of producer end ingester matches.
 	switch previous.(type) {
