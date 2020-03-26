@@ -46,7 +46,7 @@ func newTestManager() (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = manager.addModuleToPipeline(pipelineItem{name: "test_module", module: &testModule{}}); err != nil {
+	if err = manager.addModuleToPipelineEnd(pipelineItem{name: "test_module", module: &testModule{}}); err != nil {
 		return nil, err
 	}
 	return manager, nil
@@ -95,7 +95,7 @@ func TestManager_linkModuleWithPipeline(t *testing.T) {
 		{manager: Manager{pipeline: []pipelineItem{}}, nextModule: testRawIngester{}, wantErr: true},
 	}
 	for _, tt := range tests {
-		err := tt.manager.linkModuleWithPipeline(tt.nextModule)
+		err := tt.manager.linkModuleWithPipelineEnd(tt.nextModule)
 		assert.Equal(t, tt.wantErr, err != nil)
 	}
 }

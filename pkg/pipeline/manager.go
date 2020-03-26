@@ -35,7 +35,7 @@ func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logg
 			return nil, fmt.Errorf("failed to create pipeline module: %w", err)
 		}
 		manager.observeModuleEventProcessingDuration(newPipelineItem)
-		if err := manager.addModuleToPipeline(newPipelineItem); err != nil {
+		if err := manager.addModuleToPipelineEnd(newPipelineItem); err != nil {
 			return nil, err
 		}
 	}
@@ -181,7 +181,7 @@ func (m *Manager) lastPipelineItem() pipelineItem {
 	return m.pipeline[len(m.pipeline)-1]
 }
 
-func (m *Manager) linkModuleWithPipeline(nextModule Module) error {
+func (m *Manager) linkModuleWithPipelineEnd(nextModule Module) error {
 	// If it is first module to be in the pipeline, just check it's not an ingester and add it there.
 	if len(m.pipeline) == 0 {
 		if isIngester(nextModule) {
@@ -198,8 +198,8 @@ func (m *Manager) linkModuleWithPipeline(nextModule Module) error {
 	return nil
 }
 
-func (m *Manager) addModuleToPipeline(newItem pipelineItem) error {
-	if err := m.linkModuleWithPipeline(newItem.module); err != nil {
+func (m *Manager) addModuleToPipelineEnd(newItem pipelineItem) error {
+	if err := m.linkModuleWithPipelineEnd(newItem.module); err != nil {
 		return err
 	}
 	m.pipeline = append(m.pipeline, newItem)
