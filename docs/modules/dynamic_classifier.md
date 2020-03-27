@@ -25,7 +25,9 @@ There is one issue, for example when generating SLO events from proxy log which 
 server sending those classification along. It the application stops working, it won't send the
 classification, so we wouldn't know how to classify it. To mitigate this issue this module also
 caches all the classifications of input events which are already classified.
-This way it can classify the events even if the application goes down if the were called before.
+This way it can classify the events even if the application goes down if they were called before.
+
+Also, this cache can be initialized with defined values on startup, so that we can correctly classify events even for application which does not provide us with the classification by themselves.
 
 
 `moduleConfig`
