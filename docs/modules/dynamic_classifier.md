@@ -22,7 +22,7 @@ Then it just passes it along with the event (HTTP request in headers for example
 to has the classification held centrally somewhere.
 
 There is one issue, for example when generating SLO events from proxy log which proxies traffic to web
-server sending those classification along. It the application stops working, it won't send the
+server sending those classification along. If the application stops working, it won't send the
 classification, so we wouldn't know how to classify it. To mitigate this issue this module also
 caches all the classifications of input events which are already classified.
 This way it can classify the events even if the application goes down if they were called before.
