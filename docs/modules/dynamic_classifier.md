@@ -17,7 +17,7 @@ can be specified using CSV files or they can come along with the event.
 This module checks if the incoming event isn't already classified and if it isn't, it checks
 the CSV file specifications if they can classify the event and adds the classification if possible.
 
-The motivation behind this is that application itself can has the classification defined in it's code.
+The motivation behind this is that application itself can have the classification defined in it's code.
 Then it just passes it along with the event (HTTP request in headers for example) and there is no need
 to has the classification held centrally somewhere.
 
