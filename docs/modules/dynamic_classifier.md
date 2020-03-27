@@ -19,7 +19,7 @@ the CSV file specifications if they can classify the event and adds the classifi
 
 The motivation behind this is that application itself can have the classification defined in it's code.
 Then it just passes it along with the event (HTTP request in headers for example) and there is no need
-to has the classification held centrally somewhere.
+to have the classification held centrally somewhere.
 
 There is one issue, for example when generating SLO events from proxy log which proxies traffic to web
 server sending those classification along. If the application stops working, it won't send the
