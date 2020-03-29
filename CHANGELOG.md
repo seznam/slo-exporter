@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.1] 2020-03-29
+### Fixed
+- Kubernetes manifests fixed to match the breaking changes in 4.0.0.
+
 ## [4.0.0] 2020-03-26
 ### Changed
 - **BREAKING** Pipeline structure is now defined using the `pipeline` configuration option.
