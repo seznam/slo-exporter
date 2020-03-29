@@ -1,10 +1,9 @@
 package tailer
 
 import (
-	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -343,25 +342,20 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		LoglineParseRegexp:          lineParseRegexp,
 		EmptyGroupRE:                emptyGroupRegexp,
 	}
-	tailer, err := New(config)
+	tailer, err := New(config, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		return err
 	}
 
-	eventsChan := make(chan *event.HttpRequest)
-	errChan := make(chan error, 10)
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	shutdownHandler := shutdown_handler.New(ctx, nil)
-	tailer.Run(&shutdownHandler, eventsChan, errChan)
-	shutdownHandler.Inc()
-	go countEvents(eventsChan, eventCount)
+	tailer.Run()
+	go countEvents(tailer.OutputChannel(), eventCount)
 
 	for i := 0; i < t.during; i++ {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	cancelFunc()
+	tailer.Stop()
 	eventsCount := <-eventCount
 
 	if eventsCount != t.pre+t.during {
@@ -372,17 +366,12 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
 	}
 
-	eventsChan = make(chan *event.HttpRequest)
-	errChan = make(chan error, 10)
-	ctx, cancelFunc = context.WithCancel(context.Background())
-	shutdownHandler = shutdown_handler.New(ctx, nil)
-	tailer, err = New(config)
+	tailer, err = New(config, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		return err
 	}
-	tailer.Run(&shutdownHandler, eventsChan, errChan)
-	shutdownHandler.Inc()
-	go countEvents(eventsChan, eventCount)
+	tailer.Run()
+	go countEvents(tailer.OutputChannel(), eventCount)
 
 	for i := 0; i < t.reopen; i++ {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
@@ -390,7 +379,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 
 	time.Sleep(100 * time.Millisecond)
 
-	cancelFunc()
+	tailer.Stop()
 	eventsCount = <-eventCount
 
 	if eventsCount != t.post+t.reopen {
@@ -402,9 +391,9 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 
 var testOffsetPersistenceTable = []offsetPersistenceTest{
 	// events in log file present before the first open
-	offsetPersistenceTest{10, 10, 0, 0},
+	{10, 10, 0, 0},
 	// just new events are read on file reopen
-	offsetPersistenceTest{10, 10, 10, 10},
+	{10, 10, 10, 10},
 }
 
 func TestOffsetPersistence(t *testing.T) {

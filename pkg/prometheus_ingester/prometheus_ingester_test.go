@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/prometheus/common/model"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
@@ -34,7 +35,7 @@ func mockedMetric() model.Metric {
 	return obj
 }
 
-func prometheusQueryResultsToString(rawResults []*event.PrometheusQueryResult) []string {
+func HttpRequestsToString(rawResults []*event.HttpRequest) []string {
 	stringResults := make([]string, len(rawResults))
 	for i, rawResult := range rawResults {
 		marshalledBytes, err := json.Marshal(*rawResult)
@@ -49,7 +50,7 @@ func prometheusQueryResultsToString(rawResults []*event.PrometheusQueryResult) [
 type modelTypeIngestTestCase struct {
 	prometheusResult model.Value
 	query            queryOptions
-	eventsProduced   []*event.PrometheusQueryResult
+	eventsProduced   []*event.HttpRequest
 }
 
 func Test_Ingests_Various_ModelTypes(t *testing.T) {
@@ -85,26 +86,18 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				},
 			},
 			query: queryOptions{},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    metricStringMap,
+					Metadata: addResultToMetadata(metricStringMap, 1, time.Unix(0, 1000000)),
 				},
 				{
-					Value:     2,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    metricStringMap,
+					Metadata: addResultToMetadata(metricStringMap, 2, time.Unix(0, 1000000)),
 				},
 				{
-					Value:     3,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    metricStringMap,
+					Metadata: addResultToMetadata(metricStringMap, 3, time.Unix(0, 1000000)),
 				},
 				{
-					Value:     4,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    metricStringMap,
+					Metadata: addResultToMetadata(metricStringMap, 4, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -123,16 +116,12 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				},
 			},
 			query: queryOptions{},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    metricStringMap,
+					Metadata: addResultToMetadata(metricStringMap, 1, time.Unix(0, 1000000)),
 				},
 				{
-					Value:     2,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    metricStringMap,
+					Metadata: addResultToMetadata(metricStringMap, 2, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -143,10 +132,9 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				Value:     model.SampleValue(1),
 			},
 			query: queryOptions{},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
+					Metadata: addResultToMetadata(stringmap.StringMap{}, 1, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -159,14 +147,14 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 		}
 
 		// Prepare the string interpretation of the actual results
-		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", prometheusQueryResultsToString(actualEventResult))
+		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", HttpRequestsToString(actualEventResult))
 	}
 }
 
 type labelAddOrDropTestCase struct {
 	prometheusResult model.Value
 	query            queryOptions
-	eventsProduced   []*event.PrometheusQueryResult
+	eventsProduced   []*event.HttpRequest
 }
 
 func Test_Add_Or_Drop_Labels(t *testing.T) {
@@ -183,15 +171,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    map[string]string{
-						"a": "1",
-						"job": "kubernetes",
-						"locality": "nagano",
-					},
+					Metadata: addResultToMetadata(stringmap.StringMap{"a": "1", "job": "kubernetes", "locality": "nagano",}, 1, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -207,14 +189,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    map[string]string{
-						"job": "kubernetes",
-						"locality": "osaka",
-					},
+					Metadata: addResultToMetadata(stringmap.StringMap{"job": "kubernetes", "locality": "osaka",}, 1, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -230,13 +207,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    map[string]string{
-						"locality": "nagano",
-					},
+					Metadata: addResultToMetadata(stringmap.StringMap{"locality": "nagano"}, 1, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -252,14 +225,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    map[string]string{
-						"job": "kubernetes",
-						"locality": "nagano",
-					},
+					Metadata: addResultToMetadata(stringmap.StringMap{"job": "kubernetes", "locality": "nagano"}, 1, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -278,14 +246,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.PrometheusQueryResult{
+			eventsProduced: []*event.HttpRequest{
 				{
-					Value:     1,
-					Timestamp: time.Unix(0, 1000000),
-					Labels:    map[string]string{
-						"locality": "nagano",
-						"job": "openshift",
-					},
+					Metadata: addResultToMetadata(stringmap.StringMap{"job": "openshift", "locality": "nagano"}, 1, time.Unix(0, 1000000)),
 				},
 			},
 		},
@@ -298,7 +261,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 		}
 
 		// Prepare the string interpretation of the actual results
-		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", prometheusQueryResultsToString(actualEventResult))
+		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", HttpRequestsToString(actualEventResult))
 	}
 }
 
@@ -387,7 +350,7 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 				Interval: 500 * time.Millisecond,
 			},
 		},
-	})
+	}, logrus.NewEntry(logrus.New()))
 
 	if err != nil {
 		t.Error(err)
@@ -398,8 +361,7 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
 
-	prometheusSloEventsChan := make(chan *event.PrometheusQueryResult)
-	ingester.Run(ctx, prometheusSloEventsChan)
+	ingester.Run()
 
 	var (
 		queryOneCount = 0
@@ -410,14 +372,14 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 	// and the second query only one time
 	for i := 0; i < 5; i++ {
 		select {
-		case result := <-prometheusSloEventsChan:
-			switch result.Value {
-			case float64(1):
+		case result := <-ingester.OutputChannel():
+			switch result.Metadata[metadataValueKey] {
+			case "1":
 				queryOneCount++
-			case float64(2):
+			case "2":
 				queryTwoCount++
 			default:
-				t.Errorf("Unknown value was written to the Prometheus producer channel: %v", result)
+				t.Errorf("Unknown value was written to the Prometheus producer channel: %s", result.Metadata[metadataValueKey])
 			}
 		case <-ctx.Done():
 			t.Errorf("Failed to process 5 events in one second. Actually processed %d/5 events", queryOneCount+queryTwoCount)

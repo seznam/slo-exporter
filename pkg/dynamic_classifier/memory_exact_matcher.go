@@ -6,6 +6,7 @@ package dynamic_classifier
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io"
 	"sync"
@@ -19,14 +20,16 @@ type memoryExactMatcher struct {
 	exactMatches  map[string]*event.SloClassification
 	matchersCount prometheus.Counter
 	mtx           sync.RWMutex
+	logger        *logrus.Entry
 }
 
 // newMemoryExactMatcher returns instance of memoryCache
-func newMemoryExactMatcher() *memoryExactMatcher {
+func newMemoryExactMatcher(logger *logrus.Entry) *memoryExactMatcher {
 	exactMatches := map[string]*event.SloClassification{}
 	return &memoryExactMatcher{
 		exactMatches: exactMatches,
 		mtx:          sync.RWMutex{},
+		logger:       logger,
 	}
 }
 

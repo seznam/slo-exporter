@@ -7,10 +7,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
+	"net/http"
 	"os"
 	"sort"
 	"strconv"
@@ -23,19 +26,23 @@ import (
 )
 
 const (
-	classifiedEventLabel = "classified"
+	classifiedEventLabel   = "classified"
 	unclassifiedEventLabel = "unclassified"
 )
 
 var (
-	log *logrus.Entry
+	// TODO matcher cache size, matcher or something related has to implement the prometheus.Collector interface and count the items.
+	matcherOperationDurationSeconds = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "matcher_operation_duration_seconds",
+			Help:    "Histogram of duration matcher operations in dynamic classifier.",
+			Buckets: prometheus.ExponentialBuckets(0.0001, 5, 7),
+		}, []string{"operation", "matcher_type"})
 
 	errorsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "slo_exporter",
-			Subsystem: "dynamic_classifier",
-			Name:      "errors_total",
-			Help:      "Total number of processed events by result.",
+			Name: "errors_total",
+			Help: "Total number of processed events by result.",
 		},
 		[]string{"type"},
 	)
@@ -52,17 +59,64 @@ type DynamicClassifier struct {
 	exactMatches                  matcher
 	regexpMatches                 matcher
 	unclassifiedEventMetadataKeys []string
-	prometheusRegistry            prometheus.Registerer
 	eventsMetric                  *prometheus.CounterVec
-	observer                      prometheus.Observer
+	observer                      pipeline.EventProcessingDurationObserver
+	inputChannel                  chan *event.HttpRequest
+	outputChannel                 chan *event.HttpRequest
+	logger                        *logrus.Entry
+	done                          bool
 }
 
-func NewFromViper(viperConfig *viper.Viper, prometheusRegistry prometheus.Registerer) (*DynamicClassifier, error) {
+func (dc *DynamicClassifier) RegisterInMux(router *mux.Router) {
+	router.HandleFunc("/matchers/{matcher}", func(w http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		matcherType := vars["matcher"]
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=%s.csv", matcherType))
+		err := dc.DumpCSV(w, matcherType)
+		if err != nil {
+			http.Error(w, "Failed to dump matcher '"+matcherType+"': "+err.Error(), http.StatusInternalServerError)
+		}
+
+	})
+}
+
+func (dc *DynamicClassifier) String() string {
+	return "dynamicClassifier"
+}
+
+func (dc *DynamicClassifier) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+	toRegister := []prometheus.Collector{dc.eventsMetric, errorsTotal, matcherOperationDurationSeconds}
+	for _, collector := range toRegister {
+		if err := wrappedRegistry.Register(collector); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (dc *DynamicClassifier) Done() bool {
+	return dc.done
+}
+
+func (dc *DynamicClassifier) Stop() {
+	return
+}
+
+func (dc *DynamicClassifier) SetInputChannel(channel chan *event.HttpRequest) {
+	dc.inputChannel = channel
+}
+
+func (dc *DynamicClassifier) OutputChannel() chan *event.HttpRequest {
+	return dc.outputChannel
+}
+
+func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*DynamicClassifier, error) {
 	var config classifierConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(config, prometheusRegistry)
+	return New(config, logger)
 }
 
 func metadataKeyToLabel(metadataKey string) string {
@@ -70,17 +124,18 @@ func metadataKeyToLabel(metadataKey string) string {
 }
 
 // New returns new instance of DynamicClassifier
-func New(conf classifierConfig, prometheusRegistry prometheus.Registerer) (*DynamicClassifier, error) {
+func New(conf classifierConfig, logger *logrus.Entry) (*DynamicClassifier, error) {
 	sort.Strings(conf.UnclassifiedEventMetadataKeys)
 	classifier := DynamicClassifier{
-		exactMatches:                  newMemoryExactMatcher(),
-		regexpMatches:                 newRegexpMatcher(),
+		exactMatches:                  newMemoryExactMatcher(logger),
+		regexpMatches:                 newRegexpMatcher(logger),
 		unclassifiedEventMetadataKeys: conf.UnclassifiedEventMetadataKeys,
-		prometheusRegistry:            prometheusRegistry,
+		inputChannel:                  make(chan *event.HttpRequest),
+		outputChannel:                 make(chan *event.HttpRequest),
+		done:                          false,
+		logger:                        logger,
 	}
-	if err := classifier.initializeEventsMetric(); err != nil {
-		return nil, fmt.Errorf("failed to initialize metric for reporting events: %w", err)
-	}
+	classifier.initializeEventsMetric()
 	if err := classifier.LoadExactMatchesFromMultipleCSV(conf.ExactMatchesCsvFiles); err != nil {
 		return nil, fmt.Errorf("failed to load exact matches from CSV: %w", err)
 	}
@@ -90,7 +145,7 @@ func New(conf classifierConfig, prometheusRegistry prometheus.Registerer) (*Dyna
 	return &classifier, nil
 }
 
-func (dc *DynamicClassifier) initializeEventsMetric() error {
+func (dc *DynamicClassifier) initializeEventsMetric() {
 	labels := []string{"result", "classified_by", "status_code"}
 	for _, key := range dc.unclassifiedEventMetadataKeys {
 		labels = append(labels, metadataKeyToLabel(key))
@@ -104,10 +159,6 @@ func (dc *DynamicClassifier) initializeEventsMetric() error {
 		},
 		labels,
 	)
-	if err := dc.prometheusRegistry.Register(dc.eventsMetric); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (dc *DynamicClassifier) reportEvent(result, classifiedBy, statusCode string, metadata stringmap.StringMap) {
@@ -123,7 +174,7 @@ func (dc *DynamicClassifier) reportEvent(result, classifiedBy, statusCode string
 	dc.eventsMetric.With(prometheus.Labels(labels)).Inc()
 }
 
-func (dc *DynamicClassifier) SetPrometheusObserver(observer prometheus.Observer) {
+func (dc *DynamicClassifier) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	dc.observer = observer
 }
 
@@ -161,7 +212,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.WithField("path", path).Errorf("failed to close the CSV")
+			dc.logger.WithField("path", path).Errorf("failed to close the CSV")
 		}
 	}()
 
@@ -188,7 +239,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 
 		err = matcher.set(sloEndpoint, classification)
 		if err != nil {
-			log.Errorf("failed to load match: %+v", err)
+			dc.logger.Errorf("failed to load match: %+v", err)
 		}
 	}
 
@@ -214,7 +265,7 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 		var err error
 		classification, err = dc.classifyByMatch(classifier, newEvent)
 		if err != nil {
-			log.Errorf("error while classifying event: %+v", err)
+			dc.logger.Errorf("error while classifying event: %+v", err)
 			classificationErrors = multierror.Append(classificationErrors, err)
 		}
 		if classification != nil {
@@ -228,7 +279,7 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 		return false, classificationErrors
 	}
 
-	log.Debugf("event '%s' matched by %s matcher", newEvent.EventKey, classifiedBy)
+	dc.logger.Debugf("event '%s' matched by %s matcher", newEvent.EventKey, classifiedBy)
 	newEvent.UpdateSLOClassification(classification)
 	dc.reportEvent(classifiedEventLabel, string(classifiedBy), "", newEvent.Headers)
 
@@ -261,30 +312,28 @@ func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *event.HttpR
 }
 
 // Run event normalizer receiving events and filling their Key if not already filled.
-func (dc *DynamicClassifier) Run(inputEventsChan <-chan *event.HttpRequest, outputEventsChan chan<- *event.HttpRequest) {
+func (dc *DynamicClassifier) Run() {
 	go func() {
-		defer close(outputEventsChan)
+		defer func() {
+			close(dc.outputChannel)
+			dc.done = true
+		}()
 
-		for event := range inputEventsChan {
+		for newEvent := range dc.inputChannel {
 			start := time.Now()
-			classified, err := dc.Classify(event)
+			classified, err := dc.Classify(newEvent)
 			if err != nil {
-				log.Error(err)
+				dc.logger.Error(err)
 				errorsTotal.WithLabelValues("failedToClassify").Inc()
 			}
 			if !classified {
-				log.Warnf("unable to classify %s", event.EventKey)
+				dc.logger.Warnf("unable to classify %s", newEvent.EventKey)
 			} else {
-				log.Debugf("processed event with Key: %s", event.EventKey)
+				dc.logger.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
 			}
-			outputEventsChan <- event
+			dc.outputChannel <- newEvent
 			dc.observeDuration(start)
 		}
-		log.Info("input channel closed, finishing")
+		dc.logger.Info("input channel closed, finishing")
 	}()
-}
-
-func init() {
-	log = logrus.WithFields(logrus.Fields{"component": "dynamic_classifier"})
-	prometheus.MustRegister(errorsTotal)
 }

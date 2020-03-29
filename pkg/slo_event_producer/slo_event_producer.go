@@ -8,54 +8,96 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	log *logrus.Entry
+	unclassifiedEventsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "unclassified_events_total",
+		Help: "Total number of dropped events without classification.",
+	})
+
+	didNotMatchAnyRule = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "events_not_matching_any_rule_total",
+		Help: "Total number of events not matching any SLO rule.",
+	})
+
+	evaluationDurationSeconds = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "evaluation_duration_seconds",
+		Help:    "Histogram of event evaluation duration.",
+		Buckets: prometheus.ExponentialBuckets(0.0001, 5, 7),
+	})
 )
-
-func init() {
-	log = logrus.WithField("component", "slo_event_producer")
-}
-
-type ClassifiableEvent interface {
-	GetEventKey() string
-	IsClassified() bool
-	GetSloMetadata() *stringmap.StringMap
-	GetSloClassification() *event.SloClassification
-	GetTimeOccurred() time.Time
-}
 
 type sloEventProducerConfig struct {
 	RulesFiles []string
 }
 
-func NewFromViper(viperConfig *viper.Viper) (*SloEventProducer, error) {
+func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*SloEventProducer, error) {
 	var config sloEventProducerConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(config)
+	return New(config, logger)
 }
 
-func New(config sloEventProducerConfig) (*SloEventProducer, error) {
-	eventEvaluator, err := NewEventEvaluatorFromConfigFiles(config.RulesFiles)
+func New(config sloEventProducerConfig, logger *logrus.Entry) (*SloEventProducer, error) {
+	eventEvaluator, err := NewEventEvaluatorFromConfigFiles(config.RulesFiles, logger)
 	if err != nil {
 		return nil, err
 	}
-	return &SloEventProducer{eventEvaluator: eventEvaluator}, nil
+	return &SloEventProducer{
+		eventEvaluator: eventEvaluator,
+		inputChannel:   make(chan *event.HttpRequest),
+		outputChannel:  make(chan *event.Slo),
+		logger:         logger,
+		done:           false,
+	}, nil
 }
 
 type SloEventProducer struct {
-	eventEvaluator EventEvaluator
-	observer       prometheus.Observer
+	eventEvaluator *EventEvaluator
+	observer       pipeline.EventProcessingDurationObserver
+	inputChannel   chan *event.HttpRequest
+	outputChannel  chan *event.Slo
+	logger         *logrus.Entry
+	done           bool
 }
 
-func (sep *SloEventProducer) SetPrometheusObserver(observer prometheus.Observer) {
+func (sep *SloEventProducer) String() string {
+	return "sloEventProducer"
+}
+
+func (sep *SloEventProducer) OutputChannel() chan *event.Slo {
+	return sep.outputChannel
+}
+
+func (sep *SloEventProducer) SetInputChannel(channel chan *event.HttpRequest) {
+	sep.inputChannel = channel
+}
+
+func (sep *SloEventProducer) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+	toRegister := []prometheus.Collector{didNotMatchAnyRule, evaluationDurationSeconds, unclassifiedEventsTotal}
+	for _, collector := range toRegister {
+		if err := wrappedRegistry.Register(collector); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (sep *SloEventProducer) Stop() {
+	return
+}
+
+func (sep *SloEventProducer) Done() bool {
+	return sep.done
+}
+
+func (sep *SloEventProducer) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	sep.observer = observer
 }
 
@@ -65,24 +107,21 @@ func (sep *SloEventProducer) observeDuration(start time.Time) {
 	}
 }
 
-func (sep *SloEventProducer) PossibleMetadataKeys() []string {
-	return sep.eventEvaluator.PossibleMetadataKeys()
-}
-
 func (sep *SloEventProducer) generateSLOEvents(event *event.HttpRequest, sloEventsChan chan<- *event.Slo) {
 	sep.eventEvaluator.Evaluate(event, sloEventsChan)
 }
 
-// TODO move to interfaces in channels, those cannot be mixed so we have to stick to one type now
-func (sep *SloEventProducer) Run(inputEventChan <-chan *event.HttpRequest, outputSLOEventChan chan<- *event.Slo) {
+func (sep *SloEventProducer) Run() {
 	go func() {
-		defer close(outputSLOEventChan)
-
-		for newEvent := range inputEventChan {
+		defer func() {
+			close(sep.outputChannel)
+			sep.done = true
+		}()
+		for newEvent := range sep.inputChannel {
 			start := time.Now()
-			sep.generateSLOEvents(newEvent, outputSLOEventChan)
+			sep.generateSLOEvents(newEvent, sep.outputChannel)
 			sep.observeDuration(start)
 		}
-		log.Info("input channel closed, finishing")
+		sep.logger.Info("input channel closed, finishing")
 	}()
 }

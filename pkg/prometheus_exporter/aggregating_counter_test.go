@@ -11,12 +11,14 @@ import (
 
 func Test_aggregatingCounter(t *testing.T) {
 	reg := prometheus.NewPedanticRegistry()
-	aggVec, err := newAggregatedCounterVectorSet(reg, "slo_events_total", metricHelp, []string{
+	aggVec := newAggregatedCounterVectorSet("slo_events_total", metricHelp, []string{
 		"slo_domain",
 		"slo_class",
 		"slo_app",
 		"event_key",
 	})
+	err := aggVec.register(reg)
+	assert.NoError(t, err)
 
 	expectedMetrics := `
 # HELP slo_domain:slo_events_total Total number of SLO events exported with it's result and metadata.
@@ -32,8 +34,6 @@ slo_domain_slo_class_slo_app:slo_events_total{result="success",slo_app="app",slo
 # TYPE slo_domain_slo_class_slo_app_event_key:slo_events_total counter
 slo_domain_slo_class_slo_app_event_key:slo_events_total{event_key="key",result="success",slo_app="app",slo_class="critical",slo_domain="domain"} 1
 `
-
-	assert.NoError(t, err)
 
 	aggVec.inc(stringmap.StringMap{
 		"result":     "success",

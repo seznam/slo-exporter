@@ -44,7 +44,7 @@ func TestConfig_loadFromFile(t *testing.T) {
 
 	for _, c := range testCases {
 		var config rulesConfig
-		_, err := config.loadFromFile(c.path)
+		var _, err = config.loadFromFile(c.path)
 		if c.expectedError {
 			assert.Error(t, err)
 			continue
