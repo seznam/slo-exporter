@@ -78,7 +78,6 @@ spec:
         image: {{ env "DOCKER_IMAGE" | default "doc.ker/sklik-devops/slo-exporter:latest" }}
         args:
         - --config-file={{ env "SLO_EXPORTER_CONFIG" | default "/slo_exporter/conf/slo_exporter.yaml" }}
-        - --disable-timescale-exporter
         ports:
         - containerPort: 8080
           protocol: TCP
