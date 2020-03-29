@@ -8,20 +8,16 @@
 # To set module level keys use pattern `SLO_EXPORTER_<MODULENAME>_<KEYNAME>` eg `SLO_EXPORTER_EVENTFILTER_FILTEREDHTTPSTATUSCODES="404,301"`.
 
 
-# Sets logging level (trace,debug,info,error)
-logLevel: "info"
 # Address where the web interface should listen on.
 webServerListenAddress: "0.0.0.0:8080"
 # Maximum time to wait for all events to be processed after receiving SIGTERM or SIGINT.
 maximumGracefulShutdownDuration: "10s"
-# How long to wait after processing pipeline has been shutdown before stopping http server w metric serving.
+# How long to wait after pipeline stopped and no other events are being processed.
 # Useful to make sure metrics are scraped by Prometheus. Ideally set it to Prometheus scrape interval + 1s or more.
-# Should be less or equal to maximumGracefulShutdownDuration
-minimumGracefulShutdownDuration: "1s"
+afterPipelineShutdownDelay: "1s"
 
-# TODO
 # Defines architecture of the pipeline.
-pipeline: []
+pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
 
 # Contains configuration for distinct pipeline module.
 modules:
@@ -60,7 +56,7 @@ modules:
   prometheusIngester:
     # URL of the API for Prometheus queries
     apiUrl: "https://thanos.sklik-scif-ko.dev.dszn.cz"
-    #queryTimeout: 10s
+    queryTimeout: 10s
     # Each query definition have to contain these fields:
     #  - query            | required | (string)            | What PromQL should be executed
     #  - interval         | required | (int)               | How long should we wait between each query execution

@@ -2,113 +2,88 @@
 
 [![pipeline status](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/pipeline.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
 [![coverage report](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/coverage.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
+[![godoc badge](https://godoc.org/github.com/prometheus/prometheus?status.svg)](https://sklik-devops.gitlab.seznam.net/slo-exporter/godoc/pkg/gitlab.seznam.net/sklik-devops/slo-exporter/)
 
+[CHANGELOG](./CHANGELOG.md)
 
 slo-exporter is golang tool used for
- * reading events from different sources (a log file, prometheus metrics)
+ * reading events from different sources (a log file, prometheus metrics, ...)
  * processing the events (filtering, normalization and classification)
- * exporting SLO's SLI (based on the processed events)
+ * exporting SLO metrics based on the processed events
 
-slo-exporter is configured via several configuration files and/or environment variables as shown below.
+## Architecture
+It is built using [the pipeline pattern](https://blog.golang.org/pipelines). 
+The processed event is passed from one module to another to allow it's modification or filtering
+for the final state to be reported as an SLI event.
 
-```plantuml
-@startuml
+The flow of the processing pipeline can be dynamically set using configuration file so it can be used
+for various use cases and event types.
+
+### Module types
+There is set of implemented modules to be used and are divided to three basic types based on their input/output.
+
+- `producer` does not read any events but produces them. These modules serve as sources of the events.
+- `ingester` reads events but does not produce any. These modules serves for reporting the SLO metrics to some external systems.
+- `processor` is combination of `producer` and `ingester`. It reads event and produces new or modified one.
 
 
-component slo_exporter [
-  slo-exporter app]
+### Pipeline rules
+The pipeline can be composed dynamically but there are some basic rules it needs to follow:
+  - `ingester` module cannot be at the beginning of pipeline.
+  - `ingester` module can only be linked to preceding `producer` module.
+  - Type of produced event by the preceding module must match the ingested type of the following one.
 
-rectangle slo_exporter_main_cfg_envs [
-  slo-exporter main config updates via environment variables:
-  * SLO_EXPORTER_<KEYNAME> or \n* SLO_EXPORTER_<MODULENAME>_<KEYNAME>]
-
-frame slo_exporter_main_cfg_file [
-  slo-exporter main config]
-
-frame slo_exporter_slo_rules_cfg [
-  slo-exporter slo-rules config]
-
-frame slo_exporter_classification_cfg [
-  slo-exporter classification config]
-
-slo_exporter <-- slo_exporter_main_cfg_file : "--config"
-slo_exporter <-- slo_exporter_main_cfg_envs : "environment variables"
-slo_exporter_main_cfg_file <-- slo_exporter_classification_cfg : ".modules.dynamicClassifier.regexpMatchesCsvFiles\nand/or\n.modules.dynamicClassifier.exactMatchesCsvFiles"
-slo_exporter_main_cfg_file <-- slo_exporter_slo_rules_cfg : ".modules.sloEventProducer.rulesFiles"
-
-@enduml
+## Configuration
+Slo exporter itself is configured using one YAML file. Path to this file is configured using the `--config-file` flag.
+Additional configuration files might be needed by some pipeline modules depending on their needs and if they are used in the pipeline at all.
+```bash
+slo_exporter --config-file=config.yaml
 ```
 
-On GitLab pages you can find some Go related stuff
-- [GoDoc](https://sklik-devops.gitlab.seznam.net/slo-exporter/godoc/pkg/gitlab.seznam.net/sklik-devops/slo-exporter/)
-- [Code coverage](https://sklik-devops.gitlab.seznam.net/slo-exporter/coverage.html)
+This yaml has basic structure of:
+```yaml
+# Address where the web interface should listen on.
+webServerListenAddress: "0.0.0.0:8080"
+# Maximum time to wait for all events to be processed after receiving SIGTERM or SIGINT.
+maximumGracefulShutdownDuration: "10s"
+# How long to wait after processing pipeline has been shutdown before stopping http server w metric serving.
+# Useful to make sure metrics are scraped by Prometheus. Ideally set it to Prometheus scrape interval + 1s or more.
+# Should be less or equal to maximumGracefulShutdownDuration
+minimumGracefulShutdownDuration: "1s"
 
+# Defines architecture of the pipeline.
+pipeline: [<moduleType>]
+
+# Contains configuration for distinct pipeline module.
+modules:
+  <moduleType>: <moduleConfig>
+```
+
+Possible `moduleType`:
+
+- producers:
+    - [`tailer`](./docs/modules/tailer.md)
+    - [`prometheusIngester`](./docs/modules/prometheus_ingester.md)
+- processors:
+    - [`eventFilter`](./docs/modules/event_filter.md)
+    - [`normalizer`](./docs/modules/normalizer.md)
+    - [`dynamicClassifier`](./docs/modules/dynamic_classifier.md)
+    - [`sloEventProducer`](./docs/modules/slo_event_producer.md)
+- ingesters:
+    - [`prometheusExporter`](./docs/modules/prometheus_exporter.md)
+
+Details how they work and ther `moduleConfig` can be found in their own 
+linked documentation in the [docs/modules](./docs/modules) folder.
+
+Full documented example can be found in [conf/slo_exporter.yaml](conf/slo_exporter.yaml).
 
 ## Build
 
 It is recommended to build slo-exporter with golang 1.13+.
 
 ```bash
-make build
+make
 ```
-
-## Testing on real-time production logs
-Requires credentials to log in to szn-logy
-
-Make sure to have `.env` file in the root of this repository in following format
-```bash
-SZN_LOGY_USER=xxx
-SZN_LOGY_PASSWORD=xxx
-```
-
-Then just run
-```bash
-make compose
-```
-
-Address:
- - Prometheus scraping slo-exporter metrics: http://localhost:9090
- - slo-exporter address: http://localhost:8080/metrics
-
-**[Use this link to see the graphs](http://localhost:9090/graph?g0.range_input=5m&g0.stacked=1&g0.expr=increase(slo_exporter_tailer_lines_read_total%5B10s%5D)&g0.tab=0&g1.range_input=5m&g1.stacked=1&g1.expr=sum(increase(slo_exporter_dynamic_classifier_events_processed_total%5B10s%5D))%20by%20(result%2C%20classified_by)&g1.tab=0&g2.range_input=1h&g2.expr=&g2.tab=1&g3.range_input=5m&g3.expr=histogram_quantile(0.99%2Crate(slo_exporter_dynamic_classifier_matcher_operation_duration_seconds_bucket%5B10s%5D))&g3.tab=0&g4.range_input=5m&g4.stacked=1&g4.expr=increase(slo_exporter_tailer_malformed_lines_total%5B10s%5D)&g4.tab=0&g5.range_input=5m&g5.stacked=1&g5.expr=histogram_quantile(0.99%2Crate(slo_exporter_slo_event_producer_evaluation_duration_seconds_bucket%5B10s%5D))&g5.tab=0&g6.range_input=5m&g6.stacked=1&g6.expr=increase(slo_exporter_slo_event_producer_events_not_matching_any_rule%5B10s%5D)&g6.tab=0&g7.range_input=15m&g7.stacked=0&g7.expr=slo_exporter_sqlwriter_batch_size&g7.tab=0&g8.range_input=2d&g8.expr=sum(timescale_slo_events_total)%20by%20(result)&g8.tab=0&g9.range_input=5m&g9.stacked=0&g9.expr=increase(slo_exporter_sqlwriter_batch_writes_total%5B10s%5D)&g9.tab=0&g10.range_input=15m&g10.expr=increase(slo_exporter_event_filter_filtered_events_total%5B10s%5D)&g10.tab=0)**
-
-
-## Architecture diagram
-Written in Go using the [pipeline pattern](https://blog.golang.org/pipelines)
-
-```
-                                                      static config
-                                                        +-------+
-                                                        |       |
-                                                        |       |
-                                                        |       +----------+
-                                                        |       |          |
-                                                        +-------+          |
-                                                                         +-v------+
-                                                                         | cache  |            +--------------+
-                                                                         |        |            |              |
-+--------------+                                                         +-^----+-+            | 70% critical |
-| nginx log    |                                                           |    |              | 50% warning  |
-| processor    +-------+ event                                             |    |              |              |
-|              |       |                                                   |    |              +------+-------+
-+--------------+       |                                                   |    |                     |
-                       |                                                   |    |                     |         (classified)                 SLO
-+--------------+       |   +--------+       +------------+    event    +---+----v---+   event   +-----v-------+    event     +-----------+   event    +----------------+
-| envoy log    |       |   | event  |       | event      |             | dynamic    |           | statistical |              | SLO event |            | Prometheus     |
-| receiver     +-----------> filter +-------+ normalizer +-------------> classifier +-----------> classifier  +--------------+ producer  +------------> SLO exporter   |
-|              |       |   |        |       |            |             |            |           |             |              |           |            |                |
-+--------------+       |   +--------+       +------------+             +------------+           +-------------+              +-----------+            +----------------+
-                       |
-+--------------+       |
-| prometheus   |       |
-| query        +-------+ event
-| processor    |
-+--------------+
-
-```
-
-## Configuration
-See [conf/slo_exporter.yaml](conf/slo_exporter.yaml) for documented example.
 
 ## Frequently asked questions
 
@@ -142,3 +117,8 @@ slo-exporter can be deployed as:
      * manifest example can be found in [userproxy repository](https://gitlab.seznam.net/sklik-frontend/Proxies/tree/master/userproxy/kubernetes)
  1. standalone application tailing remote logs using [`htail` web page tailer over http](https://gitlab.seznam.net/Sklik-DevOps/htail)
      * manifest example can be found in [kubernetes directory](kubernetes/)
+
+
+
+
+- [Code coverage](https://sklik-devops.gitlab.seznam.net/slo-exporter/coverage.html)

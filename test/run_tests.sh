@@ -47,7 +47,7 @@ for i_test in $(find "${SCRIPT_DIR}" -type d | grep ${TEST_DIR_PREFIX}) ; do
 
     pushd ${i_test} > /dev/null
     mkdir ${TEST_RESULT_DIR}
-    ${SLO_EXPORTER} --config-file=${CONFIG_FILENAME} --disable-timescale-exporter > ${TEST_RESULT_DIR}/${SLO_EXPORTER_LOG_FILENAME} 2>&1 &
+    ${SLO_EXPORTER} --config-file=${CONFIG_FILENAME} > ${TEST_RESULT_DIR}/${SLO_EXPORTER_LOG_FILENAME} 2>&1 &
     sleep 1
     # test whether SLO_EXPORTER is running in the background (did not exited during the initialization)
     [ -z "$(jobs %% | grep Running)" ] && \

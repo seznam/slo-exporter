@@ -4,6 +4,7 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
@@ -24,6 +25,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				logger:             logrus.NewEntry(logrus.New()),
 			},
 			inputEvent: event.HttpRequest{
 				Metadata:          stringmap.StringMap{"statusCode": "200"},
@@ -37,6 +39,7 @@ func TestEvaluateEvent(t *testing.T) {
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				honorSloResult:     true,
+				logger:             logrus.NewEntry(logrus.New()),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Success),
@@ -51,6 +54,7 @@ func TestEvaluateEvent(t *testing.T) {
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				honorSloResult:     true,
+				logger:             logrus.NewEntry(logrus.New()),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Fail),
@@ -64,6 +68,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("502")}},
+				logger:             logrus.NewEntry(logrus.New()),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Success),
@@ -77,6 +82,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				logger:             logrus.NewEntry(logrus.New()),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Fail),
@@ -90,6 +96,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				logger:             logrus.NewEntry(logrus.New()),
 			},
 			inputEvent: event.HttpRequest{
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
@@ -103,6 +110,7 @@ func TestEvaluateEvent(t *testing.T) {
 				sloMatcher:         event.SloClassification{Domain: "foo"},
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				logger:             logrus.NewEntry(logrus.New()),
 			},
 			inputEvent: event.HttpRequest{
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
@@ -116,17 +124,6 @@ func TestEvaluateEvent(t *testing.T) {
 	for _, tc := range testCases {
 		sloEvent, ok := tc.rule.processEvent(&tc.inputEvent)
 		assert.Equal(t, ok, tc.ok)
-		assert.Equal(t, tc.outputSloEvent, sloEvent, "unexpected result evaluating rule: %+v\n  with conditions: %+v\non event:\n  metadata: %+v\n  classification: %+v",tc.rule,tc.rule.failureConditions[0], tc.inputEvent.Metadata, tc.inputEvent.SloClassification)
+		assert.Equal(t, tc.outputSloEvent, sloEvent, "unexpected result evaluating rule: %+v\n  with conditions: %+v\non event:\n  metadata: %+v\n  classification: %+v", tc.rule, tc.rule.failureConditions[0], tc.inputEvent.Metadata, tc.inputEvent.SloClassification)
 	}
-}
-
-func
-TestPossibleLabels(t *testing.T) {
-	rule := evaluationRule{
-		additionalMetadata: stringmap.StringMap{"label": "value"},
-		failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-	}
-	expectedMetadata := []string{"label"}
-	result := rule.PossibleMetadataKeys()
-	assert.ElementsMatch(t, expectedMetadata, result)
 }

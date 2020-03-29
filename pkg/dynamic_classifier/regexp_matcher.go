@@ -6,6 +6,7 @@ package dynamic_classifier
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"io"
 	"regexp"
@@ -26,11 +27,15 @@ type regexpSloClassification struct {
 type regexpMatcher struct {
 	matchers []*regexpSloClassification
 	mtx      sync.RWMutex
+	logger   *logrus.Entry
 }
 
 // newRegexpMatcher returns new instance of regexpMatcher
-func newRegexpMatcher() *regexpMatcher {
-	return &regexpMatcher{mtx: sync.RWMutex{}}
+func newRegexpMatcher(logger *logrus.Entry) *regexpMatcher {
+	return &regexpMatcher{
+		mtx:    sync.RWMutex{},
+		logger: logger,
+	}
 }
 
 // newRegexSloClassification returns new instance of regexpSloClassification
@@ -58,7 +63,6 @@ func (rm *regexpMatcher) set(regexpString string, classification *event.SloClass
 		return err
 	}
 	rm.matchers = append(rm.matchers, regexpClassification)
-	log.Tracef("added regex match for '%s' - %+v", regexpClassification.regexpCompiled, regexpClassification.classification)
 	return nil
 }
 
@@ -78,12 +82,10 @@ func (rm *regexpMatcher) get(key string) (*event.SloClassification, error) {
 
 		// if already classified, but matches next regex
 		if classification != nil {
-			log.Warnf("key '%s' is matched by another regexp: '%s'\n", key, r.regexpCompiled.String())
+			rm.logger.Warnf("key '%s' is matched by another regexp: '%s'\n", key, r.regexpCompiled.String())
 			continue
 		}
 		classification = r.classification
-		log.Tracef("key '%s' is matched by regexp: '%s'\n", key, r.regexpCompiled.String())
-
 	}
 	return classification, nil
 }
@@ -102,7 +104,7 @@ func (rm *regexpMatcher) dumpCSV(w io.Writer) error {
 		err := buffer.Write([]string{v.classification.Domain, v.classification.App, v.classification.Class, v.regexpCompiled.String()})
 		if err != nil {
 			errorsTotal.WithLabelValues("dumpRegexpMatchersToCSV").Inc()
-			return fmt.Errorf("Failed to dump csv: %w", err)
+			return fmt.Errorf("failed to dump csv: %w", err)
 		}
 		buffer.Flush()
 	}

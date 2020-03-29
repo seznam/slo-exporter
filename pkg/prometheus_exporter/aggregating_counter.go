@@ -13,27 +13,30 @@ func aggregatedMetricName(metricName string, aggregatedLabels ...string) string 
 }
 
 // newAggregatedCounterVector creates set of counters which will create set of cascade aggregation level metrics by dropping aggregation labels.
-func newAggregatedCounterVectorSet(registry prometheus.Registerer, metricName, metricHelp string, aggregationLabels []string) (*aggregatedCounterVectorSet, error) {
+func newAggregatedCounterVectorSet(metricName, metricHelp string, aggregationLabels []string) *aggregatedCounterVectorSet {
 	vectorSet := aggregatedCounterVectorSet{
 		aggregatedMetrics: []aggregatedCounterVector{},
 	}
 	// Generate new metric vector for every label aggregation level.
 	for i := 1; i <= len(aggregationLabels); i++ {
-		newVector, err := newCounterVector(registry, aggregatedMetricName(metricName, aggregationLabels[:i]...), metricHelp)
-		if err != nil {
-			return nil, err
-		}
 		vectorSet.aggregatedMetrics = append(vectorSet.aggregatedMetrics, aggregatedCounterVector{
-			vector:       newVector,
+			vector:       newCounterVector(aggregatedMetricName(metricName, aggregationLabels[:i]...), metricHelp),
 			labelsToDrop: aggregationLabels[i:],
 		})
 	}
-	return &vectorSet, nil
+	return &vectorSet
 }
 
 type aggregatedCounterVector struct {
 	vector       *counterVector
 	labelsToDrop []string
+}
+
+func (v *aggregatedCounterVector) register(registry prometheus.Registerer) error {
+	if err := registry.Register(v.vector); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (v *aggregatedCounterVector) inc(labels stringmap.StringMap) {
@@ -48,6 +51,15 @@ type aggregatedCounterVectorSet struct {
 	aggregatedMetrics []aggregatedCounterVector
 }
 
+func (s *aggregatedCounterVectorSet) register(registry prometheus.Registerer) error {
+	for _, metric := range s.aggregatedMetrics {
+		if err := metric.register(registry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *aggregatedCounterVectorSet) inc(labels stringmap.StringMap) {
 	s.add(1, labels)
 }
@@ -58,17 +70,14 @@ func (s *aggregatedCounterVectorSet) add(value float64, labels stringmap.StringM
 	}
 }
 
-func newCounterVector(registry prometheus.Registerer, name, help string) (*counterVector, error) {
+func newCounterVector(name, help string) *counterVector {
 	newVector := counterVector{
 		name:     name,
 		help:     help,
 		counters: map[string]*counter{},
 		mtx:      sync.RWMutex{},
 	}
-	if err := registry.Register(newVector); err != nil {
-		return nil, err
-	}
-	return &newVector, nil
+	return &newVector
 }
 
 type counter struct {

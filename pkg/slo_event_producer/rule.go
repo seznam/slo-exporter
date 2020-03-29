@@ -4,25 +4,12 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
-var (
-	unclassifiedEventsTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "slo_exporter",
-		Subsystem: "slo_event_producer",
-		Name:      "unclassified_events_total",
-		Help:      "Total number of dropped events without classification.",
-	})
-)
-
-func init() {
-	prometheus.MustRegister(unclassifiedEventsTotal)
-}
-
-func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
+func newEvaluationRule(opts ruleOptions, logger *logrus.Entry) (*evaluationRule, error) {
 	var failureConditions []operator
 	for _, operatorOpts := range opts.FailureConditionsOptions {
 		operator, err := newOperator(operatorOpts)
@@ -40,6 +27,7 @@ func newEvaluationRule(opts ruleOptions) (*evaluationRule, error) {
 		failureConditions:  failureConditions,
 		additionalMetadata: opts.AdditionalMetadata,
 		honorSloResult:     opts.HonorSloResult,
+		logger:             logger,
 	}, nil
 }
 
@@ -48,10 +36,7 @@ type evaluationRule struct {
 	failureConditions  []operator
 	additionalMetadata stringmap.StringMap
 	honorSloResult     bool
-}
-
-func (er *evaluationRule) PossibleMetadataKeys() []string {
-	return er.additionalMetadata.Keys()
+	logger             *logrus.Entry
 }
 
 func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
@@ -70,10 +55,9 @@ func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) bool {
 	failed := false
 	// Evaluate all criteria and if matches any, mark it as failed.
 	for _, operator := range er.failureConditions {
-		log.Tracef("evaluating operator %+v", operator)
 		result, err := operator.Evaluate(newEvent)
 		if err != nil {
-			log.Warnf("failed to evaluate operator %v on event %v: %v", operator, newEvent, err)
+			er.logger.Warnf("failed to evaluate operator %v on event %v: %v", operator, newEvent, err)
 		}
 		if result {
 			failed = true
@@ -103,7 +87,7 @@ func (er *evaluationRule) processEvent(newEvent *event.HttpRequest) (*event.Slo,
 		Metadata: er.additionalMetadata,
 	}
 	er.markEventResult(failed, newSloEvent)
-	log.Debugf("generated SLO newEvent: %+v", newSloEvent)
+	er.logger.Debugf("generated SLO newEvent: %+v", newSloEvent)
 	return newSloEvent, true
 
 }

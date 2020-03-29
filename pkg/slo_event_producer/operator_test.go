@@ -59,9 +59,9 @@ func TestCriteria(t *testing.T) {
 		{event: event.HttpRequest{}, operator: &numberHigherThan{threshold: 10}, result: false, err: false},
 
 		// durationHigherThan
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "20s"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10*time.Second}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "5ms"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10*time.Second}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "foo"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10*time.Second}, result: false, err: true},
+		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "20s"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: true, err: false},
+		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "5ms"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: false, err: false},
+		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "foo"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: false, err: true},
 		{event: event.HttpRequest{}, operator: &numberHigherThan{threshold: 10}, result: false, err: false},
 
 		// matchesRegexp

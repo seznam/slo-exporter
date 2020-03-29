@@ -6,10 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] 2020-03-26
+### Changed
+- **BREAKING** Pipeline structure is now defined using the `pipeline` configuration option.
+    For more information see [the architecture documentation](README.md#architecture).
+- **BREAKING** The `log_level` configuration option was removed and replaced with the `--log-level` command line flag.
+    Also it can be still configured with the ENV variable `SLO_EXPORTER_LOGLEVEL`.
+- **BREAKING** The `--disable-timescale-exporter` and `--disable-prometheus-exporter` flags were dropped 
+    in favor of dynamic pipeline structure configuration.
+- **BREAKING** The timescale exporter was dropped.
+- **BREAKING** The `minimumGracefulShutdownDuration` configuration option was replaced with `afterPipelineShutdownDelay` to be more intuitive.
+      
 ## [3.2.0] - 2020-03-24
 ### Refactored
 - HttpRequest.Headers, HttpRequest.Metadata is now filled only with data not matching conf.tailer.emptyGroupRE.
-- Drop frpcStatus as a dedicated atribute for HttpRequest.
+- Drop frpcStatus as a dedicated attribute for HttpRequest.
 
 ## [3.1.0] - 2020-03-20
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
 	"net"
@@ -24,15 +24,13 @@ import (
 )
 
 const (
-	timeLayout string = "02/Jan/2006:15:04:05 -0700"
-	component  string = "tailer"
+	timeLayout              string = "02/Jan/2006:15:04:05 -0700"
 
 	timeGroupName            = "time"
 	requestDurationGroupName = "requestDuration"
 	statusCodeGroupName      = "statusCode"
 	requestGroupName         = "request"
 	ipGroupName              = "ip"
-	sloEndpointGroupName     = "sloEndpoint"
 	sloResultGroupName       = "sloResult"
 	sloDomainGroupName       = "sloDomain"
 	sloAppGroupName          = "sloApp"
@@ -40,42 +38,28 @@ const (
 )
 
 var (
-	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloEndpointGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
-
-	log *logrus.Entry
+	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "slo_exporter",
-		Subsystem: component,
-		Name:      "lines_read_total",
-		Help:      "Total number of lines tailed from the file.",
+
+		Name: "lines_read_total",
+		Help: "Total number of lines tailed from the file.",
 	})
 	malformedLinesTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace: "slo_exporter",
-			Subsystem: component,
-			Name:      "malformed_lines_total",
-			Help:      "Total number of invalid lines that failed to parse.",
+			Name: "malformed_lines_total",
+			Help: "Total number of invalid lines that failed to parse.",
 		},
 	)
 	fileSizeBytes = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "slo_exporter",
-		Subsystem: component,
-		Name:      "file_size_bytes",
-		Help:      "Size of the tailed file in bytes.",
+		Name: "file_size_bytes",
+		Help: "Size of the tailed file in bytes.",
 	})
 	fileOffsetBytes = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "slo_exporter",
-		Subsystem: component,
-		Name:      "file_offset_bytes",
-		Help:      "Current tailing offset within the file in bytes (from the beginning of the file).",
+		Name: "file_offset_bytes",
+		Help: "Current tailing offset within the file in bytes (from the beginning of the file).",
 	})
 )
-
-func init() {
-	log = logrus.WithFields(logrus.Fields{"component": component})
-	prometheus.MustRegister(linesReadTotal, malformedLinesTotal, fileSizeBytes, fileOffsetBytes)
-}
 
 type tailerConfig struct {
 	TailedFile                  string
@@ -98,12 +82,20 @@ type Tailer struct {
 	tail                    *tail.Tail
 	positions               *positions.Positions
 	persistPositionInterval time.Duration
-	observer                prometheus.Observer
+	observer                pipeline.EventProcessingDurationObserver
 	lineParseRegexp         *regexp.Regexp
 	emptyGroupRegexp        *regexp.Regexp
+	outputChannel           chan *event.HttpRequest
+	shutdownChannel         chan struct{}
+	logger                  *logrus.Entry
+	done                    bool
 }
 
-func NewFromViper(viperConfig *viper.Viper) (*Tailer, error) {
+func (t *Tailer) String() string {
+	return "tailer"
+}
+
+func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*Tailer, error) {
 	viperConfig.SetDefault("Follow", true)
 	viperConfig.SetDefault("Reopen", true)
 	viperConfig.SetDefault("PositionPersistenceInterval", 2*time.Second)
@@ -112,11 +104,11 @@ func NewFromViper(viperConfig *viper.Viper) (*Tailer, error) {
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(config)
+	return New(config, logger)
 }
 
 // New returns an instance of Tailer
-func New(config tailerConfig) (*Tailer, error) {
+func New(config tailerConfig, logger *logrus.Entry) (*Tailer, error) {
 	var (
 		offset int64
 		err    error
@@ -126,7 +118,7 @@ func New(config tailerConfig) (*Tailer, error) {
 	if config.PositionFile == "" {
 		config.PositionFile = config.getDefaultPositionsFilePath()
 	}
-	pos, err = positions.New(logrusAdapter.NewLogrusLogger(log), positions.Config{SyncPeriod: config.PositionPersistenceInterval, PositionsFile: config.PositionFile})
+	pos, err = positions.New(logrusAdapter.NewLogrusLogger(logger), positions.Config{SyncPeriod: config.PositionPersistenceInterval, PositionsFile: config.PositionFile})
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize file position persister: %+v", err)
 	}
@@ -142,9 +134,12 @@ func New(config tailerConfig) (*Tailer, error) {
 	if fstat.Size() < offset {
 		pos.Remove(config.TailedFile)
 		offset = 0
-		log.Warnf("loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
+		logger.Warnf("loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
 	}
 
+	if !config.Follow && config.Reopen {
+		return nil, fmt.Errorf("cannot use reopen without follow")
+	}
 	tailFile, err := tail.TailFile(config.TailedFile, tail.Config{
 		Follow:    config.Follow,
 		ReOpen:    config.Reopen,
@@ -173,10 +168,14 @@ func New(config tailerConfig) (*Tailer, error) {
 		persistPositionInterval: config.PositionPersistenceInterval,
 		lineParseRegexp:         lineParseRegexp,
 		emptyGroupRegexp:        emptyGroupRegexp,
+		outputChannel:           make(chan *event.HttpRequest),
+		shutdownChannel:         make(chan struct{}),
+		done:                    false,
+		logger:                  logger,
 	}, nil
 }
 
-func (t *Tailer) SetPrometheusObserver(observer prometheus.Observer) {
+func (t *Tailer) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	t.observer = observer
 }
 
@@ -186,6 +185,24 @@ func (t *Tailer) observeDuration(start time.Time) {
 	}
 }
 
+func (t *Tailer) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+	toRegister := []prometheus.Collector{linesReadTotal, malformedLinesTotal, fileSizeBytes, fileOffsetBytes}
+	for _, collector := range toRegister {
+		if err := wrappedRegistry.Register(collector); err != nil {
+			return fmt.Errorf("error registering metric %s: %w", collector, err)
+		}
+	}
+	return nil
+}
+
+func (t *Tailer) Done() bool {
+	return t.done
+}
+
+func (t *Tailer) OutputChannel() chan *event.HttpRequest {
+	return t.outputChannel
+}
+
 // Run starts to tail the associated file, feeding RequestEvents, errors into separated channels.
 // Close eventsChan based on done chan signal (close, any read)
 // Content of RequestEvent structure depends on input log lines. So not all information may be present or valid, though basic validation is being made.
@@ -193,57 +210,67 @@ func (t *Tailer) observeDuration(start time.Time) {
 // - RequestEvent.IP may be nil in case invalid IP address is given in logline
 // - Slo* fields may not be filled at all
 // - Content of RequestEvent.Headers may vary
-func (t *Tailer) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, eventsChan chan *event.HttpRequest, errChan chan error) {
-
+func (t *Tailer) Run() {
 	go func() {
-		defer close(eventsChan)
-		defer t.tail.Cleanup()
 		ticker := time.NewTicker(t.persistPositionInterval)
-		defer ticker.Stop()
-		defer t.positions.Stop()
-
+		defer func() {
+			t.positions.Stop()
+			ticker.Stop()
+			t.tail.Cleanup()
+			close(t.outputChannel)
+			t.done = true
+		}()
 		quitting := false
-
 		for {
 			select {
 			case line, ok := <-t.tail.Lines:
 				if !ok {
-					log.Info("input channel closed, finishing")
+					t.logger.Info("input channel closed, finishing")
 					return
 				}
 				start := time.Now()
 				if line.Err != nil {
-					log.Error(line.Err)
+					t.logger.Error(line.Err)
 				}
 				linesReadTotal.Inc()
-				event, err := t.processLine(line.Text)
+				newEvent, err := t.processLine(line.Text)
 				if err != nil {
 					malformedLinesTotal.Inc()
-					reportErrLine(line.Text, err)
+					t.logger.WithField("line", line).Errorf("err (%+v) while parsing line", err)
 				} else {
-					eventsChan <- event
+					t.outputChannel <- newEvent
 				}
 				t.observeDuration(start)
 			case <-ticker.C:
 				if !quitting {
 					// get current offset from tail.TailFile instance
 					if err := t.markOffsetPosition(); err != nil {
-						log.Error(err)
+						t.logger.Error(err)
 					}
 				}
-			case <-shutdownHandler.ProducersContextWithCancel.Done():
+			case <-t.shutdownChannel:
 				if !quitting {
 					quitting = true
 					// we need to perform this strictly once, as tail return 0 offset when already stopped
 					if err := t.markOffsetPosition(); err != nil {
-						log.Error(err)
+						t.logger.Error(err)
 					}
 					// keep this in goroutine as this may block on tail's goroutine trying to write into t.tail.Lines
-					go t.tail.Stop()
+					go func() {
+						if err := t.tail.Stop(); err != nil {
+							t.logger.Errorf("failed to stop Tailer: %v", err)
+						}
+					}()
 				}
 			}
 		}
 	}()
+}
+
+func (t *Tailer) Stop() {
+	if !t.done {
+		t.shutdownChannel <- struct{}{}
+	}
 }
 
 // marks current file offset and size for the use of:
@@ -270,12 +297,6 @@ func (t *Tailer) markOffsetPosition() error {
 	fileSizeBytes.Set(float64(fstat.Size()))
 
 	return nil
-}
-
-// reportErrLine does the necessary reporting in case a wrong line occurs
-func reportErrLine(line string, err error) {
-	// TODO increment metrics
-	log.WithField("line", line).Errorf("err (%+v) while parsing line", err)
 }
 
 // InvalidRequestError is error representing invalid RequestEvent

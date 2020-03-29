@@ -6,47 +6,35 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/shutdown_handler"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"time"
 )
 
 const (
-	component  = "prometheus_exporter"
 	metricHelp = "Total number of SLO events exported with it's result and metadata."
 )
 
 var (
-	log         *logrus.Entry
 	errorsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "slo_exporter",
-			Subsystem:   component,
 			Name:        "errors_total",
 			Help:        "Errors occurred during application runtime",
-			ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
+			ConstLabels: prometheus.Labels{"app": "slo_exporter"},
 		},
 		[]string{"type"})
 	eventKeys = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace:   "slo_exporter",
-			Subsystem:   component,
 			Name:        "event_keys",
 			Help:        "Number of known unique event keys",
-			ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
+			ConstLabels: prometheus.Labels{"app": "slo_exporter"},
 		})
 	eventKeyCardinalityLimit = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace:   "slo_exporter",
-		Subsystem:   component,
 		Name:        "event_keys_limit",
 		Help:        "Event keys cardinality limit",
-		ConstLabels: prometheus.Labels{"app": "slo_exporter", "module": component},
+		ConstLabels: prometheus.Labels{"app": "slo_exporter"},
 	})
 )
-
-func init() {
-	log = logrus.WithField("component", component)
-}
 
 type labelsNamesConfig struct {
 	Result    string
@@ -74,7 +62,11 @@ type PrometheusSloEventExporter struct {
 	eventKeyLimit               int
 	exceededKeyLimitPlaceholder string
 	eventKeyCache               map[string]int
-	observer                    prometheus.Observer
+	observer                    pipeline.EventProcessingDurationObserver
+
+	inputChannel chan *event.Slo
+	done         bool
+	logger       *logrus.Entry
 }
 
 type InvalidSloEventResult struct {
@@ -86,7 +78,7 @@ func (e *InvalidSloEventResult) Error() string {
 	return fmt.Sprintf("result '%s' is not valid. Expected one of: %+v", e.result, e.validResults)
 }
 
-func NewFromViper(metricRegistry prometheus.Registerer, viperConfig *viper.Viper) (*PrometheusSloEventExporter, error) {
+func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*PrometheusSloEventExporter, error) {
 	config := prometheusExporterConfig{}
 	viperConfig.SetDefault("MetricName", "slo_events_total")
 	viperConfig.SetDefault("LabelNames.Result", "result")
@@ -98,19 +90,15 @@ func NewFromViper(metricRegistry prometheus.Registerer, viperConfig *viper.Viper
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return New(metricRegistry, config)
+	return New(config, logger)
 }
 
-func New(metricRegistry prometheus.Registerer, config prometheusExporterConfig) (*PrometheusSloEventExporter, error) {
+func New(config prometheusExporterConfig, logger *logrus.Entry) (*PrometheusSloEventExporter, error) {
 	// initialize and register Prometheus metrics
 	eventKeyCardinalityLimit.Set(float64(config.MaximumUniqueEventKeys))
-	metricRegistry.MustRegister(eventKeyCardinalityLimit, errorsTotal, eventKeys)
 
 	aggregationLabels := []string{config.LabelNames.SloDomain, config.LabelNames.SloClass, config.LabelNames.SloApp, config.LabelNames.EventKey}
-	newAggregatedMetricsSet, err := newAggregatedCounterVectorSet(metricRegistry, config.MetricName, metricHelp, aggregationLabels)
-	if err != nil {
-		return nil, err
-	}
+	newAggregatedMetricsSet := newAggregatedCounterVectorSet(config.MetricName, metricHelp, aggregationLabels)
 
 	return &PrometheusSloEventExporter{
 		aggregatedMetricsSet: newAggregatedMetricsSet,
@@ -121,17 +109,48 @@ func New(metricRegistry prometheus.Registerer, config prometheusExporterConfig) 
 		exceededKeyLimitPlaceholder: config.ExceededKeyLimitPlaceholder,
 		eventKeyCache:               map[string]int{},
 
+		logger:   logger,
 		observer: nil,
 	}, nil
 }
 
-func (e *PrometheusSloEventExporter) Run(shutdownHandler *shutdown_handler.GracefulShutdownHandler, input <-chan *event.Slo) {
+func (e *PrometheusSloEventExporter) RegisterMetrics(rootRegistry prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+	if err := e.aggregatedMetricsSet.register(rootRegistry); err != nil {
+		return err
+	}
+	toRegister := []prometheus.Collector{eventKeyCardinalityLimit, errorsTotal, eventKeys}
+	for _, metric := range toRegister {
+		if err := wrappedRegistry.Register(metric); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *PrometheusSloEventExporter) String() string {
+	return "prometheusExporter"
+}
+
+func (e *PrometheusSloEventExporter) Stop() {
+	return
+}
+
+func (e *PrometheusSloEventExporter) Done() bool {
+	return e.done
+}
+
+func (e *PrometheusSloEventExporter) SetInputChannel(channel chan *event.Slo) {
+	e.inputChannel = channel
+}
+
+func (e *PrometheusSloEventExporter) Run() {
 	go func() {
-		for newEvent := range input {
+		for newEvent := range e.inputChannel {
 			start := time.Now()
+			e.logger.Tracef("processing event %s", newEvent)
 			err := e.processEvent(newEvent)
 			if err != nil {
-				log.Errorf("unable to process slo event: %+v", err)
+				e.logger.Errorf("unable to process slo event: %+v", err)
 				switch err.(type) {
 				case *InvalidSloEventResult:
 					errorsTotal.With(prometheus.Labels{"type": "InvalidResult"}).Inc()
@@ -141,12 +160,12 @@ func (e *PrometheusSloEventExporter) Run(shutdownHandler *shutdown_handler.Grace
 			}
 			e.observeDuration(start)
 		}
-		log.Info("input channel closed, finishing")
-		shutdownHandler.Done()
+		e.logger.Info("input channel closed, finishing")
+		e.done = true
 	}()
 }
 
-func (e *PrometheusSloEventExporter) SetPrometheusObserver(observer prometheus.Observer) {
+func (e *PrometheusSloEventExporter) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	e.observer = observer
 }
 
@@ -207,7 +226,7 @@ func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 	labels := e.labelsFromEvent(newEvent)
 
 	if e.isCardinalityExceeded(newEvent.Key) {
-		log.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
+		e.logger.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
 		labels[e.labelNames.EventKey] = e.exceededKeyLimitPlaceholder
 	}
 

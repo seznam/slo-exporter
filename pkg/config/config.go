@@ -2,16 +2,14 @@ package config
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"time"
 )
 
-type ModuleConfigYaml []byte
-
-func New() *Config {
-	return &Config{}
+func New(logger *logrus.Entry) *Config {
+	return &Config{logger: logger}
 }
 
 type Config struct {
@@ -19,9 +17,10 @@ type Config struct {
 	LogLevel                        string
 	WebServerListenAddress          string
 	MaximumGracefulShutdownDuration time.Duration
-	MinimumGracefulShutdownDuration time.Duration
+	AfterPipelineShutdownDelay      time.Duration
 	EventKeyMetadataKey             string
 	Modules                         map[string]interface{}
+	logger                          *logrus.Entry
 }
 
 func (c *Config) setupViper() {
@@ -35,7 +34,7 @@ func (c *Config) LoadFromFile(path string) error {
 	viper.SetDefault("LogLevel", "info")
 	viper.SetDefault("WebServerListenAddress", "0.0.0.0:8080")
 	viper.SetDefault("MaximumGracefulShutdownDuration", 20*time.Second)
-	viper.SetDefault("MinimumGracefulShutdownDuration", 0*time.Second)
+	viper.SetDefault("AfterPipelineShutdownDelay", 0*time.Second)
 	yamlFile, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to open configuration file: %w", err)
@@ -63,7 +62,7 @@ func (c *Config) ModuleConfig(moduleName string) (*viper.Viper, error) {
 func (c *Config) MustModuleConfig(moduleName string) *viper.Viper {
 	conf, err := c.ModuleConfig(moduleName)
 	if err != nil {
-		log.Fatalf("failed to load %s configuration: %+v", moduleName, err)
+		c.logger.Fatalf("failed to load %s configuration: %+v", moduleName, err)
 	}
 	return conf
 }
