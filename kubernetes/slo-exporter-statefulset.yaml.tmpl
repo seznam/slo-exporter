@@ -92,7 +92,7 @@ spec:
         livenessProbe:
           httpGet:
             port: 8080
-            path: /dynamic_classifier/matchers/regexp
+            path: /liveness
         resources:
           requests:
             cpu: "{{ env "SLO_EXPORTER_KUBERNETES_RESOURCES_REQUESTS_CPU" | default "0.5" }}"
