@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.1.0] 2020-03-30
+### Fixed
+- Fixed CPU usage burst caused by leaking timers.
+
 ### Added
 - Added Go debugging handlers to web interface on `/debug/pprof/`. For usage see [https://blog.golang.org/pprof](https://blog.golang.org/pprof).
 

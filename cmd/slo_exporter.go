@@ -160,7 +160,13 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	readiness.Ok()
-	defer logger.Info("see you next time!")
+	pipelineDoneCheck := time.NewTicker(time.Second)
+
+	defer func() {
+		pipelineDoneCheck.Stop()
+		logger.Info("see you next time!")
+	}()
+
 	for {
 		select {
 		case <-gracefulShutdownRequestChan:
@@ -185,7 +191,7 @@ func main() {
 		case err := <-errChan:
 			logger.Errorf("encountered error: %+v", err)
 			gracefulShutdownRequestChan <- struct{}{}
-		case <-time.NewTicker(time.Second).C:
+		case <-pipelineDoneCheck.C:
 			if pipelineManager.Done() {
 				logger.Info("finished processing all logs")
 				gracefulShutdownRequestChan <- struct{}{}
