@@ -152,8 +152,6 @@ func (dc *DynamicClassifier) initializeEventsMetric() {
 	}
 	dc.eventsMetric = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "slo_exporter",
-			Subsystem: "dynamic_classifier",
 			Name:      "events_processed_total",
 			Help:      "Total number of processed events by result.",
 		},
