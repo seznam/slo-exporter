@@ -26,6 +26,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+
+	_ "net/http/pprof"
 )
 
 var (
@@ -94,6 +96,7 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/liveness", liveness.HandleFunc)
 	router.HandleFunc("/readiness", readiness.HandleFunc)
+	router.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
 	return &http.Server{Addr: listenAddr, Handler: router}, router
 }
 
