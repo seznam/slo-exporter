@@ -85,6 +85,11 @@ It is recommended to build slo-exporter with golang 1.13+.
 make
 ```
 
+## Debugging
+In case of issues with leaking resources for example, slo-exporter supports the 
+Go profiling using pprof on `/debug/pprof/` web interface path. For usage see the official [docs](https://golang.org/pkg/net/http/pprof/).
+
+
 ## Frequently asked questions
 
 ### How to add new normalization replacement rule?
