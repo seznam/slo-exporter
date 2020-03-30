@@ -26,6 +26,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prober"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+
+	_ "net/http/pprof"
 )
 
 var (
@@ -94,6 +96,7 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/liveness", liveness.HandleFunc)
 	router.HandleFunc("/readiness", readiness.HandleFunc)
+	router.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
 	return &http.Server{Addr: listenAddr, Handler: router}, router
 }
 
@@ -157,7 +160,13 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	readiness.Ok()
-	defer logger.Info("see you next time!")
+	pipelineDoneCheck := time.NewTicker(time.Second)
+
+	defer func() {
+		pipelineDoneCheck.Stop()
+		logger.Info("see you next time!")
+	}()
+
 	for {
 		select {
 		case <-gracefulShutdownRequestChan:
@@ -182,7 +191,7 @@ func main() {
 		case err := <-errChan:
 			logger.Errorf("encountered error: %+v", err)
 			gracefulShutdownRequestChan <- struct{}{}
-		case <-time.NewTicker(time.Second).C:
+		case <-pipelineDoneCheck.C:
 			if pipelineManager.Done() {
 				logger.Info("finished processing all logs")
 				gracefulShutdownRequestChan <- struct{}{}

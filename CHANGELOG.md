@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] 2020-03-30
+### Fixed
+- Fixed CPU usage burst caused by leaking timers.
+
+### Added
+- Added Go debugging handlers to web interface on `/debug/pprof/`. For usage see [https://blog.golang.org/pprof](https://blog.golang.org/pprof).
+
 ## [4.0.3] 2020-03-30
 ### Fixed
 - Removed redundant namespacing for dynamic classifier metric `events_processed_total`.
