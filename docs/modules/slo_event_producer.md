@@ -20,9 +20,9 @@ rulesFiles:
   - <path>
 ```
 
-Structure of the rules file referenced from the root config of slo exporter: 
+Structure of the rules file referenced from the root config of slo exporter:
 
-`rulesConfig` 
+`rulesConfig`
 ```yaml
 # List of rules to be evaluated on the input events.
 rules:
@@ -43,7 +43,7 @@ failure_conditions:
 # Additional metadata that will be exported in the SLO metrics.
 additional_metadata:
   <value>: <value>
-# If the event already contains information about it's result, 
+# If the event already contains information about it's result,
 # it will be used and the failure conditions wont apply at all for this event.
 #   if evaluated event's sloResult attribute is nonempty, use its content to determine the event's result (ignoring all failure_criteria)
 #   if value equals event.Result's success value -> event is considered as successful

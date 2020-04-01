@@ -152,8 +152,8 @@ func (dc *DynamicClassifier) initializeEventsMetric() {
 	}
 	dc.eventsMetric = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name:      "events_processed_total",
-			Help:      "Total number of processed events by result.",
+			Name: "events_processed_total",
+			Help: "Total number of processed events by result.",
 		},
 		labels,
 	)

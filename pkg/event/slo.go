@@ -22,6 +22,7 @@ var (
 )
 
 type Slo struct {
+	// same value as in source event (HttpRequest.EventKey)
 	Key      string
 	Result   Result
 	Occurred time.Time
@@ -31,6 +32,7 @@ type Slo struct {
 	App    string
 
 	Metadata stringmap.StringMap
+	Quantity float64
 }
 
 func (s *Slo) IsClassified() bool {
