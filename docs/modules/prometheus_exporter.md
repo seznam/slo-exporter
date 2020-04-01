@@ -40,6 +40,7 @@ labelNames:
   # Application, to which the event belongs.
   sloApp: "slo_app"
   # Unique identifier of the event.
+  # This label holds value of Key attribute of the input SLO event
   eventKey: "event_key"
 ```
 

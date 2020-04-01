@@ -21,6 +21,7 @@ type HttpRequest struct {
 	Method            string
 	SloResult         string
 	SloClassification *SloClassification
+	Quantity          float64
 }
 
 // UpdateSLOClassification updates SloClassification field

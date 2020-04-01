@@ -46,6 +46,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 				Key:      "foo",
 				Domain:   "domain",
 				Result:   event.Fail,
+				Quantity: 1,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
 				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="fail", %[4]s = "", %[5]s = "", %[6]s = "domain"} 1
@@ -59,6 +60,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 				Key:      "foo",
 				Domain:   "domain",
 				Result:   event.Success,
+				Quantity: 1,
 			},
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
 				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="success", %[4]s = "", %[5]s = "", %[6]s = "domain"} 1
