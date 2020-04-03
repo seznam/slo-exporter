@@ -1,7 +1,7 @@
 
 webServerListenAddress: "0.0.0.0:8080"
 
-pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -34,6 +34,10 @@ modules:
     exactMatchesCsvFiles: []
     regexpMatchesCsvFiles:
       - "./classifications.csv"
+
+  statisticalClassifier:
+    historyWindowSize: "30m"
+    historyWeightUpdateInterval: "1m"
 
   sloEventProducer:
     rulesFiles:

@@ -22,3 +22,4 @@ slo_exporter
 /postgresql
 /prometheus
 /public
+*.orig
