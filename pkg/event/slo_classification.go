@@ -1,6 +1,10 @@
 package event
 
-import "gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+import (
+	"fmt"
+
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+)
 
 type SloClassification struct {
 	Domain string
@@ -27,4 +31,16 @@ func (sc *SloClassification) GetMetadata() stringmap.StringMap {
 		"slo_class":  sc.Class,
 		"app":        sc.App,
 	}
+}
+
+func (sc *SloClassification) Copy() SloClassification {
+	return SloClassification{
+		Domain: sc.Domain,
+		App:    sc.App,
+		Class:  sc.Class,
+	}
+}
+
+func (sc *SloClassification) String() string {
+	return fmt.Sprintf("%s:%s:%s", sc.Domain, sc.App, sc.Class)
 }

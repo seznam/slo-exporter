@@ -68,6 +68,7 @@ Possible `moduleType`:
     - [`eventFilter`](./docs/modules/event_filter.md)
     - [`normalizer`](./docs/modules/normalizer.md)
     - [`dynamicClassifier`](./docs/modules/dynamic_classifier.md)
+    - [`statisticalClassifier`](./docs/modules/statistical_classifier.md)
     - [`sloEventProducer`](./docs/modules/slo_event_producer.md)
 - ingesters:
     - [`prometheusExporter`](./docs/modules/prometheus_exporter.md)
