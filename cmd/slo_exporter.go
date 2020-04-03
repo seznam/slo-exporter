@@ -14,6 +14,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_ingester"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/statistical_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
 	"log"
 	"net/http"
@@ -66,6 +67,8 @@ func moduleFactory(moduleName string, logger *logrus.Entry, conf *viper.Viper) (
 		return event_filter.NewFromViper(conf, logger)
 	case "dynamicClassifier":
 		return dynamic_classifier.NewFromViper(conf, logger)
+	case "statisticalClassifier":
+		return statistical_classifier.NewFromViper(conf, logger)
 	case "sloEventProducer":
 		return slo_event_producer.NewFromViper(conf, logger)
 	case "prometheusExporter":

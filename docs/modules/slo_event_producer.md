@@ -44,7 +44,11 @@ failure_conditions:
 additional_metadata:
   <value>: <value>
 # If the event already contains information about it's result, 
-# it will be used and the failure conditions wont apply all for this event.
+# it will be used and the failure conditions wont apply at all for this event.
+#   if evaluated event's sloResult attribute is nonempty, use its content to determine the event's result (ignoring all failure_criteria)
+#   if value equals event.Result's success value -> event is considered as successful
+#   otherwise, event is considered as failed
+#   if evaluated event's sloResult attribute is empty, failure_criteria are evaluated and events's result is set based on them.
 honor_slo_result: True
 ```
 
