@@ -1,69 +1,24 @@
-# !!! ATTENTION !!!
-# Production copy of this configuration is maintained within the actual slo-exporter deployment
-# e.g. for userportal, it is located at https://gitlab.seznam.net/sklik-frontend/Proxies/tree/master/userproxy/conf/slo-exporter
-#
-
-# Every configuration key can be configured using ENV variables.
-# To set root level keys use pattern `SLO_EXPORTER_<KEYNAME>` eg `SLO_EXPORTER_WEBSERVERLISTENADDRESS="0.0.0.0:8080"`.
-# To set module level keys use pattern `SLO_EXPORTER_<MODULENAME>_<KEYNAME>` eg `SLO_EXPORTER_EVENTFILTER_FILTEREDHTTPSTATUSCODES="404,301"`.
-
-
-# Address where the web interface should listen on.
 webServerListenAddress: "0.0.0.0:8080"
-# Maximum time to wait for all events to be processed after receiving SIGTERM or SIGINT.
 maximumGracefulShutdownDuration: "10s"
-# How long to wait after pipeline stopped and no other events are being processed.
-# Useful to make sure metrics are scraped by Prometheus. Ideally set it to Prometheus scrape interval + 1s or more.
 afterPipelineShutdownDelay: "1s"
 
-# Defines architecture of the pipeline.
-pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
 
-# Contains configuration for distinct pipeline module.
 modules:
 
-  # PRODUCER Module which follows Nginx access log in specific format and generates events from it.
   tailer:
-    # Path to file to be processed.
     tailedFile: "/tmp/szn-logy/access_log"
-    # If tailed file should be followed for new lines once all current lines are processed.
     follow: true
-    # If tailed file should be reopened.
     reopen: true
-    # Path to file where to persist position of tailing.
     positionFile: ""
-    # How often current position should be persisted to the position file.
     positionPersistenceInterval: "2s"
-    # Defines RE which is used to parse the log line.
-    # Currently known named groups which are used to extract information for generated Events are:
-    #   time - format is 02/Jan/2006:15:04:05 -0700
-    #   requestDuration - in seconds (e.g. 1, 0.003)
-    #   statusCode - HTTP status code
-    #   request - HTTP request line
-    #   frpcStatus - Resulting status code of the FastRPC request embedded in the HTTP request.
-    #   ip - both IPv4 or IPv6
-    #   eventKey - If non-empty, it will be used as an event key value.
-    #   sloResult - see 'honor_slo_result' in 'modules.sloEventProducer.rulesFiles'
-    #   sloDomain - part of SLO classification for the given event.
-    #   sloApp - part of SLO classification for the given event.
-    #   sloClass - part of SLO classification for the given event.
-    # All named groups (including the above) are added to to the request event as metadata.
-    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'    # emptyGroupRE defines RE used to decide whether some of the RE match groups specified in loglineParseRegexp is empty and this its assigned variable should be kept unitialized
+    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
     emptyGroupRE: '^-$'
 
-
-  # PRODUCER Module which regularly queries Prometheus/Thanos and inserts the results to the processing pipeline.
   prometheusIngester:
-    # URL of the API for Prometheus queries
     apiUrl: "https://thanos.sklik-scif-ko.dev.dszn.cz"
     queryTimeout: 10s
-    # Each query definition have to contain these fields:
-    #  - query            | required | (string)            | What PromQL should be executed
-    #  - interval         | required | (int)               | How long should we wait between each query execution
-    #  - dropLabels       | optional | (list[string])      | Names of the labels that should be dropped from the results before pushing to the internal SloEventsChannel
-    #  - additionalLabels | optional | (map[string]string) | Defines what labels and values should be appended to the results before pushing to the channel
     queries:
-      # TODO: This is just an example query, should be deleted when Prometheus Ingester starts
       - query: 'time() - last_successful_run_timestamp - on(app) group_left() min(alerting_threshold:last_successful_run_timestamp) by (app) > 0'
         interval: 20s
         dropLabels:
@@ -71,102 +26,49 @@ modules:
         additionalLabels:
           purpose: "to_demonstrate_slo_exporter_conf_syntax"
 
-
-  # PROCESSOR Module allowing to filter out events.
   eventFilter:
-    # Map of Go regular expression matching event metadata key to Go regular expression matching metadata value. Any event with metadata matching any of those will be dropped.
     metadataFilter:
       "(?i)statusCode": "30[12]|40[045]|411"
       "(?i)userAgent": "(?i)(?:sentry|blackbox-exporter|kube-probe)"
 
-  # PROCESSOR Module doing sanitization of HTTP request path anf generating unique key for the event.
   normalizer:
     getParamWithEventIdentifier: "operationName"
-    # List of replace rules to be applied on the HTTP request path
     replaceRules:
-      # Regular expression to match the path
       - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
-        # Replacement of the matched path
         replacement: "/api/v1/ppchit/rule/0"
       - regexp: '/campaigns/\\d+/groups/\\d+/placements/automatic/(\\w[\\w-]+\\.)+\w{2,}/urls'
         replacement: "/campaigns/0/groups/0/placements/automatic/:domain/urls"
       - regexp: "/api/v1/captchas/\\w+"
         replacement: "/api/v1/captchas/:hash"
-    # If hashes in the path should be replaced (MD5, SHA1, ...).
     sanitizeHashes: true
-    # If number sequences in the path should be replaced eg `/foo/123/bar`.
     sanitizeNumbers: true
-    # If UIDs in the path should be replaced.
     sanitizeUids: true
-    # If IPs in the path should be replaced (v4, v6).
     sanitizeIps:     true
-    # If image names should be masked (.png, .jpg, .gif ...).
     sanitizeImages:  true
-    # If font file names in the path should be replaced (.ttf, .woff, ...)
     sanitizeFonts:   true
 
-  # PROCESSOR Module which classifies the events if not already into SLO domain, class and app according to it's key.
   dynamicClassifier:
-    # Paths to CSV files containing exact match classification rules.
     exactMatchesCsvFiles: []
-    # Paths to CSV files containing regexp match classification rules.
     regexpMatchesCsvFiles:
       - "conf/userportal.csv"
-    # Metadata key names of the event which will be added to the `events_processed_total` metric if the event cannot be classified.
-    # Name of the resulting label will be converted to snake case and prefixed with `metadata_`
     unclassifiedEventMetadataKeys:
       - "userAgent"
 
-  # PROCESSOR Module which generated SLO events out of HTTP request events.
+  statisticalClassifier:
+    historyWindowSize: "30m"
+    historyWeightUpdateInterval: "1m"
+
   sloEventProducer:
-    # Paths to files containing rules for evaluation of SLO event result and it's metadata.
     rulesFiles:
       - "conf/slo_rules.yaml"
 
-  # EXPORTER Module allowing to expose SLO metrics for Prometheus.
   prometheusExporter:
-    # Name of the resulting counter metric to be exposed representing counter of slo events by it's classification and result.
     metricName: "slo_events_total"
-    # Limit of unique event keys, when exceeded, the event key in the label is replaced with placeholder.
     maximumUniqueEventKeys: 1000
-    # Placeholder to replace new event keys when the limit is hit.
     ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
-    # Names of labels to be used for specific event information.
     labelNames:
-      # Contains information about the event result (success, fail, ...).
       result: "result"
-      # Domain of the SLO event.
       sloDomain: "slo_domain"
-      # SLO class of the event.
       sloClass: "slo_class"
-      # Application, to which the event belongs.
       sloApp: "slo_app"
-      # Unique identifier of the event.
       eventKey: "event_key"
-
-  # EXPORTER Module allowing to write SLO metrics to TimescaleDB.
-  timescaleExporter:
-    # TimescaleDB host.
-    host: "postgresql"
-    # TimescaleDB port.
-    port: 5432
-    # TimescaleDB user.
-    user: "postgres"
-    # TimescaleDB password.
-    password: "postgres"
-    # TimescaleDB database to use.
-    dbname: "postgres"
-    # How long to wait for TimescaleDB to be ready on startup.
-    dbInitTimeout: "1m"
-    # How often tu check if TimescaleDB is ready on startup.
-    dbInitCheckInterval: "1s"
-    # How often should be metric value reported to TimescaleDB if it changed recently.
-    updatedMetricPushInterval: "5m"
-    # How often should be all metric values reported to TimescaleDB regardless if it changed.
-    maximumPushInterval: "1h"
-    # How many inserts to batch into one write.
-    dbBatchWriteSize: 3000
-    # How often to write to TimescaleDB.
-    dbWriteInterval: "30s"
-    # How many times to retry failed inserts before dropping them completely.
-    dbWriteRetryInterval: "3m"

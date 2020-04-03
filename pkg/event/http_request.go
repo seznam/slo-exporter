@@ -61,5 +61,5 @@ func (e HttpRequest) String() string {
 	if e.EventKey != "" {
 		key = e.EventKey
 	}
-	return fmt.Sprintf("key: %q, status: %d, duration: %s", key, e.StatusCode, e.Duration)
+	return fmt.Sprintf("key: %q, status: %d, duration: %s, classification: %s", key, e.StatusCode, e.Duration, e.SloClassification)
 }
