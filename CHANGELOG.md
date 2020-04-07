@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] 2020-04-07
+### Fixed 
+- Roll back mutex and blocking goroutine profiling in `pprof` beacause of [an issue in go 1.14.1](https://github.com/golang/go/issues/37967).
+
 ## [4.2.0] 2020-04-07
 ### Added
 - New module `statisticalClassifier` to classify events based on previous events classification statistical distribution.
