@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	timeLayout              string = "02/Jan/2006:15:04:05 -0700"
+	timeLayout string = "02/Jan/2006:15:04:05 -0700"
 
 	timeGroupName            = "time"
 	requestDurationGroupName = "requestDuration"
@@ -131,10 +131,11 @@ func New(config tailerConfig, logger *logrus.Entry) (*Tailer, error) {
 	if err != nil {
 		return nil, err
 	}
-	if fstat.Size() < offset {
+	fileSize := fstat.Size()
+	if fileSize < offset {
+		logger.WithField("file", config.TailedFile).Warnf("loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fileSize)
 		pos.Remove(config.TailedFile)
 		offset = 0
-		logger.Warnf("loaded position '%d' for the file is larger that the file size '%d'. Tailer will start from the beginning of the file.", offset, fstat.Size())
 	}
 
 	if !config.Follow && config.Reopen {
@@ -146,7 +147,8 @@ func New(config tailerConfig, logger *logrus.Entry) (*Tailer, error) {
 		MustExist: true,
 		Location:  &tail.SeekInfo{Offset: offset, Whence: io.SeekStart},
 		// tail library has claimed problems with inotify: https://github.com/grafana/loki/commit/c994823369d65785e72c4247fd50c656801e429a
-		Poll: true,
+		Poll:   true,
+		Logger: logger,
 	})
 	if err != nil {
 		return nil, err
