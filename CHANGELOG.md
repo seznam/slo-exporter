@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New module `statisticalClassifier` to classify events based on previous events classification statistical distribution.
   Read more in [the module documentation](docs/modules/statistical_classifier.md).
+- Enabled mutex and blocking goroutine profiling in `pprof`.
 
 ## [4.1.0] 2020-03-30
 ### Fixed
