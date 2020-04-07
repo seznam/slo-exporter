@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -104,6 +105,10 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 }
 
 func main() {
+	// Enable mutex and block profiling
+	runtime.SetBlockProfileRate(1)
+	runtime.SetMutexProfileFraction(1)
+
 	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
 	logLevel := kingpin.Flag("log-level", "Log level (error, warn, info, debug,trace).").Default("info").String()
 	kingpin.Parse()
