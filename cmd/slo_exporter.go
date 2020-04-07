@@ -90,6 +90,7 @@ func setupLogger(logLevel string) (*logrus.Logger, error) {
 	newLogger.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
 		FullTimestamp: true,
+		TimestampFormat: "2006-01-02T15:04:05.99999Z07:00",
 	})
 	newLogger.SetLevel(lvl)
 	return newLogger, nil
