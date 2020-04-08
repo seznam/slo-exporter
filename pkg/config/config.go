@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func New(logger *logrus.Entry) *Config {
+func New(logger logrus.FieldLogger) *Config {
 	return &Config{logger: logger}
 }
 
@@ -20,7 +20,7 @@ type Config struct {
 	AfterPipelineShutdownDelay      time.Duration
 	EventKeyMetadataKey             string
 	Modules                         map[string]interface{}
-	logger                          *logrus.Entry
+	logger                          logrus.FieldLogger
 }
 
 func (c *Config) setupViper() {

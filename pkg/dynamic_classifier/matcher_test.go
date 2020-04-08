@@ -26,7 +26,7 @@ func newSloClassification(domain string, app string, class string) *event.SloCla
 }
 
 func TestMatcher(t *testing.T) {
-	logger := logrus.NewEntry(logrus.New())
+	logger := logrus.New()
 	cases := []struct {
 		matcher     matcher
 		key         string
@@ -78,13 +78,13 @@ func testDumpCSV(t *testing.T, matcher matcher) {
 }
 
 func TestMatcherExactDumpCSV(t *testing.T) {
-	matcher := newMemoryExactMatcher(logrus.NewEntry(logrus.New()))
+	matcher := newMemoryExactMatcher(logrus.New())
 	matcher.exactMatches["test-endpoint"] = newSloClassification("test-domain", "test-app", "test-class")
 	testDumpCSV(t, matcher)
 }
 
 func TestMatcherRegexpDumpCSV(t *testing.T) {
-	matcher := newRegexpMatcher(logrus.NewEntry(logrus.New()))
+	matcher := newRegexpMatcher(logrus.New())
 	matcher.matchers = append(matcher.matchers,
 		&regexpSloClassification{
 			regexpCompiled: regexp.MustCompile(".*"),

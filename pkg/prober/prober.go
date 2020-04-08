@@ -21,7 +21,7 @@ var (
 )
 
 // NewLiveness returns prober to be used as a liveness probe.
-func NewLiveness(registry prometheus.Registerer, logger *logrus.Entry) (*Prober, error) {
+func NewLiveness(registry prometheus.Registerer, logger logrus.FieldLogger) (*Prober, error) {
 	p, err := newProber(registry, logger, "liveness")
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func NewLiveness(registry prometheus.Registerer, logger *logrus.Entry) (*Prober,
 }
 
 // NewReadiness returns prober to be used as a readiness probe.
-func NewReadiness(registry prometheus.Registerer, logger *logrus.Entry) (*Prober, error) {
+func NewReadiness(registry prometheus.Registerer, logger logrus.FieldLogger) (*Prober, error) {
 	p, err := newProber(registry, logger, "readiness")
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func NewReadiness(registry prometheus.Registerer, logger *logrus.Entry) (*Prober
 	return p, nil
 }
 
-func newProber(registry prometheus.Registerer, logger *logrus.Entry, name string) (*Prober, error) {
+func newProber(registry prometheus.Registerer, logger logrus.FieldLogger, name string) (*Prober, error) {
 	p := Prober{
 		name:      name,
 		statusMtx: sync.Mutex{},
@@ -59,7 +59,7 @@ type Prober struct {
 	name      string
 	status    error
 	statusMtx sync.Mutex
-	logger    *logrus.Entry
+	logger    logrus.FieldLogger
 }
 
 // Ok sets the Prober to correct status

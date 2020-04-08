@@ -25,7 +25,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				logger:             logrus.NewEntry(logrus.New()),
+				logger:             logrus.New(),
 			},
 			inputEvent: event.HttpRequest{
 				Metadata:          stringmap.StringMap{"statusCode": "200"},
@@ -39,7 +39,7 @@ func TestEvaluateEvent(t *testing.T) {
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				honorSloResult:     true,
-				logger:             logrus.NewEntry(logrus.New()),
+				logger:             logrus.New(),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Success),
@@ -54,7 +54,7 @@ func TestEvaluateEvent(t *testing.T) {
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				honorSloResult:     true,
-				logger:             logrus.NewEntry(logrus.New()),
+				logger:             logrus.New(),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Fail),
@@ -68,7 +68,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("502")}},
-				logger:             logrus.NewEntry(logrus.New()),
+				logger:             logrus.New(),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Success),
@@ -82,7 +82,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				logger:             logrus.NewEntry(logrus.New()),
+				logger:             logrus.New(),
 			},
 			inputEvent: event.HttpRequest{
 				SloResult:         string(event.Fail),
@@ -96,7 +96,7 @@ func TestEvaluateEvent(t *testing.T) {
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				logger:             logrus.NewEntry(logrus.New()),
+				logger:             logrus.New(),
 			},
 			inputEvent: event.HttpRequest{
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
@@ -110,7 +110,7 @@ func TestEvaluateEvent(t *testing.T) {
 				sloMatcher:         event.SloClassification{Domain: "foo"},
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				logger:             logrus.NewEntry(logrus.New()),
+				logger:             logrus.New(),
 			},
 			inputEvent: event.HttpRequest{
 				Metadata:          stringmap.StringMap{"statusCode": "502"},

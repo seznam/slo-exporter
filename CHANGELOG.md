@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Possibility to dynamically set the log level using HTTP endpoint, [see the docs](./README.md#debugging).
 
+### Fixed
+- Fixed logging in reporting metrics from prometheus exporter module.
+
 ## [4.2.1] 2020-04-07
 ### Fixed 
 - Roll back mutex and blocking goroutine profiling in `pprof` beacause of [an issue in go 1.14.1](https://github.com/golang/go/issues/37967).

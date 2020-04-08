@@ -3,6 +3,7 @@ package prometheus_exporter
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"strings"
@@ -16,7 +17,7 @@ func Test_aggregatingCounter(t *testing.T) {
 		"slo_class",
 		"slo_app",
 		"event_key",
-	})
+	}, logrus.New())
 	err := aggVec.register(reg)
 	assert.NoError(t, err)
 

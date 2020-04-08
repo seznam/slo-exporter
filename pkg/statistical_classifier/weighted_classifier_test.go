@@ -22,7 +22,7 @@ func TestArchive(t *testing.T) {
 		},
 	}
 
-	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.NewEntry(logrus.New()))
+	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestArchive(t *testing.T) {
 }
 
 func TestRefresh(t *testing.T) {
-	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.NewEntry(logrus.New()))
+	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestClassForEvent(t *testing.T) {
 		App:    "test-app",
 		Class:  "test-class",
 	}
-	s, err := newWeightedClassifier(1, 1, logrus.NewEntry(logrus.New()))
+	s, err := newWeightedClassifier(1, 1, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestGuess(t *testing.T) {
 
 	for _, testCase := range testCases {
 		var classificationCount int
-		classifier, err := newWeightedClassifier(time.Minute, time.Second, logrus.NewEntry(logrus.New()))
+		classifier, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -179,7 +179,7 @@ func TestGuess(t *testing.T) {
 }
 
 func TestEmptyGuess(t *testing.T) {
-	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.NewEntry(logrus.New()))
+	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
