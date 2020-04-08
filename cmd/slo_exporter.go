@@ -87,19 +87,34 @@ func setupLogger(logLevel string) (*logrus.Logger, error) {
 	newLogger := logrus.New()
 	newLogger.SetOutput(os.Stdout)
 	newLogger.SetFormatter(&logrus.TextFormatter{
-		DisableColors: true,
-		FullTimestamp: true,
+		DisableColors:   true,
+		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02T15:04:05.99999Z07:00",
 	})
 	newLogger.SetLevel(lvl)
 	return newLogger, nil
 }
 
-func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober) (*http.Server, *mux.Router) {
+func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober, logger *logrus.Logger) (*http.Server, *mux.Router) {
+	dynamicLoggingHandler := func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodPost {
+			lvl, err := logrus.ParseLevel(req.URL.Query().Get("level"))
+			if err != nil {
+				http.Error(w, "invalid specified logging level: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			logger.SetLevel(lvl)
+			_, _ = w.Write([]byte("logging level set to: " + lvl.String()))
+			return
+		}
+		_, _ = w.Write([]byte("current logging level is: " + logger.Level.String()))
+	}
+
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/liveness", liveness.HandleFunc)
 	router.HandleFunc("/readiness", readiness.HandleFunc)
+	router.HandleFunc("/logging", dynamicLoggingHandler)
 	router.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
 	return &http.Server{Addr: listenAddr, Handler: router}, router
 }
@@ -137,7 +152,7 @@ func main() {
 	gracefulShutdownRequestChan := make(chan struct{}, 10)
 
 	// Start default server
-	defaultServer, router := setupDefaultServer(conf.WebServerListenAddress, liveness, readiness)
+	defaultServer, router := setupDefaultServer(conf.WebServerListenAddress, liveness, readiness, logger)
 	go func() {
 		logger.Infof("HTTP server listening on http://%+v", defaultServer.Addr)
 		if err := defaultServer.ListenAndServe(); err != nil {
