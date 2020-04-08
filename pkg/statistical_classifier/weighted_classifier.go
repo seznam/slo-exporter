@@ -102,6 +102,7 @@ func (w *weightedClassificationSet) weights() []float64 {
 type weightedClassifier struct {
 	history                 *history
 	totalWeightsOverHistory *weightedClassificationSet
+	defaultWeights          *weightedClassificationSet
 	recentWeights           classificationMapping
 	lock                    sync.RWMutex
 	historyUpdateInterval   time.Duration
@@ -112,7 +113,7 @@ func newWeightedClassifier(windowSize, historyUpdateInterval time.Duration, logg
 	if historyUpdateInterval == 0 {
 		return nil, fmt.Errorf("history update interval cannot be zero")
 	}
-	historyItemsLimit := windowSize/historyUpdateInterval
+	historyItemsLimit := windowSize / historyUpdateInterval
 	return &weightedClassifier{
 		history:                 newHistory(int(historyItemsLimit)),
 		totalWeightsOverHistory: newWeightedClassificationSet(),
@@ -126,6 +127,10 @@ func newWeightedClassifier(windowSize, historyUpdateInterval time.Duration, logg
 // increaseWeight increases classification weight in the recent data.
 func (s *weightedClassifier) increaseWeight(classification event.SloClassification, weight float64) {
 	s.recentWeights.inc(&classification, weight)
+}
+
+func (s *weightedClassifier) setDefaultWeights(defaultWeights *weightedClassificationSet) {
+	s.defaultWeights = defaultWeights
 }
 
 // archive puts most recent weights to history queue, drops old expired data from it and recalculates the weights from the updated history.
@@ -154,23 +159,27 @@ func (s *weightedClassifier) reweight() error {
 	return nil
 }
 
-// guessClass returns classification for event. Its based on wights calculated over history window.
+// guessClass returns classification for event. Its based on wights calculated over history window or the default ones configured.
+// If there is no weights yet, error is returned.
 func (s *weightedClassifier) guessClass() (*event.SloClassification, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if len(s.totalWeightsOverHistory.weights()) < 1 {
-		return nil, fmt.Errorf("not enough data to guess")
+	classificationWeights := s.totalWeightsOverHistory
+	if len(classificationWeights.weights()) < 1 {
+		if s.defaultWeights != nil && len(s.defaultWeights.weights()) > 0 {
+			classificationWeights = s.defaultWeights
+		} else {
+			return nil, fmt.Errorf("not enough data to guess")
+		}
 	}
-	w := sampleuv.NewWeighted(
-		s.totalWeightsOverHistory.weights(),
-		rand.New(rand.NewSource(uint64(time.Now().UnixNano()))),
-	)
+
+	w := sampleuv.NewWeighted(classificationWeights.weights(), rand.New(rand.NewSource(uint64(time.Now().UnixNano()))))
 	i, ok := w.Take()
 	if !ok {
 		return nil, fmt.Errorf("not enough data to guess")
 	}
-	return s.totalWeightsOverHistory.index(i), nil
+	return classificationWeights.index(i), nil
 }
 
 // Run runs statistic refresher - archive recentWeights classifications and recount weightedClassifier

@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Possibility to dynamically set the log level using HTTP endpoint, [see the docs](./README.md#debugging).
+- StatisticalClassifier module now allows to set default weights.
 
 ### Fixed
 - Fixed logging in reporting metrics from prometheus exporter module.

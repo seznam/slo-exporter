@@ -57,6 +57,11 @@ modules:
   statisticalClassifier:
     historyWindowSize: "30m"
     historyWeightUpdateInterval: "1m"
+    defaultWeights:
+      - weight: 1
+        classification:
+          sloDomain: "userportal"
+          sloClass: "test1"
 
   sloEventProducer:
     rulesFiles:

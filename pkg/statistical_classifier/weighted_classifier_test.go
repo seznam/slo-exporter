@@ -178,6 +178,22 @@ func TestGuess(t *testing.T) {
 	}
 }
 
+func TestDefaultWeightsGuess(t *testing.T) {
+	testedClassification := event.SloClassification{Class: "test", Domain: "test", App: "test"}
+	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.setDefaultWeights(newWeightedClassificationSetFromClassifications(&classificationMapping{
+		"test": &classificationWeight{
+			weight:         1,
+			classification: &testedClassification,
+		}}))
+	guessedClassification, err := s.guessClass()
+	assert.NoError(t, err)
+	assert.Equal(t, testedClassification, *guessedClassification)
+}
+
 func TestEmptyGuess(t *testing.T) {
 	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
 	if err != nil {
