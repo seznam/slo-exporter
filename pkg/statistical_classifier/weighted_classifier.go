@@ -105,10 +105,10 @@ type weightedClassifier struct {
 	recentWeights           classificationMapping
 	lock                    sync.RWMutex
 	historyUpdateInterval   time.Duration
-	logger                  *logrus.Entry
+	logger                  logrus.FieldLogger
 }
 
-func newWeightedClassifier(windowSize, historyUpdateInterval time.Duration, logger *logrus.Entry) (*weightedClassifier, error) {
+func newWeightedClassifier(windowSize, historyUpdateInterval time.Duration, logger logrus.FieldLogger) (*weightedClassifier, error) {
 	if historyUpdateInterval == 0 {
 		return nil, fmt.Errorf("history update interval cannot be zero")
 	}

@@ -66,7 +66,7 @@ type PrometheusSloEventExporter struct {
 
 	inputChannel chan *event.Slo
 	done         bool
-	logger       *logrus.Entry
+	logger       logrus.FieldLogger
 }
 
 type InvalidSloEventResult struct {
@@ -78,7 +78,7 @@ func (e *InvalidSloEventResult) Error() string {
 	return fmt.Sprintf("result '%s' is not valid. Expected one of: %+v", e.result, e.validResults)
 }
 
-func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*PrometheusSloEventExporter, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*PrometheusSloEventExporter, error) {
 	config := prometheusExporterConfig{}
 	viperConfig.SetDefault("MetricName", "slo_events_total")
 	viperConfig.SetDefault("LabelNames.Result", "result")
@@ -93,12 +93,12 @@ func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*PrometheusSl
 	return New(config, logger)
 }
 
-func New(config prometheusExporterConfig, logger *logrus.Entry) (*PrometheusSloEventExporter, error) {
+func New(config prometheusExporterConfig, logger logrus.FieldLogger) (*PrometheusSloEventExporter, error) {
 	// initialize and register Prometheus metrics
 	eventKeyCardinalityLimit.Set(float64(config.MaximumUniqueEventKeys))
 
 	aggregationLabels := []string{config.LabelNames.SloDomain, config.LabelNames.SloClass, config.LabelNames.SloApp, config.LabelNames.EventKey}
-	newAggregatedMetricsSet := newAggregatedCounterVectorSet(config.MetricName, metricHelp, aggregationLabels)
+	newAggregatedMetricsSet := newAggregatedCounterVectorSet(config.MetricName, metricHelp, aggregationLabels, logger)
 
 	return &PrometheusSloEventExporter{
 		aggregatedMetricsSet: newAggregatedMetricsSet,
@@ -147,7 +147,7 @@ func (e *PrometheusSloEventExporter) Run() {
 	go func() {
 		for newEvent := range e.inputChannel {
 			start := time.Now()
-			e.logger.Tracef("processing event %s", newEvent)
+			e.logger.Debugf("processing event %s", newEvent)
 			err := e.processEvent(newEvent)
 			if err != nil {
 				e.logger.Errorf("unable to process slo event: %+v", err)

@@ -69,7 +69,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 
 	for _, test := range testCases {
 		reg := prometheus.NewPedanticRegistry()
-		exporter, err := New(conf, logrus.NewEntry(logrus.New()))
+		exporter, err := New(conf, logrus.New())
 		assert.NoError(t, err)
 		err = exporter.RegisterMetrics(reg, reg)
 		assert.NoError(t, err)
@@ -88,7 +88,7 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
-	exporter, err := New(conf, logrus.NewEntry(logrus.New()))
+	exporter, err := New(conf, logrus.New())
 	if err != nil {
 		t.Error(err)
 		return
@@ -103,7 +103,7 @@ func Test_PrometheusSloEventExporter_isValidResult(t *testing.T) {
 }
 
 func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
-	exporter, err := New(conf, logrus.NewEntry(logrus.New()))
+	exporter, err := New(conf, logrus.New())
 	if err != nil {
 		t.Error(err)
 		return

@@ -14,7 +14,7 @@ import (
 )
 
 func newClassifier(t *testing.T, config classifierConfig) *DynamicClassifier {
-	classifier, err := New(config, logrus.NewEntry(logrus.New()))
+	classifier, err := New(config, logrus.New())
 	if err != nil {
 		t.Error(err)
 	}
@@ -32,7 +32,7 @@ func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 	classifier := newClassifier(t, config)
 
 	expectedClassification := newSloClassification("test-domain", "test-app", "test-class")
-	expectedExactMatches := newMemoryExactMatcher(logrus.NewEntry(logrus.New()))
+	expectedExactMatches := newMemoryExactMatcher(logrus.New())
 	expectedExactMatches.exactMatches["GET:/testing-endpoint"] = expectedClassification
 
 	classification, err := classifier.exactMatches.get("GET:/testing-endpoint")
@@ -51,7 +51,7 @@ func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 		regexpCompiled: regexp.MustCompile(".*"),
 		classification: expectedClassification,
 	}
-	expectedExactMatches := newRegexpMatcher(logrus.NewEntry(logrus.New()))
+	expectedExactMatches := newRegexpMatcher(logrus.New())
 	expectedExactMatches.matchers = append(expectedExactMatches.matchers, expectedRegexpSloClassification)
 
 	classification, err := classifier.regexpMatches.get("foo")

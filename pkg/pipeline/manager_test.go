@@ -42,7 +42,7 @@ func (t *testModule) OutputChannel() chan *event.HttpRequest {
 }
 
 func newTestManager() (*Manager, error) {
-	manager, err := NewManager(testModuleFactory, &config.Config{Pipeline: []string{},}, logrus.NewEntry(logrus.New()))
+	manager, err := NewManager(testModuleFactory, &config.Config{Pipeline: []string{},}, logrus.New())
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func Test_newPipelineItem(t *testing.T) {
 	for _, tt := range tests {
 		m, err := newTestManager()
 		assert.NoError(t, err)
-		_, err = m.newPipelineItem(tt.moduleName, config.New(logrus.NewEntry(logrus.New())), testModuleFactory)
+		_, err = m.newPipelineItem(tt.moduleName, config.New(logrus.New()), testModuleFactory)
 		assert.Equal(t, tt.expErr, err != nil)
 	}
 }

@@ -53,7 +53,7 @@ type PrometheusIngester struct {
 	api             v1.API
 	shutdownChannel chan struct{}
 	outputChannel   chan *event.HttpRequest
-	logger          *logrus.Entry
+	logger          logrus.FieldLogger
 	done            bool
 }
 
@@ -83,7 +83,7 @@ func (i *PrometheusIngester) OutputChannel() chan *event.HttpRequest {
 	return i.outputChannel
 }
 
-func NewFromViper(viperAppConfig *viper.Viper, logger *logrus.Entry) (*PrometheusIngester, error) {
+func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*PrometheusIngester, error) {
 	config := PrometheusIngesterConfig{}
 	if err := viperAppConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -97,7 +97,7 @@ func NewFromViper(viperAppConfig *viper.Viper, logger *logrus.Entry) (*Prometheu
 	return New(config, logger)
 }
 
-func New(initConfig PrometheusIngesterConfig, logger *logrus.Entry) (*PrometheusIngester, error) {
+func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*PrometheusIngester, error) {
 
 	client, err := api.NewClient(api.Config{
 		Address:      initConfig.ApiUrl,
