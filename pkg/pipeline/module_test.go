@@ -7,7 +7,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 )
 
-func testModuleFactory(moduleName string, logger *logrus.Entry, conf *viper.Viper) (Module, error) {
+func testModuleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (Module, error) {
 	switch moduleName {
 	case "testRawIngester":
 		return testRawIngester{}, nil

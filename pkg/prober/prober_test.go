@@ -10,7 +10,7 @@ import (
 )
 
 func TestProber(t *testing.T) {
-	p, err := NewLiveness(prometheus.NewRegistry(), logrus.NewEntry(logrus.New()))
+	p, err := NewLiveness(prometheus.NewRegistry(), logrus.New())
 	assert.NoError(t, err)
 	p.Ok()
 	assert.Equal(t, nil, p.IsOk())
@@ -21,7 +21,7 @@ func TestProber(t *testing.T) {
 }
 
 func TestProber_HandleFunc(t *testing.T) {
-	p, err := NewLiveness(prometheus.NewRegistry(), logrus.NewEntry(logrus.New()))
+	p, err := NewLiveness(prometheus.NewRegistry(), logrus.New())
 	assert.NoError(t, err)
 	req, err := http.NewRequest("GET", "/liveness", nil)
 	if err != nil {

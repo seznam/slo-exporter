@@ -46,7 +46,7 @@ func (n *replacer) process(path string) string {
 	return path
 }
 
-func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*requestNormalizer, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*requestNormalizer, error) {
 	config := &requestNormalizerConfig{}
 	if err := viperConfig.UnmarshalExact(config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -66,7 +66,7 @@ type requestNormalizerConfig struct {
 }
 
 // New returns requestNormalizer which allows to add Key to RequestEvent
-func NewFromConfig(config *requestNormalizerConfig, logger *logrus.Entry) (*requestNormalizer, error) {
+func NewFromConfig(config *requestNormalizerConfig, logger logrus.FieldLogger) (*requestNormalizer, error) {
 	normalizer := requestNormalizer{
 		getParamWithEventIdentifier: config.GetParamWithEventIdentifier,
 		replaceRules:                config.ReplaceRules,
@@ -98,7 +98,7 @@ type requestNormalizer struct {
 	inputChannel                chan *event.HttpRequest
 	outputChannel               chan *event.HttpRequest
 	done                        bool
-	logger                      *logrus.Entry
+	logger                      logrus.FieldLogger
 }
 
 func (rn *requestNormalizer) String() string {

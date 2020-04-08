@@ -9,7 +9,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
-func newEvaluationRule(opts ruleOptions, logger *logrus.Entry) (*evaluationRule, error) {
+func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluationRule, error) {
 	var failureConditions []operator
 	for _, operatorOpts := range opts.FailureConditionsOptions {
 		operator, err := newOperator(operatorOpts)
@@ -36,7 +36,7 @@ type evaluationRule struct {
 	failureConditions  []operator
 	additionalMetadata stringmap.StringMap
 	honorSloResult     bool
-	logger             *logrus.Entry
+	logger             logrus.FieldLogger
 }
 
 func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {

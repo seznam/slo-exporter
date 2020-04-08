@@ -63,7 +63,7 @@ type DynamicClassifier struct {
 	observer                      pipeline.EventProcessingDurationObserver
 	inputChannel                  chan *event.HttpRequest
 	outputChannel                 chan *event.HttpRequest
-	logger                        *logrus.Entry
+	logger                        logrus.FieldLogger
 	done                          bool
 }
 
@@ -111,7 +111,7 @@ func (dc *DynamicClassifier) OutputChannel() chan *event.HttpRequest {
 	return dc.outputChannel
 }
 
-func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*DynamicClassifier, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*DynamicClassifier, error) {
 	var config classifierConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -124,7 +124,7 @@ func metadataKeyToLabel(metadataKey string) string {
 }
 
 // New returns new instance of DynamicClassifier
-func New(conf classifierConfig, logger *logrus.Entry) (*DynamicClassifier, error) {
+func New(conf classifierConfig, logger logrus.FieldLogger) (*DynamicClassifier, error) {
 	sort.Strings(conf.UnclassifiedEventMetadataKeys)
 	classifier := DynamicClassifier{
 		exactMatches:                  newMemoryExactMatcher(logger),

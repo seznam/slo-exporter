@@ -87,7 +87,7 @@ type Tailer struct {
 	emptyGroupRegexp        *regexp.Regexp
 	outputChannel           chan *event.HttpRequest
 	shutdownChannel         chan struct{}
-	logger                  *logrus.Entry
+	logger                  logrus.FieldLogger
 	done                    bool
 }
 
@@ -95,7 +95,7 @@ func (t *Tailer) String() string {
 	return "tailer"
 }
 
-func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*Tailer, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*Tailer, error) {
 	viperConfig.SetDefault("Follow", true)
 	viperConfig.SetDefault("Reopen", true)
 	viperConfig.SetDefault("PositionPersistenceInterval", 2*time.Second)
@@ -108,7 +108,7 @@ func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*Tailer, erro
 }
 
 // New returns an instance of Tailer
-func New(config tailerConfig, logger *logrus.Entry) (*Tailer, error) {
+func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 	var (
 		offset int64
 		err    error

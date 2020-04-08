@@ -29,7 +29,7 @@ func TestEventFilter_headersMatch(t *testing.T) {
 		{metadata: stringmap.StringMap{"User-Agent": "Firefox"}, shouldMatch: true},
 		{metadata: stringmap.StringMap{"User-Agent foo": "Firefox bar"}, shouldMatch: true},
 	}
-	eventFilter, err := NewFromConfig(config, logrus.NewEntry(logrus.New()))
+	eventFilter, err := NewFromConfig(config, logrus.New())
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,7 +46,7 @@ func TestEventFilter_shouldDrop(t *testing.T) {
 			"(?i)statusCode": "301|404",
 		},
 	}
-	eventFilter, err := NewFromConfig(config, logrus.NewEntry(logrus.New()))
+	eventFilter, err := NewFromConfig(config, logrus.New())
 	if err != nil {
 		t.Error(err)
 	}

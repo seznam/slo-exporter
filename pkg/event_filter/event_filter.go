@@ -31,7 +31,7 @@ type metadataMatcher struct {
 type EventFilter struct {
 	metadataMatchers []metadataMatcher
 	observer         pipeline.EventProcessingDurationObserver
-	logger           *logrus.Entry
+	logger           logrus.FieldLogger
 	inputChannel     chan *event.HttpRequest
 	outputChannel    chan *event.HttpRequest
 	done             bool
@@ -61,7 +61,7 @@ func (ef *EventFilter) OutputChannel() chan *event.HttpRequest {
 	return ef.outputChannel
 }
 
-func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*EventFilter, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*EventFilter, error) {
 	var config eventFilterConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -69,7 +69,7 @@ func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*EventFilter,
 	return NewFromConfig(config, logger)
 }
 
-func NewFromConfig(config eventFilterConfig, logger *logrus.Entry) (*EventFilter, error) {
+func NewFromConfig(config eventFilterConfig, logger logrus.FieldLogger) (*EventFilter, error) {
 	filter := EventFilter{
 		metadataMatchers: []metadataMatcher{},
 		outputChannel:    make(chan *event.HttpRequest),

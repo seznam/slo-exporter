@@ -342,7 +342,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		LoglineParseRegexp:          lineParseRegexp,
 		EmptyGroupRE:                emptyGroupRegexp,
 	}
-	tailer, err := New(config, logrus.NewEntry(logrus.New()))
+	tailer, err := New(config, logrus.New())
 	if err != nil {
 		return err
 	}
@@ -366,7 +366,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
 	}
 
-	tailer, err = New(config, logrus.NewEntry(logrus.New()))
+	tailer, err = New(config, logrus.New())
 	if err != nil {
 		return err
 	}

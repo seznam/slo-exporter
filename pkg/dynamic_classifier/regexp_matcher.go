@@ -27,11 +27,11 @@ type regexpSloClassification struct {
 type regexpMatcher struct {
 	matchers []*regexpSloClassification
 	mtx      sync.RWMutex
-	logger   *logrus.Entry
+	logger   logrus.FieldLogger
 }
 
 // newRegexpMatcher returns new instance of regexpMatcher
-func newRegexpMatcher(logger *logrus.Entry) *regexpMatcher {
+func newRegexpMatcher(logger logrus.FieldLogger) *regexpMatcher {
 	return &regexpMatcher{
 		mtx:    sync.RWMutex{},
 		logger: logger,
