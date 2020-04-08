@@ -87,7 +87,7 @@ func TestStringMap_String(t *testing.T) {
 		{meta: StringMap{"a": "1"}, res: `a="1"`},
 		{meta: StringMap{"a": "1", "b": "2"}, res: `a="1",b="2"`},
 		{meta: StringMap{"b": "1", "a": "2"}, res: `a="2",b="1"`},
-		{meta: StringMap{"": ""}, res: ``},
+		{meta: StringMap{"": ""}, res: `=""`},
 		{meta: StringMap{"a": ""}, res: `a=""`},
 		{meta: StringMap{}, res: ``},
 	}

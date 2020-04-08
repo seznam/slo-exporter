@@ -40,12 +40,12 @@ func (e *HttpRequest) IsClassified() bool {
 	return false
 }
 
-func (e HttpRequest) GetSloMetadata() *stringmap.StringMap {
+func (e HttpRequest) GetSloMetadata() stringmap.StringMap {
 	if e.SloClassification == nil {
 		return nil
 	}
 	metadata := e.SloClassification.GetMetadata()
-	return &metadata
+	return metadata
 }
 
 func (e HttpRequest) GetSloClassification() *SloClassification {
