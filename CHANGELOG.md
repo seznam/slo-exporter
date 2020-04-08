@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Possibility to dynamically set the log level using HTTP endpoint, [see the docs]().
+- Possibility to dynamically set the log level using HTTP endpoint, [see the docs](./README.md#debugging).
 
 ## [4.2.1] 2020-04-07
 ### Fixed 
