@@ -18,7 +18,7 @@ func configFromFile(path string) (*rulesConfig, error) {
 	return &config, nil
 }
 
-func NewEventEvaluatorFromConfigFiles(paths []string, logger *logrus.Entry) (*EventEvaluator, error) {
+func NewEventEvaluatorFromConfigFiles(paths []string, logger logrus.FieldLogger) (*EventEvaluator, error) {
 	var config rulesConfig
 	for _, path := range paths {
 		tmpConfig, err := configFromFile(path)
@@ -34,7 +34,7 @@ func NewEventEvaluatorFromConfigFiles(paths []string, logger *logrus.Entry) (*Ev
 	return evaluator, nil
 }
 
-func NewEventEvaluatorFromConfig(config *rulesConfig, logger *logrus.Entry) (*EventEvaluator, error) {
+func NewEventEvaluatorFromConfig(config *rulesConfig, logger logrus.FieldLogger) (*EventEvaluator, error) {
 	var configurationErrors error
 	evaluator := EventEvaluator{
 		rules:  []*evaluationRule{},
@@ -53,7 +53,7 @@ func NewEventEvaluatorFromConfig(config *rulesConfig, logger *logrus.Entry) (*Ev
 
 type EventEvaluator struct {
 	rules  []*evaluationRule
-	logger *logrus.Entry
+	logger logrus.FieldLogger
 }
 
 func (re *EventEvaluator) AddEvaluationRule(rule *evaluationRule) {

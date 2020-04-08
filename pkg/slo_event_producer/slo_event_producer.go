@@ -36,7 +36,7 @@ type sloEventProducerConfig struct {
 	RulesFiles []string
 }
 
-func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*SloEventProducer, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*SloEventProducer, error) {
 	var config sloEventProducerConfig
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
@@ -44,7 +44,7 @@ func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*SloEventProd
 	return New(config, logger)
 }
 
-func New(config sloEventProducerConfig, logger *logrus.Entry) (*SloEventProducer, error) {
+func New(config sloEventProducerConfig, logger logrus.FieldLogger) (*SloEventProducer, error) {
 	eventEvaluator, err := NewEventEvaluatorFromConfigFiles(config.RulesFiles, logger)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ type SloEventProducer struct {
 	observer       pipeline.EventProcessingDurationObserver
 	inputChannel   chan *event.HttpRequest
 	outputChannel  chan *event.Slo
-	logger         *logrus.Entry
+	logger         logrus.FieldLogger
 	done           bool
 }
 

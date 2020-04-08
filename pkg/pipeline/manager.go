@@ -23,7 +23,7 @@ var (
 	)
 )
 
-func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logger *logrus.Entry) (*Manager, error) {
+func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logger logrus.FieldLogger) (*Manager, error) {
 	manager := Manager{
 		pipeline: []pipelineItem{},
 		logger:   logger,
@@ -50,7 +50,7 @@ type pipelineItem struct {
 type Manager struct {
 	pipeline []pipelineItem
 	config   config.Config
-	logger   *logrus.Entry
+	logger   logrus.FieldLogger
 }
 
 func (m *Manager) StartPipeline() {

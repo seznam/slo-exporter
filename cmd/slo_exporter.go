@@ -55,7 +55,7 @@ func init() {
 }
 
 // Factory to instantiate pipeline modules
-func moduleFactory(moduleName string, logger *logrus.Entry, conf *viper.Viper) (pipeline.Module, error) {
+func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (pipeline.Module, error) {
 	switch moduleName {
 	case "tailer":
 		return tailer.NewFromViper(conf, logger)
@@ -158,7 +158,6 @@ func main() {
 		if err := defaultServer.ListenAndServe(); err != nil {
 			errChan <- err
 		}
-		gracefulShutdownRequestChan <- struct{}{}
 	}()
 
 	// Initialize the pipeline

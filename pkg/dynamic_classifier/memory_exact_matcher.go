@@ -20,11 +20,11 @@ type memoryExactMatcher struct {
 	exactMatches  map[string]*event.SloClassification
 	matchersCount prometheus.Counter
 	mtx           sync.RWMutex
-	logger        *logrus.Entry
+	logger        logrus.FieldLogger
 }
 
 // newMemoryExactMatcher returns instance of memoryCache
-func newMemoryExactMatcher(logger *logrus.Entry) *memoryExactMatcher {
+func newMemoryExactMatcher(logger logrus.FieldLogger) *memoryExactMatcher {
 	exactMatches := map[string]*event.SloClassification{}
 	return &memoryExactMatcher{
 		exactMatches: exactMatches,

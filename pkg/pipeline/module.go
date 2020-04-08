@@ -8,7 +8,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 )
 
-type moduleFactoryFunction func(moduleName string, logger *logrus.Entry, conf *viper.Viper) (Module, error)
+type moduleFactoryFunction func(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (Module, error)
 
 type ModuleConstructor func(viperConfig *viper.Viper) (Module, error)
 

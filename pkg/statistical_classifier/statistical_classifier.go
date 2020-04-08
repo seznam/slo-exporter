@@ -46,14 +46,14 @@ type classifierConfig struct {
 type StatisticalClassifier struct {
 	classifier    *weightedClassifier
 	observer      pipeline.EventProcessingDurationObserver
-	logger        *logrus.Entry
+	logger        logrus.FieldLogger
 	inputChannel  chan *event.HttpRequest
 	outputChannel chan *event.HttpRequest
 	done          bool
 }
 
 // NewFromViper create new instance of StatisticalClassifier based on viper config
-func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*StatisticalClassifier, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*StatisticalClassifier, error) {
 	var config classifierConfig
 	defaultWindowSize, err := time.ParseDuration("30m")
 	if err != nil {
@@ -73,7 +73,7 @@ func NewFromViper(viperConfig *viper.Viper, logger *logrus.Entry) (*StatisticalC
 }
 
 // New returns new instance of StatisticalClassifier
-func New(conf classifierConfig, logger *logrus.Entry) (*StatisticalClassifier, error) {
+func New(conf classifierConfig, logger logrus.FieldLogger) (*StatisticalClassifier, error) {
 	newClassifier, err := newWeightedClassifier(conf.HistoryWindowSize, conf.HistoryWeightUpdateInterval, logger)
 	if err != nil {
 		return nil, err

@@ -57,7 +57,7 @@ func TestSloEventProducer(t *testing.T) {
 
 	for _, tc := range testCases {
 		out := make(chan *event.Slo, 100)
-		testedEvaluator, err := NewEventEvaluatorFromConfig(&tc.rulesConfig, logrus.NewEntry(logrus.New()))
+		testedEvaluator, err := NewEventEvaluatorFromConfig(&tc.rulesConfig, logrus.New())
 		if err != nil {
 			t.Errorf("error when loading config: %v error: %v", tc.rulesConfig, err)
 			continue

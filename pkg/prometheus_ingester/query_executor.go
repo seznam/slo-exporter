@@ -18,7 +18,7 @@ type queryExecutor struct {
 	queryTimeout time.Duration
 	api          v1.API
 	eventsChan   chan *event.HttpRequest
-	logger       *logrus.Entry
+	logger       logrus.FieldLogger
 }
 
 func (q *queryExecutor) executeQuery() (model.Value, error) {
@@ -84,10 +84,10 @@ func addAndDropLabels(metric model.Metric, labelsToAdd stringmap.StringMap, labe
 	return stringmap.NewFromMetric(metric).Without(labelsToDrop).Merge(labelsToAdd)
 }
 
-func addResultToMetadata(metadata stringmap.StringMap, result float64, occured time.Time) stringmap.StringMap {
+func addResultToMetadata(metadata stringmap.StringMap, result float64, occurred time.Time) stringmap.StringMap {
 	return metadata.Merge(stringmap.StringMap{
 		metadataValueKey:     fmt.Sprintf("%g", result),
-		metadataTimestampKey: fmt.Sprintf("%d", occured.Unix()),
+		metadataTimestampKey: fmt.Sprintf("%d", occurred.Unix()),
 	})
 }
 

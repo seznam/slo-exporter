@@ -350,7 +350,7 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 				Interval: 500 * time.Millisecond,
 			},
 		},
-	}, logrus.NewEntry(logrus.New()))
+	}, logrus.New())
 
 	if err != nil {
 		t.Error(err)
