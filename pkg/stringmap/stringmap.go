@@ -1,7 +1,6 @@
 package stringmap
 
 import (
-	"fmt"
 	"github.com/prometheus/common/model"
 	"sort"
 	"strings"
@@ -101,15 +100,15 @@ func (m StringMap) Matches(other StringMap) bool {
 
 // String returns ordered key-value list separated with comma.
 func (m StringMap) String() string {
-	var kvPairs []string
-	for k, v := range m {
-		if k == "" {
+	var representation string
+	for _, k := range m.SortedKeys() {
+		val, ok := m[k]
+		if !ok {
 			continue
 		}
-		kvPairs = append(kvPairs, fmt.Sprintf("%s=%q", k, v))
+		representation += k + `="` + val + `",`
 	}
-	sort.Strings(kvPairs)
-	return strings.Join(kvPairs, ",")
+	return strings.TrimRight(representation, ",")
 }
 
 // Lowercase creates new StringMap with lowercase keys and values.

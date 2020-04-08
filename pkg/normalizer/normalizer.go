@@ -28,6 +28,10 @@ const (
 var (
 	imageExtensionRegex = regexp.MustCompile(`(?i)\.(?:png|jpg|jpeg|svg|tif|tiff|gif|ico)$`)
 	fontExtensionRegex  = regexp.MustCompile(`(?i)\.(?:ttf|woff)$`)
+
+	md5Regexp = regexp.MustCompile(`^[a-f0-9]{32}$`)
+	sha1Regexp = regexp.MustCompile(`^[a-f0-9]{40}$`)
+	sha256Regexp = regexp.MustCompile(`^[a-f0-9]{64}$`)
 )
 
 type replacer struct {
@@ -156,7 +160,8 @@ func (rn *requestNormalizer) normalizePath(rawPath string) string {
 			continue
 		}
 
-		if rn.sanitizeHashes && (govalidator.IsMD5(item) || govalidator.IsSHA1(item) || govalidator.IsSHA256(item)) {
+		// Do not use govalidator for hashes since it does not precompile the regexps.
+		if rn.sanitizeHashes && (md5Regexp.MatchString(item) || sha1Regexp.MatchString(item) || sha256Regexp.MatchString(item)) {
 			pathItems[i] = hashPlaceholder
 			continue
 		}

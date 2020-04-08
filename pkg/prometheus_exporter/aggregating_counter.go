@@ -104,7 +104,8 @@ type counterVector struct {
 func (e *counterVector) add(value float64, labels stringmap.StringMap) {
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
-	newCounter, ok := e.counters[labels.String()]
+	labelsString := labels.String()
+	newCounter, ok := e.counters[labelsString]
 	if !ok {
 		labelNames := labels.SortedKeys()
 		newCounter = &counter{
@@ -112,7 +113,7 @@ func (e *counterVector) add(value float64, labels stringmap.StringMap) {
 			labelNames:  labelNames,
 			labelValues: labels.ValuesByKeys(labelNames),
 		}
-		e.counters[labels.String()] = newCounter
+		e.counters[labelsString] = newCounter
 	}
 	newCounter.add(value)
 }
@@ -121,12 +122,12 @@ func (e *counterVector) inc(labels stringmap.StringMap) {
 	e.add(1, labels)
 }
 
-func (e counterVector) Describe(chan<- *prometheus.Desc) {
+func (e *counterVector) Describe(chan<- *prometheus.Desc) {
 	// We do not know the labels beforehand, so we disable registration time checks by not sending any result to channel.
 	return
 }
 
-func (e counterVector) Collect(ch chan<- prometheus.Metric) {
+func (e *counterVector) Collect(ch chan<- prometheus.Metric) {
 	e.mtx.RLock()
 	defer e.mtx.RUnlock()
 	for _, c := range e.counters {
