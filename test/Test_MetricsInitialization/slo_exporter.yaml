@@ -1,4 +1,3 @@
-
 webServerListenAddress: "0.0.0.0:8080"
 
 pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
@@ -38,6 +37,11 @@ modules:
   statisticalClassifier:
     historyWindowSize: "30m"
     historyWeightUpdateInterval: "1m"
+    defaultWeights:
+      - weight: 1
+        classification:
+          sloDomain: "userportal"
+          sloClass: "test1"
 
   sloEventProducer:
     rulesFiles:

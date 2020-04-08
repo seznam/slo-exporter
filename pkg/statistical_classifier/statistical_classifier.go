@@ -37,9 +37,20 @@ var (
 	)
 )
 
+type weightClassification struct {
+	SloDomain string
+	SloClass  string
+}
+
+type defaultClassificationWeight struct {
+	Weight         float64
+	Classification weightClassification
+}
+
 type classifierConfig struct {
-	HistoryWindowSize  time.Duration
+	HistoryWindowSize           time.Duration
 	HistoryWeightUpdateInterval time.Duration
+	DefaultWeights              []defaultClassificationWeight
 }
 
 // StatisticalClassifier is classifier based on cache and regexp matches
@@ -72,12 +83,34 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*Statist
 	return New(config, logger)
 }
 
+func defaultWeightsSetFromConfig(conf classifierConfig) *weightedClassificationSet {
+	if len(conf.DefaultWeights) < 1 {
+		return nil
+	}
+	var defaultWeights []classificationWeight
+	for _, initialWeight := range conf.DefaultWeights {
+		newWeight := classificationWeight{
+			classification: &event.SloClassification{
+				Domain: initialWeight.Classification.SloDomain,
+				Class:  initialWeight.Classification.SloClass,
+				App:    guessedLabelPlaceholder,
+			},
+			weight: initialWeight.Weight,
+		}
+		defaultWeights = append(defaultWeights, newWeight)
+	}
+	defaultWeightSet := newWeightedClassificationSet()
+	defaultWeightSet.setWeights(defaultWeights)
+	return defaultWeightSet
+}
+
 // New returns new instance of StatisticalClassifier
 func New(conf classifierConfig, logger logrus.FieldLogger) (*StatisticalClassifier, error) {
 	newClassifier, err := newWeightedClassifier(conf.HistoryWindowSize, conf.HistoryWeightUpdateInterval, logger)
 	if err != nil {
 		return nil, err
 	}
+	newClassifier.setDefaultWeights(defaultWeightsSetFromConfig(conf))
 	return &StatisticalClassifier{
 		classifier:    newClassifier,
 		logger:        logger,
