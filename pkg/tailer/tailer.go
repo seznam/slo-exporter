@@ -370,7 +370,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		Headers:           lineData.Copy().Without(knownGroupNames),
 		Metadata:          lineData,
 		Method:            method,
-		EventKey:          lineData["eventKey"],
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
 		Quantity:          1,
@@ -402,5 +401,8 @@ func (t *Tailer) processLine(line string) (*event.HttpRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buildEvent(lineData)
+	e, err := buildEvent(lineData)
+	// TODO refactor once new module for setting eventKey from metadata will be available
+	e.SetEventKey(lineData["eventKey"])
+	return e, err
 }
