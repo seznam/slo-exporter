@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Prometheus ingester query types. (Existing named as 'simple')
+- Generalize eventKey access/usage for all ingesters by putting it to event.Metadata
 
 ## [4.3.0] 2020-04-08
 ### Added

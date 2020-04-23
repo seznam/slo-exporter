@@ -29,8 +29,8 @@ var (
 	imageExtensionRegex = regexp.MustCompile(`(?i)\.(?:png|jpg|jpeg|svg|tif|tiff|gif|ico)$`)
 	fontExtensionRegex  = regexp.MustCompile(`(?i)\.(?:ttf|woff)$`)
 
-	md5Regexp = regexp.MustCompile(`^[a-f0-9]{32}$`)
-	sha1Regexp = regexp.MustCompile(`^[a-f0-9]{40}$`)
+	md5Regexp    = regexp.MustCompile(`^[a-f0-9]{32}$`)
+	sha1Regexp   = regexp.MustCompile(`^[a-f0-9]{40}$`)
 	sha256Regexp = regexp.MustCompile(`^[a-f0-9]{64}$`)
 )
 
@@ -220,11 +220,11 @@ func (rn *requestNormalizer) Run() {
 		}()
 		for newEvent := range rn.inputChannel {
 			start := time.Now()
-			if newEvent.EventKey != "" {
-				rn.logger.Debugf("skipping newEvent normalization, already has Key: %s", newEvent.EventKey)
+			if newEvent.EventKey() != "" {
+				rn.logger.Debugf("skipping newEvent normalization, already has Key: %s", newEvent.EventKey())
 			} else {
-				newEvent.EventKey = rn.getNormalizedEventKey(newEvent)
-				rn.logger.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
+				newEvent.SetEventKey(rn.getNormalizedEventKey(newEvent))
+				rn.logger.Debugf("processed newEvent with Key: %s", newEvent.EventKey())
 			}
 			rn.outputChannel <- newEvent
 			rn.observeDuration(start)

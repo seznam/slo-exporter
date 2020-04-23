@@ -77,9 +77,9 @@ func TestClassificationByExactMatches(t *testing.T) {
 
 	for _, ec := range data {
 		newEvent := &event.HttpRequest{
-			EventKey:          ec.endpoint,
 			SloClassification: ec.expectedClassification,
 		}
+		newEvent.SetEventKey(ec.endpoint)
 
 		ok, err := classifier.Classify(newEvent)
 		if err != nil {
@@ -111,9 +111,9 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 
 	for _, ec := range data {
 		newEvent := &event.HttpRequest{
-			EventKey:          ec.endpoint,
 			SloClassification: ec.expectedClassification,
 		}
+		newEvent.SetEventKey(ec.endpoint)
 
 		ok, err := classifier.Classify(newEvent)
 		if err != nil {
@@ -130,13 +130,13 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 func Test_DynamicClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
 	classifiedEvent := &event.HttpRequest{
-		EventKey: eventKey,
 		SloClassification: &event.SloClassification{
 			Domain: "domain",
 			App:    "app",
 			Class:  "class",
 		},
 	}
+	classifiedEvent.SetEventKey(eventKey)
 
 	// test that classified event updates an empty exact matches cache
 	classifier := newClassifier(t, classifierConfig{})
@@ -157,13 +157,13 @@ func Test_DynamicClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 func Test_DynamicClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
 	classifiedEvent := &event.HttpRequest{
-		EventKey: eventKey,
 		SloClassification: &event.SloClassification{
 			Domain: "domain",
 			App:    "app",
 			Class:  "class",
 		},
 	}
+	classifiedEvent.SetEventKey(eventKey)
 
 	classifier := newClassifier(t, classifierConfig{RegexpMatchesCsvFiles: goldenFile(t)})
 	classification, err := classifier.exactMatches.get(eventKey)
@@ -192,13 +192,13 @@ func Test_DynamicClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t
 	classifier := newClassifier(t, classifierConfig{})
 	for _, eventClass := range eventClasses {
 		classifiedEvent := &event.HttpRequest{
-			EventKey: eventKey,
 			SloClassification: &event.SloClassification{
 				Domain: "domain",
 				App:    "app",
 				Class:  eventClass,
 			},
 		}
+		classifiedEvent.SetEventKey(eventKey)
 
 		ok, err := classifier.Classify(classifiedEvent)
 		if !ok || err != nil {

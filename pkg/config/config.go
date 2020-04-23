@@ -18,7 +18,6 @@ type Config struct {
 	WebServerListenAddress          string
 	MaximumGracefulShutdownDuration time.Duration
 	AfterPipelineShutdownDelay      time.Duration
-	EventKeyMetadataKey             string
 	Modules                         map[string]interface{}
 	logger                          logrus.FieldLogger
 }

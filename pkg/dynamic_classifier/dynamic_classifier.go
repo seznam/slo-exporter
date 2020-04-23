@@ -252,7 +252,7 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 		classifiedBy         matcherType
 	)
 	if newEvent.IsClassified() {
-		if err := dc.exactMatches.set(newEvent.EventKey, newEvent.SloClassification); err != nil {
+		if err := dc.exactMatches.set(newEvent.EventKey(), newEvent.SloClassification); err != nil {
 			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 		return true, nil
@@ -277,13 +277,13 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 		return false, classificationErrors
 	}
 
-	dc.logger.Debugf("event '%s' matched by %s matcher", newEvent.EventKey, classifiedBy)
+	dc.logger.Debugf("event '%s' matched by %s matcher", newEvent.EventKey(), classifiedBy)
 	newEvent.UpdateSLOClassification(classification)
 	dc.reportEvent(classifiedEventLabel, string(classifiedBy), "", newEvent.Headers)
 
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
-		if err := dc.exactMatches.set(newEvent.EventKey, classification); err != nil {
+		if err := dc.exactMatches.set(newEvent.EventKey(), classification); err != nil {
 			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 	}
@@ -306,7 +306,7 @@ func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
 }
 
 func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *event.HttpRequest) (*event.SloClassification, error) {
-	return matcher.get(event.EventKey)
+	return matcher.get(event.EventKey())
 }
 
 // Run event normalizer receiving events and filling their Key if not already filled.
@@ -325,9 +325,9 @@ func (dc *DynamicClassifier) Run() {
 				errorsTotal.WithLabelValues("failedToClassify").Inc()
 			}
 			if !classified {
-				dc.logger.Warnf("unable to classify %s", newEvent.EventKey)
+				dc.logger.Warnf("unable to classify %s", newEvent.EventKey())
 			} else {
-				dc.logger.Debugf("processed newEvent with Key: %s", newEvent.EventKey)
+				dc.logger.Debugf("processed newEvent with Key: %s", newEvent.EventKey())
 			}
 			dc.outputChannel <- newEvent
 			dc.observeDuration(start)

@@ -38,7 +38,7 @@ positionPersistenceInterval: "2s"
 #   sloDomain - part of SLO classification for the given event.
 #   sloApp - part of SLO classification for the given event.
 #   sloClass - part of SLO classification for the given event.
-# All other named groups will be added to to the request event as headers.
+# All other named groups will be added to to the request event as event.Metadata.
 loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'    # emptyGroupRE defines RE used to decide whether some of the RE match groups specified in loglineParseRegexp is empty and this its assigned variable should be kept unitialized
 # Value, that will be treated as empty value.
 emptyGroupRE: '^-$'
