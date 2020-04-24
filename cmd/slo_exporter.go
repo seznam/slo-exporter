@@ -9,6 +9,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_key_generator"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
@@ -63,6 +64,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return prometheus_ingester.NewFromViper(conf, logger)
 	case "normalizer":
 		return normalizer.NewFromViper(conf, logger)
+	case "eventKeyGenerator":
+		return event_key_generator.NewFromViper(conf, logger)
 	case "eventFilter":
 		return event_filter.NewFromViper(conf, logger)
 	case "dynamicClassifier":
