@@ -85,6 +85,7 @@ func (er *evaluationRule) processEvent(newEvent *event.HttpRequest) (*event.Slo,
 		Class:    eventSloClassification.Class,
 		App:      eventSloClassification.App,
 		Metadata: er.additionalMetadata,
+		Quantity: newEvent.Quantity,
 	}
 	er.markEventResult(failed, newSloEvent)
 	er.logger.Debugf("generated SLO newEvent: %+v", newSloEvent)

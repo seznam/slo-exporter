@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Prometheus ingester 'increase' query type
+
+### Changed
+- Prometheus ingester query types. (Existing named as 'simple')
 
 ## [4.3.0] 2020-04-08
 ### Added
@@ -15,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed logging in reporting metrics from prometheus exporter module.
 
 ## [4.2.1] 2020-04-07
-### Fixed 
+### Fixed
 - Roll back mutex and blocking goroutine profiling in `pprof` beacause of [an issue in go 1.14.1](https://github.com/golang/go/issues/37967).
 
 ## [4.2.0] 2020-04-07
@@ -49,11 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     For more information see [the architecture documentation](README.md#architecture).
 - **BREAKING** The `log_level` configuration option was removed and replaced with the `--log-level` command line flag.
     Also it can be still configured with the ENV variable `SLO_EXPORTER_LOGLEVEL`.
-- **BREAKING** The `--disable-timescale-exporter` and `--disable-prometheus-exporter` flags were dropped 
+- **BREAKING** The `--disable-timescale-exporter` and `--disable-prometheus-exporter` flags were dropped
     in favor of dynamic pipeline structure configuration.
 - **BREAKING** The timescale exporter was dropped.
 - **BREAKING** The `minimumGracefulShutdownDuration` configuration option was replaced with `afterPipelineShutdownDelay` to be more intuitive.
-      
+
 ## [3.2.0] - 2020-03-24
 ### Refactored
 - HttpRequest.Headers, HttpRequest.Metadata is now filled only with data not matching conf.tailer.emptyGroupRE.

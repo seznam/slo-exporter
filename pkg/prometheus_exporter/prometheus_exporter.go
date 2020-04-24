@@ -234,6 +234,6 @@ func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 
 	// add result to metadata
 	labels[e.labelNames.Result] = string(newEvent.Result)
-	e.aggregatedMetricsSet.inc(labels)
+	e.aggregatedMetricsSet.add(newEvent.Quantity, labels)
 	return nil
 }

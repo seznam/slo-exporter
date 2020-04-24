@@ -373,6 +373,7 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		EventKey:          lineData["eventKey"],
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
+		Quantity:          1,
 	}, nil
 }
 

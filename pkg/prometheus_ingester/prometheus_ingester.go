@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"sync"
+	"time"
+
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
-	"net/http"
-	"sync"
-	"time"
 )
 
 const (
@@ -32,11 +34,33 @@ var (
 	})
 )
 
+type queryType string
+
+const (
+	simpleQueryType   queryType = "simple"
+	increaseQueryType queryType = "increase"
+)
+
+var validQueryTypes = []queryType{
+	simpleQueryType,
+	increaseQueryType,
+}
+
+func validateQueryType(queryType queryType) error {
+	for _, validQueryType := range validQueryTypes {
+		if queryType == validQueryType {
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown query type specified: %s, valid types are %s", queryType, validQueryTypes)
+}
+
 type queryOptions struct {
 	Query            string
 	Interval         time.Duration
 	DropLabels       []string
 	AdditionalLabels stringmap.StringMap
+	Type             queryType
 }
 
 type PrometheusIngesterConfig struct {
@@ -98,6 +122,11 @@ func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*Prom
 }
 
 func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*PrometheusIngester, error) {
+	for _, q := range initConfig.Queries {
+		if err := validateQueryType(q.Type); err != nil {
+			return nil, err
+		}
+	}
 
 	client, err := api.NewClient(api.Config{
 		Address:      initConfig.ApiUrl,
@@ -134,15 +163,19 @@ func (i *PrometheusIngester) Run() {
 			go queryExecutor{
 				Query:        query,
 				queryTimeout: i.queryTimeout,
-				api:          i.api,
 				eventsChan:   i.outputChannel,
+				api:          i.api,
 				logger:       i.logger,
+				previousResult: queryResult{
+					metrics: make(map[model.Fingerprint]model.SamplePair),
+				},
 			}.run(queriesContext, &wg)
 		}
 
 		<-i.shutdownChannel
 		queriesContextCancel()
+		i.logger.Info("received shutdown request, waiting for all current ongoing request to finish")
 		wg.Wait()
-		i.logger.Info("input channel closed, finishing")
+		i.logger.Info("all done, finishing")
 	}()
 }

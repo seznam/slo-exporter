@@ -2,33 +2,68 @@ package prometheus_ingester
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"sync"
+	"time"
+
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
-	"sync"
-	"time"
 )
 
 type queryExecutor struct {
-	Query        queryOptions
-	queryTimeout time.Duration
-	api          v1.API
-	eventsChan   chan *event.HttpRequest
-	logger       logrus.FieldLogger
+	Query          queryOptions
+	queryTimeout   time.Duration
+	eventsChan     chan *event.HttpRequest
+	logger         logrus.FieldLogger
+	api            v1.API
+	previousResult queryResult
 }
 
-func (q *queryExecutor) executeQuery() (model.Value, error) {
-	timeoutCtx, release := context.WithTimeout(context.Background(), q.queryTimeout)
-	result, warnings, err := q.api.Query(timeoutCtx, q.Query.Query, time.Now())
-	// releases resources if slowOperation completes before timeout elapses
-	release()
-	if len(warnings) > 0 {
-		q.logger.WithField("query", q.Query.Query).Warnf("warnings in query execution: %+v", warnings)
+type queryResult struct {
+	// timestamp of the query execution
+	timestamp time.Time
+	// metric: <most recent sample>
+	metrics map[model.Fingerprint]model.SamplePair
+}
+
+// withRangeSelector returns q.query concatenated with desired range selector
+func (q *queryExecutor) withRangeSelector(ts time.Time) string {
+	var rangeSelector time.Duration
+	if len(q.previousResult.metrics) == 0 {
+		rangeSelector = q.Query.Interval
+	} else {
+		rangeSelector = ts.Sub(q.previousResult.timestamp)
 	}
+	rangeSelector = rangeSelector.Round(time.Duration(time.Second))
+	return q.Query.Query + fmt.Sprintf("[%ds]", int64(rangeSelector.Seconds()))
+}
+
+// execute query at provided timestamp ts
+func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), q.queryTimeout)
+	defer cancel()
+	var (
+		err      error
+		result   model.Value
+		warnings v1.Warnings
+		query    string
+	)
+	switch q.Query.Type {
+	case increaseQueryType:
+		query = q.withRangeSelector(ts)
+	case simpleQueryType:
+		query = q.Query.Query
+	default:
+		return nil, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
+	}
+	result, warnings, err = q.api.Query(timeoutCtx, query, ts)
+	if len(warnings) > 0 {
+		q.logger.WithField("query", query).Warnf("warnings in query execution: %+v", warnings)
+	}
+
 	return result, err
 }
 
@@ -39,26 +74,17 @@ func (q queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 		select {
 		// Wait for the tick
 		case <-ticker.C:
-
-			result, err := q.executeQuery()
+			ts := time.Now()
+			result, err := q.execute(ts)
 			if err != nil {
 				prometheusQueryFail.Inc()
 				q.logger.WithField("query", q.Query.Query).Errorf("failed querying Prometheus: '%+v'", err)
 				continue
 			}
-
-			events, err := ProcessResult(result, q.Query)
+			err = q.ProcessResult(result, ts)
 			if err != nil {
-				unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
-				q.logger.WithField("query", q.Query).Errorf("unsupported value %+v", result.Type())
-				continue
+				q.logger.WithField("query", q.Query.Query).Errorf("failed processing the query result: '%+v'", err)
 			}
-
-			for _, queryResult := range events {
-				q.logger.WithField("result", result).Debug("pushing the result to the blocking eventsChan")
-				q.eventsChan <- queryResult
-			}
-
 		case <-ctx.Done():
 			wg.Done()
 			return
@@ -67,21 +93,36 @@ func (q queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 
 }
 
-func ProcessResult(result model.Value, query queryOptions) ([]*event.HttpRequest, error) {
-	switch result.(type) {
-	case model.Matrix:
-		return processMatrixResult(result.(model.Matrix), query.AdditionalLabels, query.DropLabels), nil
-	case model.Vector:
-		return processVectorResult(result.(model.Vector), query.AdditionalLabels, query.DropLabels), nil
-	case *model.Scalar:
-		return []*event.HttpRequest{processScalarResult(result.(*model.Scalar), query.AdditionalLabels)}, nil
+func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
+	switch q.Query.Type {
+	case increaseQueryType:
+		switch result.(type) {
+		case model.Matrix:
+			return q.processMatrixResultAsCounter(result.(model.Matrix), ts)
+		default:
+			unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
+			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
+		}
+
+	case simpleQueryType:
+		switch result.(type) {
+		case model.Matrix:
+			return q.processMatrixResult(result.(model.Matrix))
+		case model.Vector:
+			return q.processVectorResult(result.(model.Vector))
+		case *model.Scalar:
+			return q.processScalarResult(result.(*model.Scalar))
+		default:
+			unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
+			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
+		}
 	default:
-		return nil, errors.New("unsupported Prometheus value type " + result.Type().String())
+		return fmt.Errorf("unknown query type: %s", q.Query.Type)
 	}
 }
 
-func addAndDropLabels(metric model.Metric, labelsToAdd stringmap.StringMap, labelsToDrop []string) stringmap.StringMap {
-	return stringmap.NewFromMetric(metric).Without(labelsToDrop).Merge(labelsToAdd)
+func (q *queryExecutor) addAndDropLabels(metric model.Metric) stringmap.StringMap {
+	return stringmap.NewFromMetric(metric).Without(q.Query.DropLabels).Merge(q.Query.AdditionalLabels)
 }
 
 func addResultToMetadata(metadata stringmap.StringMap, result float64, occurred time.Time) stringmap.StringMap {
@@ -91,30 +132,85 @@ func addResultToMetadata(metadata stringmap.StringMap, result float64, occurred 
 	})
 }
 
-func processMatrixResult(matrix model.Matrix, labelsToAdd stringmap.StringMap, labelsToDrop []string) []*event.HttpRequest {
-	var results []*event.HttpRequest
-	for _, sampleStream := range matrix {
-		for _, sample := range sampleStream.Values {
-			results = append(results, &event.HttpRequest{
-				Metadata: addResultToMetadata(addAndDropLabels(sampleStream.Metric, labelsToAdd, labelsToDrop), float64(sample.Value), sample.Timestamp.Time()),
-			})
+// metricIncrease calculates increase between two samples
+func metricIncrease(previousSample, sample model.SamplePair) float64 {
+	if sample.Value < previousSample.Value {
+		// counter reset
+		return float64(sample.Value)
+	}
+	return float64(sample.Value) - float64(previousSample.Value)
+}
+
+func (q *queryExecutor) processMatrixResultAsCounter(matrix model.Matrix, ts time.Time) error {
+	currentResult := queryResult{
+		timestamp: ts,
+		metrics:   make(map[model.Fingerprint]model.SamplePair),
+	}
+
+	// iterate over individual metrics
+	for _, singleMetricSampleStream := range matrix {
+		var (
+			previousSample model.SamplePair
+			ok             bool
+			increase       float64
+			sample         model.SamplePair
+		)
+
+		metricKey := singleMetricSampleStream.Metric.Fingerprint()
+
+		previousSample, ok = q.previousResult.metrics[metricKey]
+		if !ok {
+			// we have no previous result available, use first of the fetched samples
+			previousSample = singleMetricSampleStream.Values[0]
+		}
+		// iterate over samples of given metric
+		for _, sample = range singleMetricSampleStream.Values {
+			increase += metricIncrease(previousSample, sample)
+			previousSample = sample
+		}
+		currentResult.metrics[metricKey] = sample
+		if increase == 0 {
+			continue
+		}
+		q.eventsChan <- &event.HttpRequest{
+			Metadata: addResultToMetadata(
+				q.addAndDropLabels(singleMetricSampleStream.Metric),
+				increase,
+				ts,
+			),
+			Quantity: increase,
 		}
 	}
-	return results
+	q.previousResult = currentResult
+	return nil
 }
 
-func processVectorResult(resultVector model.Vector, labelsToAdd stringmap.StringMap, labelsToDrop []string) []*event.HttpRequest {
-	var results []*event.HttpRequest
+func (q *queryExecutor) processMatrixResult(matrix model.Matrix) error {
+	for _, sampleStream := range matrix {
+		for _, sample := range sampleStream.Values {
+			q.eventsChan <- &event.HttpRequest{
+				Metadata: addResultToMetadata(q.addAndDropLabels(sampleStream.Metric), float64(sample.Value), sample.Timestamp.Time()),
+				Quantity: 1,
+			}
+		}
+	}
+	return nil
+}
+
+func (q *queryExecutor) processVectorResult(resultVector model.Vector) error {
 	for _, sample := range resultVector {
-		results = append(results, &event.HttpRequest{
-			Metadata: addResultToMetadata(addAndDropLabels(sample.Metric, labelsToAdd, labelsToDrop), float64(sample.Value), sample.Timestamp.Time()),
-		})
+		q.eventsChan <- &event.HttpRequest{
+			Metadata: addResultToMetadata(q.addAndDropLabels(sample.Metric), float64(sample.Value), sample.Timestamp.Time()),
+			Quantity: 1,
+		}
 	}
-	return results
+	return nil
 }
 
-func processScalarResult(scalar *model.Scalar, labelsToAdd stringmap.StringMap) *event.HttpRequest {
-	return &event.HttpRequest{
-		Metadata: addResultToMetadata(labelsToAdd, float64(scalar.Value), scalar.Timestamp.Time()),
+func (q *queryExecutor) processScalarResult(scalar *model.Scalar) error {
+	q.eventsChan <- &event.HttpRequest{
+		Metadata: addResultToMetadata(q.Query.AdditionalLabels, float64(scalar.Value), scalar.Timestamp.Time()),
+		Quantity: 1,
 	}
+	return nil
 }
