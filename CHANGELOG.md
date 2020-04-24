@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Prometheus ingester 'increase' query type
+- New module `eventKeyGenerator` to generate event key from its metadata. See the [docs](docs/modules/event_key_generator.md).
 
 ### Changed
 - Prometheus ingester query types. (Existing named as 'simple')
