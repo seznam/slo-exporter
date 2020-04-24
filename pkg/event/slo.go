@@ -2,8 +2,9 @@ package event
 
 import (
 	"fmt"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"time"
+
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
 type Result string
@@ -22,7 +23,7 @@ var (
 )
 
 type Slo struct {
-	// same value as in source event (HttpRequest.EventKey)
+	// same value as in source event HttpRequest.EventKey()
 	Key      string
 	Result   Result
 	Occurred time.Time

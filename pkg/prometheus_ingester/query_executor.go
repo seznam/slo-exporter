@@ -70,6 +70,8 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 func (q queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 	ticker := time.NewTicker(q.Query.Interval)
 	defer ticker.Stop()
+	defer wg.Done()
+
 	for {
 		select {
 		// Wait for the tick
@@ -86,11 +88,9 @@ func (q queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 				q.logger.WithField("query", q.Query.Query).Errorf("failed processing the query result: '%+v'", err)
 			}
 		case <-ctx.Done():
-			wg.Done()
 			return
 		}
 	}
-
 }
 
 func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
@@ -121,15 +121,17 @@ func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 	}
 }
 
-func (q *queryExecutor) addAndDropLabels(metric model.Metric) stringmap.StringMap {
-	return stringmap.NewFromMetric(metric).Without(q.Query.DropLabels).Merge(q.Query.AdditionalLabels)
-}
-
-func addResultToMetadata(metadata stringmap.StringMap, result float64, occurred time.Time) stringmap.StringMap {
-	return metadata.Merge(stringmap.StringMap{
+func (q *queryExecutor) emitEvent(ts time.Time, quantity float64, result float64, metric model.Metric) {
+	e := &event.HttpRequest{
+		Metadata: stringmap.NewFromMetric(metric),
+		Quantity: quantity,
+	}
+	e.Metadata = e.Metadata.Merge(stringmap.StringMap{
 		metadataValueKey:     fmt.Sprintf("%g", result),
-		metadataTimestampKey: fmt.Sprintf("%d", occurred.Unix()),
+		metadataTimestampKey: fmt.Sprintf("%d", ts.Unix()),
 	})
+	e.Metadata = e.Metadata.Without(q.Query.DropLabels).Merge(q.Query.AdditionalLabels)
+	q.eventsChan <- e
 }
 
 // metricIncrease calculates increase between two samples
@@ -172,14 +174,7 @@ func (q *queryExecutor) processMatrixResultAsCounter(matrix model.Matrix, ts tim
 		if increase == 0 {
 			continue
 		}
-		q.eventsChan <- &event.HttpRequest{
-			Metadata: addResultToMetadata(
-				q.addAndDropLabels(singleMetricSampleStream.Metric),
-				increase,
-				ts,
-			),
-			Quantity: increase,
-		}
+		q.emitEvent(ts, increase, increase, singleMetricSampleStream.Metric)
 	}
 	q.previousResult = currentResult
 	return nil
@@ -188,10 +183,7 @@ func (q *queryExecutor) processMatrixResultAsCounter(matrix model.Matrix, ts tim
 func (q *queryExecutor) processMatrixResult(matrix model.Matrix) error {
 	for _, sampleStream := range matrix {
 		for _, sample := range sampleStream.Values {
-			q.eventsChan <- &event.HttpRequest{
-				Metadata: addResultToMetadata(q.addAndDropLabels(sampleStream.Metric), float64(sample.Value), sample.Timestamp.Time()),
-				Quantity: 1,
-			}
+			q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), sampleStream.Metric)
 		}
 	}
 	return nil
@@ -199,18 +191,12 @@ func (q *queryExecutor) processMatrixResult(matrix model.Matrix) error {
 
 func (q *queryExecutor) processVectorResult(resultVector model.Vector) error {
 	for _, sample := range resultVector {
-		q.eventsChan <- &event.HttpRequest{
-			Metadata: addResultToMetadata(q.addAndDropLabels(sample.Metric), float64(sample.Value), sample.Timestamp.Time()),
-			Quantity: 1,
-		}
+		q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), sample.Metric)
 	}
 	return nil
 }
 
 func (q *queryExecutor) processScalarResult(scalar *model.Scalar) error {
-	q.eventsChan <- &event.HttpRequest{
-		Metadata: addResultToMetadata(q.Query.AdditionalLabels, float64(scalar.Value), scalar.Timestamp.Time()),
-		Quantity: 1,
-	}
+	q.emitEvent(scalar.Timestamp.Time(), 1, float64(scalar.Value), make(model.Metric))
 	return nil
 }

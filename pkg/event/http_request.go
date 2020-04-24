@@ -15,13 +15,27 @@ type HttpRequest struct {
 	StatusCode        int
 	Duration          time.Duration
 	URL               *url.URL
-	EventKey          string
 	Headers           stringmap.StringMap // name:value, header name is in lower-case
 	Metadata          stringmap.StringMap
 	Method            string
 	SloResult         string
 	SloClassification *SloClassification
 	Quantity          float64
+}
+
+const (
+	eventKeyMetadataKey = "__eventKey"
+)
+
+func (e *HttpRequest) EventKey() string {
+	return e.Metadata[eventKeyMetadataKey]
+}
+
+func (e *HttpRequest) SetEventKey(k string) {
+	if e.Metadata == nil {
+		e.Metadata = make(stringmap.StringMap)
+	}
+	e.Metadata[eventKeyMetadataKey] = k
 }
 
 // UpdateSLOClassification updates SloClassification field
@@ -59,8 +73,8 @@ func (e HttpRequest) GetTimeOccurred() time.Time {
 
 func (e HttpRequest) String() string {
 	key := e.Method + ":" + e.URL.Path
-	if e.EventKey != "" {
-		key = e.EventKey
+	if e.EventKey() != "" {
+		key = e.EventKey()
 	}
 	return fmt.Sprintf("key: %q, status: %d, duration: %s, classification: %s", key, e.StatusCode, e.Duration, e.SloClassification)
 }

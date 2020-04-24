@@ -79,7 +79,7 @@ func (er *evaluationRule) processEvent(newEvent *event.HttpRequest) (*event.Slo,
 	failed := er.evaluateEvent(newEvent)
 
 	newSloEvent := &event.Slo{
-		Key:      newEvent.EventKey,
+		Key:      newEvent.EventKey(),
 		Occurred: newEvent.GetTimeOccurred(),
 		Domain:   eventSloClassification.Domain,
 		Class:    eventSloClassification.Class,
