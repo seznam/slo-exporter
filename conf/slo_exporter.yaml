@@ -2,7 +2,7 @@ webServerListenAddress: "0.0.0.0:8080"
 maximumGracefulShutdownDuration: "10s"
 afterPipelineShutdownDelay: "1s"
 
-pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "eventFilter", "normalizer", "eventKeyGenerator", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -46,6 +46,12 @@ modules:
     sanitizeIps:     true
     sanitizeImages:  true
     sanitizeFonts:   true
+
+  eventKeyGenerator:
+    filedSeparator: ":"
+    overrideExistingEventKey: false
+    metadataKeys:
+      - request
 
   dynamicClassifier:
     exactMatchesCsvFiles: []
