@@ -9,14 +9,29 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
-func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluationRule, error) {
-	var failureConditions []operator
-	for _, operatorOpts := range opts.FailureConditionsOptions {
+func getOperators(operatorOpts []operatorOptions) ([]operator, error) {
+	var operators = make([]operator, len(operatorOpts))
+	for i, operatorOpts := range operatorOpts {
 		operator, err := newOperator(operatorOpts)
 		if err != nil {
 			return nil, err
 		}
-		failureConditions = append(failureConditions, operator)
+		operators[i] = operator
+	}
+	return operators, nil
+}
+
+func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluationRule, error) {
+	var (
+		matcherConditions []operator
+		failureConditions []operator
+		err               error
+	)
+	if matcherConditions, err = getOperators(opts.MetadataMatcherConditionsOptions); err != nil {
+		return nil, err
+	}
+	if failureConditions, err = getOperators(opts.FailureConditionsOptions); err != nil {
+		return nil, err
 	}
 	return &evaluationRule{
 		sloMatcher: event.SloClassification{
@@ -24,6 +39,7 @@ func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluation
 			App:    opts.SloMatcher.App,
 			Class:  opts.SloMatcher.Class,
 		},
+		metadataMatcher:    matcherConditions,
 		failureConditions:  failureConditions,
 		additionalMetadata: opts.AdditionalMetadata,
 		honorSloResult:     opts.HonorSloResult,
@@ -33,6 +49,7 @@ func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluation
 
 type evaluationRule struct {
 	sloMatcher         event.SloClassification
+	metadataMatcher    []operator
 	failureConditions  []operator
 	additionalMetadata stringmap.StringMap
 	honorSloResult     bool
@@ -57,7 +74,7 @@ func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) bool {
 	for _, operator := range er.failureConditions {
 		result, err := operator.Evaluate(newEvent)
 		if err != nil {
-			er.logger.Warnf("failed to evaluate operator %v on event %v: %v", operator, newEvent, err)
+			er.logger.WithError(err).WithField("event", newEvent).Warnf("failed to evaluate operator %v", operator)
 		}
 		if result {
 			failed = true
@@ -76,6 +93,21 @@ func (er *evaluationRule) processEvent(newEvent *event.HttpRequest) (*event.Slo,
 	if !er.sloMatcher.Matches(*eventSloClassification) {
 		return nil, false
 	}
+	var (
+		matches bool
+		err     error
+	)
+	for _, matcherOperator := range er.metadataMatcher {
+		matches, err = matcherOperator.Evaluate(newEvent)
+		if err != nil {
+			er.logger.WithError(err).WithField("event", newEvent).Warnf("failed to evaluate metadataMatcher operator %v", matcherOperator)
+			return nil, false
+		}
+		if !matches {
+			return nil, false
+		}
+	}
+
 	failed := er.evaluateEvent(newEvent)
 
 	newSloEvent := &event.Slo{
@@ -88,7 +120,7 @@ func (er *evaluationRule) processEvent(newEvent *event.HttpRequest) (*event.Slo,
 		Quantity: newEvent.Quantity,
 	}
 	er.markEventResult(failed, newSloEvent)
-	er.logger.Debugf("generated SLO newEvent: %+v", newSloEvent)
+	er.logger.WithField("event", newSloEvent).Debug("generated new slo event")
 	return newSloEvent, true
 
 }
