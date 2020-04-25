@@ -7,10 +7,10 @@
 | Input event    | `raw`               |
 | Output event   | `SLO`               |
 
-The SLO calculation is based on ratio of successful and failed events.
+The SLO is being calculated based on a ratio of successful and failed events.
 The input events has some metadata, but we need to decide if it was a success of failure.
 
-This module allows to set rules for evaluating the events.
+This module allows setting rules for evaluating the events.
 Number of those rules can be higher, so they can be loaded from separate YAML files.
 
 `moduleConfig` (in the root slo exporter config file)
@@ -32,14 +32,17 @@ rules:
 `rule`
 ```yaml
 event_type: request
-# Matcher of the SLO classification of the event. Rule will be applied only on those matching.
+# Matcher of the events metadata. Rule will be applied only if all of them matches.
+metadata_matcher:
+  - <condition>
+# Matcher of the SLO classification of the event. Rule will be applied only if matches the event SLO classification.
 slo_matcher:
   domain: <value>
   class: <value>
   app: <value>
 # Conditions to be checked on the matching event, if any of those results with true, the event is marked as failure, otherwise success.
 failure_conditions:
-  - <failure_condition>
+  - <condition>
 # Additional metadata that will be exported in the SLO metrics.
 additional_metadata:
   <value>: <value>
@@ -51,8 +54,9 @@ additional_metadata:
 #   if evaluated event's sloResult attribute is empty, failure_criteria are evaluated and events's result is set based on them.
 honor_slo_result: True
 ```
+*Please note that if multiple types of matchers are used in a rule, all of them has to match the given event.*
 
-`failure_condition`
+`condition`
 ```yaml
 # Name of the operator to be evaluated on the value of the specified key.
 operator: <operator_name>
@@ -86,6 +90,10 @@ rules:
     honor_slo_result: True
 
   - event_type: request
+    metadata_matcher:
+      - operator: matchesRegexp
+        key: statusCode
+        value: 200
     slo_matcher:
       domain: test-domain
       class: critical
