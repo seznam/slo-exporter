@@ -30,6 +30,34 @@ test:
     expire_in: 1 week
     when: always
 
+benchmark:
+  stage: check
+  before_script:
+    - apt-get update
+    - apt-get install -y graphviz curl
+    - go get -u golang.org/x/perf/cmd/...
+  script: |
+    echo "Benchmarking current revision..."
+    make benchmark > new_benchmark.txt
+    cp new_benchmark.txt old_benchmark.txt
+    curl ${CI_PAGES_URL}/benchmark.txt --output old_benchmark.txt
+    echo "Benchmark diff since last master commit"
+    benchstat --sort delta old_benchmark.txt new_benchmark.txt
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == null'
+      when: never
+    - when: manual
+  artifacts:
+    paths:
+      - new_benchmark.txt
+      - profile
+    expire_in: 1 week
+    when: always
+
+
 e2e-test:
   stage: check
   script: |
@@ -97,16 +125,36 @@ pages:
   stage: pages
   dependencies:
     - test
+    - benchmark
   only:
     - master
   script: |
+    # GoDoc
     mkdir public
     ./scripts/generate_godoc.sh public/godoc
+
+    # CodeCoverage
     go tool cover -html coverage.out -o public/coverage.html
+
+    # Benchmark
+    cp new_benchmark.txt ./public/benchmark.txt
+
+    # Profiling and benchmarks
+    profiling_dir="public/profiling"
+    cp -r ./profile $profiling_dir
+    echo "<h1>SLO exporter profiles</h1><ul>" >> $profiling_dir/index.html
+    for f in $(ls $profiling_dir); do
+      echo "<li><a href="$f">$f</a></li>" >> $profiling_dir/index.html
+    done
+    echo "</ul>" >> $profiling_dir/index.html
+
+    # Landing page
     cat > public/index.html <<EOF
     <h1>SLO exporter</h1>
     <ul>
       <li><a href="godoc/pkg/gitlab.seznam.net/sklik-devops/slo-exporter">GoDoc</a></li>
+      <li><a href="profiling/index.html">Profiling</a></li>
+    <li><a href="benchmark.txt">Benchmark</a></li>
       <li><a href="coverage.html">Code coverage</a></li>
     </ul>
     EOF
