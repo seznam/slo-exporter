@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -56,12 +56,10 @@ func (m *MockedRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 	}, nil
 }
 
-var requestExtractor = regexp.MustCompile(`query=(?P<Query>[^&]+)&time=(?P<Timestamp>[^&]+)`)
-
-var metricObject = metric("test_metric", map[string]string{"job": "kubernetes", "locality": "nagano"})
+var metricObject = newMetric("test_metric", map[string]string{"job": "kubernetes", "locality": "nagano"})
 var metricStringMap = stringmap.NewFromMetric(metricObject)
 
-func metric(name model.LabelValue, labels map[string]string) model.Metric {
+func newMetric(name model.LabelValue, labels map[string]string) model.Metric {
 	m := map[model.LabelName]model.LabelValue{
 		"__name__": name,
 	}
@@ -163,15 +161,15 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 			query: queryOptions{
 				Type: simpleQueryType,
 			}, eventsProduced: []*event.HttpRequest{
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			{
+				Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
+				Quantity: 1,
 			},
+			{
+				Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
+				Quantity: 1,
+			},
+		},
 		},
 		{
 			// Test of Scalar ingestion
@@ -182,11 +180,11 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 			query: queryOptions{
 				Type: simpleQueryType,
 			}, eventsProduced: []*event.HttpRequest{
-				{
-					Metadata: stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			{
+				Metadata: stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
+				Quantity: 1,
 			},
+		},
 		},
 	}
 
@@ -196,12 +194,13 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 			eventsChan: make(chan *event.HttpRequest),
 		}
 		go func() {
-			q.ProcessResult(tc.prometheusResult, time.Now())
+			err := q.ProcessResult(tc.prometheusResult, time.Now())
+			assert.NoError(t, err)
 			close(q.eventsChan)
 		}()
-		actualEventResult := []*event.HttpRequest{}
-		for event := range q.eventsChan {
-			actualEventResult = append(actualEventResult, event)
+		var actualEventResult []*event.HttpRequest
+		for newEvent := range q.eventsChan {
+			actualEventResult = append(actualEventResult, newEvent)
 		}
 
 		// Prepare the string interpretation of the actual results
@@ -216,7 +215,7 @@ type labelAddOrDropTestCase struct {
 }
 
 func Test_Add_Or_Drop_Labels(t *testing.T) {
-	m := stringmap.NewFromMetric(metric("test_metric", nil))
+	m := stringmap.NewFromMetric(newMetric("test_metric", nil))
 	testCases := []labelAddOrDropTestCase{
 		{
 			// Tests addition of non-existent label
@@ -232,7 +231,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 				},
 			},
 			eventsProduced: []*event.HttpRequest{
-				&event.HttpRequest{
+				{
 					Metadata: m.Merge(stringmap.StringMap{"a": "1", "job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
@@ -252,7 +251,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 				},
 			},
 			eventsProduced: []*event.HttpRequest{
-				&event.HttpRequest{
+				{
 					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "osaka", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
@@ -272,7 +271,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 				},
 			},
 			eventsProduced: []*event.HttpRequest{
-				&event.HttpRequest{
+				{
 					Metadata: m.Merge(stringmap.StringMap{"locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
@@ -292,7 +291,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 				},
 			},
 			eventsProduced: []*event.HttpRequest{
-				&event.HttpRequest{
+				{
 					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
@@ -315,7 +314,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 				},
 			},
 			eventsProduced: []*event.HttpRequest{
-				&event.HttpRequest{
+				{
 					Metadata: m.Merge(stringmap.StringMap{"job": "openshift", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
@@ -329,13 +328,14 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			eventsChan: make(chan *event.HttpRequest),
 		}
 		go func() {
-			q.ProcessResult(tc.prometheusResult, time.Now())
+			err := q.ProcessResult(tc.prometheusResult, time.Now())
+			assert.NoError(t, err)
 			close(q.eventsChan)
 		}()
 
-		actualEventResult := []*event.HttpRequest{}
-		for event := range q.eventsChan {
-			actualEventResult = append(actualEventResult, event)
+		var actualEventResult []*event.HttpRequest
+		for newEvent := range q.eventsChan {
+			actualEventResult = append(actualEventResult, newEvent)
 		}
 		// Prepare the string interpretation of the actual results
 		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", HttpRequestsToString(actualEventResult))
@@ -374,7 +374,7 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 		return
 	}
 
-	genEvents := []*event.HttpRequest{}
+	var genEvents []*event.HttpRequest
 	done := make(chan struct{})
 	go func() {
 		for e := range ingester.outputChannel {
@@ -403,19 +403,19 @@ func TestGetMetricIncrease(t *testing.T) {
 		result   float64
 	}
 	testCases := []testCase{
-		testCase{
+		{
 			previous: model.SamplePair{Value: 10},
 			current:  model.SamplePair{Value: 11},
 			result:   1,
 		},
-		testCase{
+		{
 			previous: model.SamplePair{Value: 10},
 			current:  model.SamplePair{Value: 5},
 			result:   5,
 		},
 	}
 	for _, c := range testCases {
-		assert.Equal(t, c.result, metricIncrease(c.previous, c.current))
+		assert.Equal(t, c.result, increaseBetweenSamples(c.previous, c.current))
 	}
 }
 
@@ -428,13 +428,13 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 
 	query := "up{}"
 	ts := time.Now()
-	interval := time.Duration(20 * time.Second)
+	interval := 20 * time.Second
 	testCases := []testCase{
-		testCase{
+		{
 			&queryExecutor{
 				Query: queryOptions{
 					Query:    query,
-					Type:     increaseQueryType,
+					Type:     counterQueryType,
 					Interval: interval,
 				},
 				previousResult: queryResult{},
@@ -442,16 +442,16 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 			ts,
 			query + fmt.Sprintf("[%s]", interval),
 		},
-		testCase{
+		{
 			&queryExecutor{
 				Query: queryOptions{
 					Query:    query,
-					Type:     increaseQueryType,
+					Type:     counterQueryType,
 					Interval: interval,
 				},
 				previousResult: queryResult{timestamp: ts.Add(time.Hour * -1),
 					metrics: map[model.Fingerprint]model.SamplePair{
-						model.Fingerprint(0): model.SamplePair{model.Time(0), 0},
+						model.Fingerprint(0): {model.Time(0), 0},
 					},
 				},
 			},
@@ -467,46 +467,46 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 
 }
 
-func Test_processMatrixResultAsCounter(t *testing.T) {
+func Test_processMetricsIncrease(t *testing.T) {
 	type testCase struct {
-		q              queryExecutor
+		q              *queryExecutor
 		ts             time.Time
 		result         []*model.SampleStream // == type Matrix
 		expectedEvents []*event.HttpRequest
 	}
 
-	x := metric("x", nil)
-	y := metric("y", nil)
+	x := newMetric("x", nil)
+	y := newMetric("y", nil)
 
 	ts := time.Now()
-	q := queryExecutor{
+	q := &queryExecutor{
 		Query: queryOptions{
 			Interval: time.Second * 20,
-			Type:     increaseQueryType,
+			Type:     counterQueryType,
 		},
 		previousResult: queryResult{
 			ts.Add(time.Hour * -1),
 			map[model.Fingerprint]model.SamplePair{
-				x.Fingerprint(): model.SamplePair{0, 0},
-				y.Fingerprint(): model.SamplePair{0, 10},
+				x.Fingerprint(): {0, 0},
+				y.Fingerprint(): {0, 10},
 			},
 		},
 	}
 
 	testCases := []testCase{
-		// monotonic increase of x to 10 (in two samples)
-		testCase{
+		// monotonic value of x to 10 (in two samples)
+		{
 			q:  q,
 			ts: ts,
 			result: []*model.SampleStream{
-				&model.SampleStream{
+				{
 					Metric: x,
 					Values: []model.SamplePair{
-						model.SamplePair{
+						{
 							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
 							Value:     model.SampleValue(5),
 						},
-						model.SamplePair{
+						{
 							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
 							Value:     model.SampleValue(10),
 						},
@@ -514,42 +514,42 @@ func Test_processMatrixResultAsCounter(t *testing.T) {
 				},
 			},
 			expectedEvents: []*event.HttpRequest{
-				&event.HttpRequest{
+				{
 					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
 					Quantity: 10,
 				},
 			},
 		},
-		// increase with reset on x, monotonic increase for y
-		testCase{
+		// value with reset on x, monotonic value for y
+		{
 			q:  q,
 			ts: ts,
 			result: []*model.SampleStream{
-				&model.SampleStream{
+				{
 					Metric: x,
 					Values: []model.SamplePair{
-						model.SamplePair{
+						{
 							Timestamp: model.Time(ts.Add(time.Hour * -3).Unix()),
 							Value:     model.SampleValue(5),
 						},
-						model.SamplePair{
+						{
 							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
 							Value:     model.SampleValue(1),
 						},
-						model.SamplePair{
+						{
 							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
 							Value:     model.SampleValue(5),
 						},
 					},
 				},
-				&model.SampleStream{
+				{
 					Metric: y,
 					Values: []model.SamplePair{
-						model.SamplePair{
+						{
 							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
 							Value:     model.SampleValue(1),
 						},
-						model.SamplePair{
+						{
 							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
 							Value:     model.SampleValue(2),
 						},
@@ -557,13 +557,13 @@ func Test_processMatrixResultAsCounter(t *testing.T) {
 				},
 			},
 			expectedEvents: []*event.HttpRequest{
-				&event.HttpRequest{
+				{
 					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
 					Quantity: 10,
 				},
-				&event.HttpRequest{
-					Metadata: stringmap.NewFromMetric(y).Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 2,
+				{
+					Metadata: stringmap.NewFromMetric(y).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
+					Quantity: 1,
 				},
 			},
 		},
@@ -572,7 +572,7 @@ func Test_processMatrixResultAsCounter(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase.q.eventsChan = make(chan *event.HttpRequest)
 
-		generatedEvents := []*event.HttpRequest{}
+		var generatedEvents []*event.HttpRequest
 		done := make(chan struct{})
 		go func() {
 			for e := range testCase.q.eventsChan {
@@ -580,13 +580,86 @@ func Test_processMatrixResultAsCounter(t *testing.T) {
 			}
 			done <- struct{}{}
 		}()
-		testCase.q.processMatrixResultAsCounter(testCase.result, testCase.ts)
+		testCase.q.processCountersIncrease(testCase.result, testCase.ts)
 		close(testCase.q.eventsChan)
 		<-done
 
-		assert.Equal(t, len(testCase.expectedEvents), len(generatedEvents), "Result processing did not generated expected number of events")
-		for i, _ := range generatedEvents {
-			assert.Equal(t, testCase.expectedEvents[i], generatedEvents[i], "Newly created event #%d does not match", i)
+		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+	}
+}
+
+func resultFromSampleStreams(ts time.Time, streams []*model.SampleStream, value int) queryResult {
+	res := queryResult{
+		timestamp: ts,
+		metrics:   map[model.Fingerprint]model.SamplePair{},
+	}
+	for _, stream := range streams {
+		res.metrics[stream.Metric.Fingerprint()] = model.SamplePair{Value: model.SampleValue(value)}
+	}
+	return res
+}
+
+func Test_processHistogramIncrease(t *testing.T) {
+	type testCase struct {
+		ts             time.Time
+		data           []*model.SampleStream // == type Matrix
+		expectedEvents []*event.HttpRequest
+	}
+	ts := time.Now()
+	tsStr := strconv.Itoa(int(ts.Unix()))
+
+	testCases := []testCase{
+		// monotonic value of x to 10 (in two samples)
+		{
+			ts: ts,
+			data: []*model.SampleStream{
+				{
+					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "1"}),
+					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(2)}},
+				},
+				{
+					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "3"}),
+					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(8)}},
+				},
+				{
+					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "6"}),
+					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(8)}},
+				},
+				{
+					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "+Inf"}),
+					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
+				},
+			},
+			expectedEvents: []*event.HttpRequest{
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		q := &queryExecutor{
+			eventsChan: make(chan *event.HttpRequest),
+			Query: queryOptions{
+				Type: histogramQueryType,
+			},
+			previousResult: resultFromSampleStreams(testCase.ts, testCase.data, 0),
 		}
+
+		var generatedEvents []*event.HttpRequest
+		done := make(chan struct{})
+		go func() {
+			for e := range q.eventsChan {
+				generatedEvents = append(generatedEvents, e)
+			}
+			done <- struct{}{}
+		}()
+		err := q.processHistogramIncrease(testCase.data, ts)
+		assert.NoError(t, err)
+		close(q.eventsChan)
+		<-done
+
+		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
 	}
 }

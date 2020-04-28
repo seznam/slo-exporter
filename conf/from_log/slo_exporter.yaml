@@ -7,24 +7,13 @@ pipeline: ["tailer", "eventFilter", "normalizer", "eventKeyGenerator", "dynamicC
 modules:
 
   tailer:
-    tailedFile: "/tmp/szn-logy/access_log"
+    tailedFile: "conf/from_log/test.log"
     follow: true
     reopen: true
     positionFile: ""
     positionPersistenceInterval: "2s"
     loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
     emptyGroupRE: '^-$'
-
-  prometheusIngester:
-    apiUrl: "https://thanos.sklik-scif-ko.dev.dszn.cz"
-    queryTimeout: 10s
-    queries:
-      - query: 'time() - last_successful_run_timestamp - on(app) group_left() min(alerting_threshold:last_successful_run_timestamp) by (app) > 0'
-        interval: 20s
-        dropLabels:
-          - job
-        additionalLabels:
-          purpose: "to_demonstrate_slo_exporter_conf_syntax"
 
   eventFilter:
     metadataFilter:
@@ -56,7 +45,7 @@ modules:
   dynamicClassifier:
     exactMatchesCsvFiles: []
     regexpMatchesCsvFiles:
-      - "conf/userportal.csv"
+      - "conf/from_log/classification.csv"
     unclassifiedEventMetadataKeys:
       - "userAgent"
 
@@ -66,12 +55,12 @@ modules:
     defaultWeights:
       - weight: 1
         classification:
-          sloDomain: "userportal"
+          sloDomain: "test-domain"
           sloClass: "test1"
 
   sloEventProducer:
     rulesFiles:
-      - "conf/slo_rules.yaml"
+      - "conf/from_log/slo_rules.yaml"
 
   prometheusExporter:
     metricName: "slo_events_total"

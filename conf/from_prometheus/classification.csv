@@ -1,0 +1,2 @@
+test-domain,test-app,critical,"metrics"
+test-domain,test-app,no_slo,"^.*$"
