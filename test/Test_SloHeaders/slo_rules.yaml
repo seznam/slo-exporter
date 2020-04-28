@@ -11,6 +11,10 @@ rules:
       slo_version: 1
 
   - event_type: request
+    metadata_matcher:
+      - operator: matchesRegexp
+        key: requestDuration
+        value: ".*"
     slo_matcher:
       domain: userportal
       class: critical

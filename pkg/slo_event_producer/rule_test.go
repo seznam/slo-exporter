@@ -119,6 +119,36 @@ func TestEvaluateEvent(t *testing.T) {
 			outputSloEvent: nil,
 			ok:             false,
 		},
+		{
+			rule: evaluationRule{
+				sloMatcher:         event.SloClassification{Domain: "domain"},
+				metadataMatcher:    []operator{&matchesRegexp{key: "key", regexp: regexp.MustCompile("value")}},
+				additionalMetadata: stringmap.StringMap{},
+				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				logger:             logrus.New(),
+			},
+			inputEvent: event.HttpRequest{
+				Metadata:          stringmap.StringMap{"statusCode": "200", "key": "value"},
+				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
+			},
+			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
+			ok:             true,
+		},
+		{
+			rule: evaluationRule{
+				sloMatcher:         event.SloClassification{Domain: "domain"},
+				metadataMatcher:    []operator{&matchesRegexp{key: "key", regexp: regexp.MustCompile("value")}},
+				additionalMetadata: stringmap.StringMap{},
+				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				logger:             logrus.New(),
+			},
+			inputEvent: event.HttpRequest{
+				Metadata:          stringmap.StringMap{"statusCode": "200"},
+				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
+			},
+			outputSloEvent: nil,
+			ok:             false,
+		},
 	}
 
 	for _, tc := range testCases {

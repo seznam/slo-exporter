@@ -72,9 +72,5 @@ func (e HttpRequest) GetTimeOccurred() time.Time {
 }
 
 func (e HttpRequest) String() string {
-	key := e.Method + ":" + e.URL.Path
-	if e.EventKey() != "" {
-		key = e.EventKey()
-	}
-	return fmt.Sprintf("key: %q, status: %d, duration: %s, classification: %s", key, e.StatusCode, e.Duration, e.SloClassification)
+	return fmt.Sprintf("key: %s, metadata: %s, classification: %s", e.EventKey(), e.Metadata, e.GetSloMetadata())
 }
