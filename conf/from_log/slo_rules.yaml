@@ -1,7 +1,7 @@
 rules:
   - event_type: request
     slo_matcher:
-      domain: userportal
+      domain: test-domain
     failure_conditions:
       - operator: numberHigherThan
         key: statusCode
@@ -13,7 +13,7 @@ rules:
 
   - event_type: request
     slo_matcher:
-      domain: userportal
+      domain: test-domain
       class: critical
     failure_conditions:
       - operator: numberHigherThan

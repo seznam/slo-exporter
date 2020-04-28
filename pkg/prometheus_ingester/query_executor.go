@@ -3,6 +3,11 @@ package prometheus_ingester
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
+	"github.com/prometheus/client_golang/prometheus"
+	"math"
+	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -14,12 +19,13 @@ import (
 )
 
 type queryExecutor struct {
-	Query          queryOptions
-	queryTimeout   time.Duration
-	eventsChan     chan *event.HttpRequest
-	logger         logrus.FieldLogger
-	api            v1.API
-	previousResult queryResult
+	Query             queryOptions
+	queryTimeout      time.Duration
+	eventsChan        chan *event.HttpRequest
+	logger            logrus.FieldLogger
+	api               v1.API
+	previousResult    queryResult
+	previousResultMtx sync.RWMutex
 }
 
 type queryResult struct {
@@ -37,7 +43,7 @@ func (q *queryExecutor) withRangeSelector(ts time.Time) string {
 	} else {
 		rangeSelector = ts.Sub(q.previousResult.timestamp)
 	}
-	rangeSelector = rangeSelector.Round(time.Duration(time.Second))
+	rangeSelector = rangeSelector.Round(time.Second)
 	return q.Query.Query + fmt.Sprintf("[%ds]", int64(rangeSelector.Seconds()))
 }
 
@@ -52,14 +58,18 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 		query    string
 	)
 	switch q.Query.Type {
-	case increaseQueryType:
+	case histogramQueryType:
+		query = q.withRangeSelector(ts)
+	case counterQueryType:
 		query = q.withRangeSelector(ts)
 	case simpleQueryType:
 		query = q.Query.Query
 	default:
 		return nil, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
 	}
+	apiQueryTimer := prometheus.NewTimer(prometheusQueryDuration.WithLabelValues(string(q.Query.Type)))
 	result, warnings, err = q.api.Query(timeoutCtx, query, ts)
+	apiQueryTimer.ObserveDuration()
 	if len(warnings) > 0 {
 		q.logger.WithField("query", query).Warnf("warnings in query execution: %+v", warnings)
 	}
@@ -67,7 +77,7 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 	return result, err
 }
 
-func (q queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
+func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 	ticker := time.NewTicker(q.Query.Interval)
 	defer ticker.Stop()
 	defer wg.Done()
@@ -95,15 +105,26 @@ func (q queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 
 func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 	switch q.Query.Type {
-	case increaseQueryType:
+	case histogramQueryType:
 		switch result.(type) {
 		case model.Matrix:
-			return q.processMatrixResultAsCounter(result.(model.Matrix), ts)
+			if err := q.processHistogramIncrease(result.(model.Matrix), ts); err != nil {
+				return err
+			}
+			return nil
 		default:
 			unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
 			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
 		}
-
+	case counterQueryType:
+		switch result.(type) {
+		case model.Matrix:
+			q.processCountersIncrease(result.(model.Matrix), ts)
+			return nil
+		default:
+			unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
+			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
+		}
 	case simpleQueryType:
 		switch result.(type) {
 		case model.Matrix:
@@ -121,9 +142,9 @@ func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 	}
 }
 
-func (q *queryExecutor) emitEvent(ts time.Time, quantity float64, result float64, metric model.Metric) {
+func (q *queryExecutor) emitEvent(ts time.Time, quantity float64, result float64, metadata stringmap.StringMap) {
 	e := &event.HttpRequest{
-		Metadata: stringmap.NewFromMetric(metric),
+		Metadata: metadata,
 		Quantity: quantity,
 	}
 	e.Metadata = e.Metadata.Merge(stringmap.StringMap{
@@ -134,8 +155,8 @@ func (q *queryExecutor) emitEvent(ts time.Time, quantity float64, result float64
 	q.eventsChan <- e
 }
 
-// metricIncrease calculates increase between two samples
-func metricIncrease(previousSample, sample model.SamplePair) float64 {
+// increaseBetweenSamples calculates value between two samples
+func increaseBetweenSamples(previousSample, sample model.SamplePair) float64 {
 	if sample.Value < previousSample.Value {
 		// counter reset
 		return float64(sample.Value)
@@ -143,47 +164,111 @@ func metricIncrease(previousSample, sample model.SamplePair) float64 {
 	return float64(sample.Value) - float64(previousSample.Value)
 }
 
-func (q *queryExecutor) processMatrixResultAsCounter(matrix model.Matrix, ts time.Time) error {
-	currentResult := queryResult{
-		timestamp: ts,
-		metrics:   make(map[model.Fingerprint]model.SamplePair),
-	}
+type metricIncrease struct {
+	occurred time.Time
+	value    float64
+	metric   model.Metric
+}
 
-	// iterate over individual metrics
-	for _, singleMetricSampleStream := range matrix {
-		var (
-			previousSample model.SamplePair
-			ok             bool
-			increase       float64
-			sample         model.SamplePair
-		)
-
-		metricKey := singleMetricSampleStream.Metric.Fingerprint()
-
-		previousSample, ok = q.previousResult.metrics[metricKey]
+func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Time) error {
+	bucketIncreases := make(map[float64]metricIncrease)
+	var (
+		buckets []float64
+		errors error
+	)
+	for increase := range q.processMatrixResultAsIncrease(matrix, ts) {
+		bucket, ok := increase.metric["le"]
 		if !ok {
-			// we have no previous result available, use first of the fetched samples
-			previousSample = singleMetricSampleStream.Values[0]
-		}
-		// iterate over samples of given metric
-		for _, sample = range singleMetricSampleStream.Values {
-			increase += metricIncrease(previousSample, sample)
-			previousSample = sample
-		}
-		currentResult.metrics[metricKey] = sample
-		if increase == 0 {
+			errors = multierror.Append(errors, fmt.Errorf("metric %s missing `le` bucket", increase.metric))
 			continue
 		}
-		q.emitEvent(ts, increase, increase, singleMetricSampleStream.Metric)
+		bucketValue, err := strconv.ParseFloat(string(bucket), 64)
+		if err != nil {
+			errors = multierror.Append(errors, fmt.Errorf("histogram metric `%s` has invalid `le` label", increase.metric))
+			continue
+		}
+		bucketIncreases[bucketValue] = increase
+		buckets = append(buckets, bucketValue)
 	}
-	q.previousResult = currentResult
+	if errors != nil {
+		return errors
+	}
+	sort.Float64s(buckets)
+	var previousBucketKey float64 = math.Inf(-1)
+	// Iterate over all buckets and report event with quantity equal to difference of it's and preceding bucket increase.
+	for _, key := range buckets {
+		maxValue := key
+		minValue := previousBucketKey
+		intervalIncrease := bucketIncreases[key].value - bucketIncreases[previousBucketKey].value
+		if intervalIncrease > 0 {
+			q.emitEvent(
+				ts,
+				intervalIncrease,
+				intervalIncrease,
+				stringmap.NewFromMetric(bucketIncreases[key].metric).Merge(stringmap.StringMap{
+					metadataHistogramMinValue: fmt.Sprintf("%g", minValue),
+					metadataHistogramMaxValue: fmt.Sprintf("%g", maxValue),
+				}))
+		}
+		previousBucketKey = key
+	}
 	return nil
+}
+
+func (q *queryExecutor) processCountersIncrease(matrix model.Matrix, ts time.Time) {
+	for increase := range q.processMatrixResultAsIncrease(matrix, ts) {
+		q.emitEvent(increase.occurred, increase.value, increase.value, stringmap.NewFromMetric(increase.metric))
+	}
+}
+
+func (q *queryExecutor) processMatrixResultAsIncrease(matrix model.Matrix, ts time.Time) chan metricIncrease {
+	outChan := make(chan metricIncrease)
+	go func() {
+		defer close(outChan)
+		currentResult := queryResult{
+			timestamp: ts,
+			metrics:   make(map[model.Fingerprint]model.SamplePair),
+		}
+		q.previousResultMtx.Lock()
+		defer q.previousResultMtx.Unlock()
+		// iterate over individual metrics
+		for _, singleMetricSampleStream := range matrix {
+			var (
+				previousSample model.SamplePair
+				ok             bool
+				increase       float64
+				sample         model.SamplePair
+			)
+			metricKey := singleMetricSampleStream.Metric.Fingerprint()
+			previousSample, ok = q.previousResult.metrics[metricKey]
+			if !ok {
+				// we have no previous result available, use first of the fetched samples
+				previousSample = singleMetricSampleStream.Values[0]
+			}
+			// iterate over samples of given newMetric
+			for _, sample = range singleMetricSampleStream.Values {
+				increase += increaseBetweenSamples(previousSample, sample)
+				previousSample = sample
+			}
+			currentResult.metrics[metricKey] = sample
+			if increase == 0 {
+				continue
+			}
+			outChan <- metricIncrease{
+				occurred: ts,
+				value:    increase,
+				metric:   singleMetricSampleStream.Metric,
+			}
+		}
+		q.previousResult = currentResult
+	}()
+	return outChan
 }
 
 func (q *queryExecutor) processMatrixResult(matrix model.Matrix) error {
 	for _, sampleStream := range matrix {
 		for _, sample := range sampleStream.Values {
-			q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), sampleStream.Metric)
+			q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), stringmap.NewFromMetric(sampleStream.Metric))
 		}
 	}
 	return nil
@@ -191,12 +276,12 @@ func (q *queryExecutor) processMatrixResult(matrix model.Matrix) error {
 
 func (q *queryExecutor) processVectorResult(resultVector model.Vector) error {
 	for _, sample := range resultVector {
-		q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), sample.Metric)
+		q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), stringmap.NewFromMetric(sample.Metric))
 	}
 	return nil
 }
 
 func (q *queryExecutor) processScalarResult(scalar *model.Scalar) error {
-	q.emitEvent(scalar.Timestamp.Time(), 1, float64(scalar.Value), make(model.Metric))
+	q.emitEvent(scalar.Timestamp.Time(), 1, float64(scalar.Value), make(stringmap.StringMap, 0))
 	return nil
 }

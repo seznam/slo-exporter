@@ -36,7 +36,7 @@ additionalLabels:
 ```
 
 Currently, we recognize two kinds of `<query_type>`:
-#### `type: simple`
+#### type: `simple`
 Supported results for this type of query: Matrix, Scalar, Vector. [See Prometheus API documentation on details about these](https://prometheus.io/docs/prometheus/latest/querying/api/)
 Mapping to resulting event(s): For every metric and every of its returned samples, a new event is created with the following values:
 ```
@@ -55,7 +55,7 @@ Example of intended use case(s):
     type: "simple"
 ```
 
-#### `type: increase`
+#### type: `counter_increase`
 Supported result for this type of query: Matrix. [See Prometheus API documentation on details about these](https://prometheus.io/docs/prometheus/latest/querying/api/)
 Please note that the query is to be provided exactly as it would be passed to increase function, thus the following requirements applies:
 - **no range selector is allowed (e.g. `[5m]`)**. Range selector is automatically added by prometheus_ingester - for the first query it equals to configured `query.interval`, for all other, it equals to rounded difference of current timestamp and timestamp of the last sample (this should roughly to equal to `query.interval` as well).
@@ -79,10 +79,26 @@ Example of intended use case(s):
 ```
   - query: "job_duration_seconds_count{namespace=~'sklik-production', app='export-manager'}"
     interval: 20s
-    type: "increase"
+    type: "counter_increase"
     dropLabels:
       - instance
 ```
+
+#### type: `histogram_increase`
+Supported result for this type of query: Matrix. [See Prometheus API documentation on details about these](https://prometheus.io/docs/prometheus/latest/querying/api/)
+This query type is special case of the previous `counter_increase`. It uses the prometheus `histogram` metric
+which is composed by a set of counters which serves to observe distribution of some event observed value.
+Prometheus ingester then generates events with values of max and min possible value based on the `le`
+bucket distribution of the queried histogram. 
+
+```
+  - query: "request_duration_seconds_bucket{app='export-manager'}"
+    interval: 20s
+    type: "histogram_increase"
+    dropLabels:
+      - instance
+```
+
 
 ### Terminology used
 * **Metric** - unique set of consisting of metric name and its labels. Associated with list of **Samples** forms a **Time series**.

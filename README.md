@@ -76,7 +76,7 @@ Possible `moduleType`:
 Details how they work and ther `moduleConfig` can be found in their own 
 linked documentation in the [docs/modules](./docs/modules) folder.
 
-Full documented example can be found in [conf/slo_exporter.yaml](conf/slo_exporter.yaml).
+Full documented example can be found in [conf/slo_exporter.yaml](conf/from_log/slo_exporter.yaml).
 
 ## Build
 
@@ -111,7 +111,7 @@ Go profiling using pprof on `/debug/pprof/` web interface path. For usage see th
 ### How to add new normalization replacement rule?
 
 Event normalization is done in [`event normalizer`](pkg/normalizer/normalizer.go).
-User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](conf/slo_exporter.yaml).
+User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](conf/from_log/slo_exporter.yaml).
 
 Suppose you see a lot of events matching this regular expression `/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}` which you want to normalize, then your normalization replacement rule can look like following snippet:
 
