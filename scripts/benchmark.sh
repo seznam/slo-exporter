@@ -8,10 +8,12 @@ for package_path in $packages; do
   package_name="$(basename "$package_path")"
   cpu_profile_file="${output_folder}/${package_name}_cpu.profile"
   memory_profile_file="${output_folder}/${package_name}_memory.profile"
+  block_profile_file="${output_folder}/${package_name}_block.profile"
   go test \
     --benchmem \
     -cpuprofile="$cpu_profile_file" \
     -memprofile="$memory_profile_file" \
+    -blockprofile="$block_profile_file" \
     -bench=. \
     -count 5 \
     "${package_path}"
@@ -20,5 +22,8 @@ for package_path in $packages; do
   fi
   if [ -e "$memory_profile_file" ]; then
     go tool pprof -png "$memory_profile_file" >"${memory_profile_file}.png"
+  fi
+  if [ -e "$block_profile_file" ]; then
+    go tool pprof -png "$block_profile_file" >"${block_profile_file}.png"
   fi
 done
