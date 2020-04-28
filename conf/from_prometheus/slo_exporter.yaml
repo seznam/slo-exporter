@@ -1,0 +1,54 @@
+webServerListenAddress: "0.0.0.0:8080"
+maximumGracefulShutdownDuration: "10s"
+afterPipelineShutdownDelay: "21s"
+
+pipeline: ["prometheusIngester", "eventFilter", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+
+modules:
+
+  prometheusIngester:
+    apiUrl: "http://demo.robustperception.io:9090"
+    queryTimeout: 30s
+    queries:
+      - type: simple
+        query: 'time() - last_successful_run_timestamp - on(app) group_left() min(alerting_threshold:last_successful_run_timestamp) by (app) > 0'
+        interval: 10s
+        dropLabels:
+          - job
+        additionalLabels:
+          drop: "this"
+
+      - type: histogram_increase
+        query: 'prometheus_http_request_duration_seconds_bucket{handler="/metrics"}'
+        interval: 30s
+
+  eventFilter:
+    metadataFilter:
+      "drop": "this"
+
+  eventKeyGenerator:
+    filedSeparator: ":"
+    overrideExistingEventKey: false
+    metadataKeys:
+      - handler
+
+  dynamicClassifier:
+    regexpMatchesCsvFiles:
+      - "conf/from_prometheus/classification.csv"
+    unclassifiedEventMetadataKeys:
+      - "handler"
+
+  sloEventProducer:
+    rulesFiles:
+      - "conf/from_prometheus/slo_rules.yaml"
+
+  prometheusExporter:
+    metricName: "slo_events_total"
+    maximumUniqueEventKeys: 100
+    ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
+    labelNames:
+      result: "result"
+      sloDomain: "slo_domain"
+      sloClass: "slo_class"
+      sloApp: "slo_app"
+      eventKey: "event_key"

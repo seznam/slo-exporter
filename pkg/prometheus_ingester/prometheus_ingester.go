@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	metadataValueKey     = "prometheusQueryResult"
-	metadataTimestampKey = "unixTimestamp"
+	metadataValueKey          = "prometheusQueryResult"
+	metadataTimestampKey      = "unixTimestamp"
+	metadataHistogramMinValue = "prometheusHistogramMinValue"
+	metadataHistogramMaxValue = "prometheusHistogramMaxValue"
 )
 
 var (
@@ -29,21 +31,28 @@ var (
 		Help: "Total number of Query results with not supported type.",
 	}, []string{"result_type"})
 	prometheusQueryFail = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "prometheus_query_fails_total",
+		Name: "query_fails_total",
 		Help: "Total number of Query fails.",
 	})
+	prometheusQueryDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "query_duration_seconds",
+		Help:    "Duration of queries on the Prometheus API.",
+		Buckets: prometheus.ExponentialBuckets(0.05, 3, 5),
+	}, []string{"query_type"})
 )
 
 type queryType string
 
 const (
-	simpleQueryType   queryType = "simple"
-	increaseQueryType queryType = "increase"
+	simpleQueryType    queryType = "simple"
+	counterQueryType   queryType = "counter_increase"
+	histogramQueryType queryType = "histogram_increase"
 )
 
 var validQueryTypes = []queryType{
 	simpleQueryType,
-	increaseQueryType,
+	counterQueryType,
+	histogramQueryType,
 }
 
 func validateQueryType(queryType queryType) error {
@@ -86,7 +95,7 @@ func (i *PrometheusIngester) String() string {
 }
 
 func (i *PrometheusIngester) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
-	toRegister := []prometheus.Collector{unsupportedQueryResultType, prometheusQueryFail}
+	toRegister := []prometheus.Collector{unsupportedQueryResultType, prometheusQueryFail, prometheusQueryDuration}
 	for _, metric := range toRegister {
 		if err := wrappedRegistry.Register(metric); err != nil {
 			return err
@@ -160,7 +169,7 @@ func (i *PrometheusIngester) Run() {
 		// Start all queries
 		for _, query := range i.queries {
 			wg.Add(1)
-			go queryExecutor{
+			executor := queryExecutor{
 				Query:        query,
 				queryTimeout: i.queryTimeout,
 				eventsChan:   i.outputChannel,
@@ -169,7 +178,8 @@ func (i *PrometheusIngester) Run() {
 				previousResult: queryResult{
 					metrics: make(map[model.Fingerprint]model.SamplePair),
 				},
-			}.run(queriesContext, &wg)
+			}
+			go executor.run(queriesContext, &wg)
 		}
 
 		<-i.shutdownChannel
