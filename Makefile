@@ -17,6 +17,9 @@ e2e-test: build
 test:
 	go test -v --race -coverprofile=coverage.out $(shell go list ./... | grep -v /vendor/)
 
+benchmark: clean
+	./scripts/benchmark.sh
+
 test-and-coverage: test
 	go tool cover -func coverage.out
 
@@ -28,9 +31,9 @@ clean-compose:
 	docker volume rm slo-exporter_log-volume || true
 
 clean:
-	rm -rf slo_exporter coverage.out
+	rm -rf slo_exporter coverage.out profile
 	find . -type f -name "*.pos" -prune -exec rm -f {} \;
 	find . -type d -name "test_output" -prune -exec rm -rf {} \;
 
 
-.PHONY: build lint test test-and-coverage compose clean-compose e2e-test
+.PHONY: build lint test test-and-coverage compose clean-compose e2e-test benchmark
