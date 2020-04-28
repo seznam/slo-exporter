@@ -29,28 +29,44 @@ func BenchmarkStringMap_Matches(b *testing.B) {
 	}
 	for _, tc := range testCases {
 		b.Run("StringMap.Copy/"+tc.name, func(b *testing.B) {
-			tc.data.Copy()
+			for n := 0; n < b.N; n++ {
+				tc.data.Copy()
+			}
 		})
 		b.Run("StringMap.Merge on : "+tc.name, func(b *testing.B) {
-			tc.data.Merge(tc.data)
+			for n := 0; n < b.N; n++ {
+				tc.data.Merge(tc.data)
+			}
 		})
 		b.Run("StringMap.Keys on : "+tc.name, func(b *testing.B) {
-			tc.data.Keys()
+			for n := 0; n < b.N; n++ {
+				tc.data.Keys()
+			}
 		})
 		b.Run("StringMap.NewWith on : "+tc.name, func(b *testing.B) {
-			tc.data.NewWith("foo", "bar")
+			for n := 0; n < b.N; n++ {
+				tc.data.NewWith("foo", "bar")
+			}
 		})
 		b.Run("StringMap.Select on : "+tc.name, func(b *testing.B) {
-			tc.data.Select([]string{"a", "b", "c", "d", "e", "f", "g", "h"})
+			for n := 0; n < b.N; n++ {
+				tc.data.Select([]string{"a", "b", "c", "d", "e", "f", "g", "h"})
+			}
 		})
 		b.Run("StringMap.SortedKeys on : "+tc.name, func(b *testing.B) {
-			tc.data.SortedKeys()
+			for n := 0; n < b.N; n++ {
+				tc.data.SortedKeys()
+			}
 		})
 		b.Run("StringMap.Without on : "+tc.name, func(b *testing.B) {
-			tc.data.Without([]string{"a", "b", "c", "d", "e", "f", "g", "h"})
+			for n := 0; n < b.N; n++ {
+				tc.data.Without([]string{"a", "b", "c", "d", "e", "f", "g", "h"})
+			}
 		})
 		b.Run("StringMap.String on : "+tc.name, func(b *testing.B) {
-			tc.data.String()
+			for n := 0; n < b.N; n++ {
+				_ = tc.data.String()
+			}
 		})
 	}
 }
