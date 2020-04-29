@@ -16,7 +16,7 @@ It is built using [the pipeline pattern](https://blog.golang.org/pipelines).
 The processed event is passed from one module to another to allow it's modification or filtering
 for the final state to be reported as an SLI event.
 
-The flow of the processing pipeline can be dynamically set using configuration file so it can be used
+The flow of the processing pipeline can be dynamically set using configuration file, so it can be used
 for various use cases and event types.
 
 ### Module types
@@ -24,7 +24,7 @@ There is set of implemented modules to be used and are divided to three basic ty
 
 - `producer` does not read any events but produces them. These modules serve as sources of the events.
 - `ingester` reads events but does not produce any. These modules serves for reporting the SLO metrics to some external systems.
-- `processor` is combination of `producer` and `ingester`. It reads event and produces new or modified one.
+- `processor` is combination of `producer` and `ingester`. It reads an event and produces new or modified one.
 
 
 ### Pipeline rules
@@ -73,10 +73,11 @@ Possible `moduleType`:
 - ingesters:
     - [`prometheusExporter`](./docs/modules/prometheus_exporter.md)
 
-Details how they work and ther `moduleConfig` can be found in their own 
+Details how they work and their `moduleConfig` can be found in their own 
 linked documentation in the [docs/modules](./docs/modules) folder.
 
-Full documented example can be found in [conf/slo_exporter.yaml](conf/from_log/slo_exporter.yaml).
+#### Configuration examples
+Actual examples of usage with full configuration can be found in the [`examples/`](examples) directory.
 
 ## Build
 
@@ -111,7 +112,7 @@ Go profiling using pprof on `/debug/pprof/` web interface path. For usage see th
 ### How to add new normalization replacement rule?
 
 Event normalization is done in [`event normalizer`](pkg/normalizer/normalizer.go).
-User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](conf/from_log/slo_exporter.yaml).
+User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](examples/from_log/slo_exporter.yaml).
 
 Suppose you see a lot of events matching this regular expression `/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}` which you want to normalize, then your normalization replacement rule can look like following snippet:
 
