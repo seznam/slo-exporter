@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
-- **BREAKING** Prometheus ingester: Renamed `increase` query type to `counter_increase`.
+- **BREAKING** prometheusIngester: Renamed `increase` query type to `counter_increase`.
+- **BREAKING** sloEventProducer: Dropped unused configuration key `event_type` in rules file.
 
 ### Added
 - Prometheus ingester: New query type `histogram_increase` to generate events with for each bucket.

@@ -23,7 +23,6 @@ func TestSloEventProducer(t *testing.T) {
 			inputEvent: event.HttpRequest{Metadata: stringmap.StringMap{"statusCode": "502"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					EventType:                        "request",
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
@@ -41,7 +40,6 @@ func TestSloEventProducer(t *testing.T) {
 			inputEvent: event.HttpRequest{Metadata: stringmap.StringMap{"statusCode": "200"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					EventType:                        "request",
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{

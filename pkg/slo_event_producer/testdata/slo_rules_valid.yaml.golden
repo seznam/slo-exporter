@@ -1,6 +1,5 @@
 rules:
-  - event_type: request
-    slo_matcher:
+  - slo_matcher:
         domain: domain
     failure_conditions:
       - operator: numberHigherThan

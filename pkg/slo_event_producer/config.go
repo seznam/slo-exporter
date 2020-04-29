@@ -23,7 +23,6 @@ type operatorOptions struct {
 }
 
 type ruleOptions struct {
-	EventType                        string              `yaml:"event_type"`
 	MetadataMatcherConditionsOptions []operatorOptions   `yaml:"metadata_matcher"`
 	SloMatcher                       sloMatcher          `yaml:"slo_matcher"`
 	FailureConditionsOptions         []operatorOptions   `yaml:"failure_conditions"`
