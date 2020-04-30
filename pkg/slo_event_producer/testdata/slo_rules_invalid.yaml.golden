@@ -1,6 +1,5 @@
 rules:
-  - event_type: request
-    failure_condddddddditions:
+  - failure_condddddddditions:
       - operator: numberHigherThan
         key: "statusCode"
         value: 500
