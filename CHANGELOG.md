@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [5.0.0] 2020-04-30
 ### Changed
 - **BREAKING** prometheusIngester: Renamed `increase` query type to `counter_increase`.
 - **BREAKING** sloEventProducer: Dropped unused configuration key `event_type` in rules file.
