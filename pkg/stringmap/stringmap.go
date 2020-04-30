@@ -98,17 +98,17 @@ func (m StringMap) Matches(other StringMap) bool {
 	return true
 }
 
-// String returns ordered key-value list separated with comma.
+//String returns ordered key-value list separated with comma.
 func (m StringMap) String() string {
-	var representation string
-	for _, k := range m.SortedKeys() {
-		val, ok := m[k]
+	items := make([]string, len(m))
+	for i, key := range m.SortedKeys() {
+		val, ok := m[key]
 		if !ok {
 			continue
 		}
-		representation += k + `="` + val + `",`
+		items[i] = key + `="` + val + `"`
 	}
-	return strings.TrimRight(representation, ",")
+	return strings.Join(items, ",")
 }
 
 // Lowercase creates new StringMap with lowercase keys and values.

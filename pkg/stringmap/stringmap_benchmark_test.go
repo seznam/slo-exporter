@@ -20,7 +20,7 @@ func generateStringMap(keysCount int, stringLen int) StringMap {
 	return newMap
 }
 
-func BenchmarkStringMap_Matches(b *testing.B) {
+func BenchmarkStringMap(b *testing.B) {
 	testCases := []benchmarkCase{
 		{name: "small map/small keys", data: generateStringMap(3, 3)},
 		{name: "small map/large keys", data: generateStringMap(3, 1000)},
