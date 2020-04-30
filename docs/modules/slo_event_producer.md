@@ -31,7 +31,6 @@ rules:
 
 `rule`
 ```yaml
-event_type: request
 # Matcher of the events metadata. Rule will be applied only if all of them matches.
 metadata_matcher:
   - <condition>
@@ -77,8 +76,7 @@ Supported operators:
 Example of the whole rules file:
 ```yaml
 rules:
-  - event_type: request
-    slo_matcher:
+  - slo_matcher:
       domain: test-domain
     failure_conditions:
       - operator: numberHigherThan
@@ -89,8 +87,7 @@ rules:
       slo_version: 6
     honor_slo_result: True
 
-  - event_type: request
-    metadata_matcher:
+  - metadata_matcher:
       - operator: matchesRegexp
         key: statusCode
         value: 200
