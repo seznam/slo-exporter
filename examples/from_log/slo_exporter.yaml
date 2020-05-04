@@ -7,7 +7,7 @@ pipeline: ["tailer", "eventFilter", "normalizer", "eventKeyGenerator", "dynamicC
 modules:
 
   tailer:
-    tailedFile: "conf/from_log/test.log"
+    tailedFile: "examples/from_log/test.log"
     follow: true
     reopen: true
     positionFile: ""
@@ -45,7 +45,7 @@ modules:
   dynamicClassifier:
     exactMatchesCsvFiles: []
     regexpMatchesCsvFiles:
-      - "conf/from_log/classification.csv"
+      - "examples/from_log/classification.csv"
     unclassifiedEventMetadataKeys:
       - "userAgent"
 
@@ -60,7 +60,7 @@ modules:
 
   sloEventProducer:
     rulesFiles:
-      - "conf/from_log/slo_rules.yaml"
+      - "examples/from_log/slo_rules.yaml"
 
   prometheusExporter:
     metricName: "slo_events_total"
