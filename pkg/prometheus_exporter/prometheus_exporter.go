@@ -84,7 +84,7 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*Prometh
 	viperConfig.SetDefault("LabelNames.Result", "result")
 	viperConfig.SetDefault("LabelNames.SloDomain", "slo_domain")
 	viperConfig.SetDefault("LabelNames.SloClass", "slo_class")
-	viperConfig.SetDefault("LabelNames.SloApp", "app")
+	viperConfig.SetDefault("LabelNames.SloApp", "slo_app")
 	viperConfig.SetDefault("LabelNames.EventKey", "event_key")
 	viperConfig.SetDefault("exceededKeyLimitPlaceholder", "cardinalityLimitExceeded")
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
