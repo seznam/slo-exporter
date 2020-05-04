@@ -65,11 +65,15 @@ value: <value>
 
 Supported operators:
 
-| `operator_name`      | Expected string format        | Description |
-|----------------------|-------------------------------|-------------|
-| `matchesRegexp`      | Any string                    | Tries if value of the key matches the regexp form value. |
-| `numberHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. |
-| `durationHigherThan` | Staring in Go duration format | Converts the string to duration if possible and cmpares it to the duration form value. |
+| `operator_name`             | Expected string format        | Description |
+|-----------------------------|-------------------------------|-------------|
+| `equalTo      `             | Any string                    | Compares the string with the given value. |
+| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp form value. |
+| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. |
+| `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. |
+| `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. |
+| `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. |
+| `durationHigherThan`        | Staring in Go duration format | Converts the string to duration if possible and compares it to the duration from value. |
 
 ---
 
