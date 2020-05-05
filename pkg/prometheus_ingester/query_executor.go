@@ -155,7 +155,7 @@ func (q *queryExecutor) emitEvent(ts time.Time, result float64, metadata stringm
 		Quantity: quantity,
 	}
 	e.Metadata = e.Metadata.Merge(stringmap.StringMap{
-		metadataValueKey:     fmt.Sprintf("%g", result),
+		MetadataValueKey:     fmt.Sprintf("%g", result),
 		metadataTimestampKey: fmt.Sprintf("%d", ts.Unix()),
 	})
 	e.Metadata = e.Metadata.Without(q.Query.DropLabels).Merge(q.Query.AdditionalLabels)

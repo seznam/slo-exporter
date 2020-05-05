@@ -53,6 +53,16 @@ func (m StringMap) Keys() []string {
 	return keys
 }
 
+// AddKeys adds provided keys to the stringmap (using empty string as a value).
+func (m StringMap) AddKeys(keys ...string) {
+	if keys == nil {
+		return
+	}
+	for _, k := range keys {
+		m[k] = ""
+	}
+}
+
 // Keys returns sorted list of StringMap keys.
 func (m StringMap) SortedKeys() []string {
 	keys := m.Keys()

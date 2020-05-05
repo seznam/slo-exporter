@@ -86,6 +86,9 @@ func (sep *SloEventProducer) RegisterMetrics(_ prometheus.Registerer, wrappedReg
 			return err
 		}
 	}
+	if err := sep.eventEvaluator.registerMetrics(wrappedRegistry); err != nil {
+		return err
+	}
 	return nil
 }
 

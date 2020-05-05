@@ -11,8 +11,12 @@ import (
 	"time"
 )
 
+const (
+	equalToOperatorName = "equalTo"
+)
+
 var operatorFactoryRegistry = map[string]operatorFactory{
-	"equalTo":                 newEqualsTo,
+	equalToOperatorName:       newEqualsTo,
 	"matchesRegexp":           newMatchesRegexp,
 	"numberEqualTo":           newNumberEqualTo,
 	"numberHigherThan":        newNumberHigherThan,
