@@ -66,7 +66,9 @@ Possible `moduleType`:
     - [`prometheusIngester`](./docs/modules/prometheus_ingester.md)
 - processors:
     - [`eventFilter`](./docs/modules/event_filter.md)
+    - [`eventKeyGenerator`](./docs/modules/event_key_generator.md)
     - [`normalizer`](./docs/modules/normalizer.md)
+    - [`metadataClassifier`](./docs/modules/metadata_classifier.md)
     - [`dynamicClassifier`](./docs/modules/dynamic_classifier.md)
     - [`statisticalClassifier`](./docs/modules/statistical_classifier.md)
     - [`sloEventProducer`](./docs/modules/slo_event_producer.md)

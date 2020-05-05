@@ -2,7 +2,7 @@ webServerListenAddress: "0.0.0.0:8080"
 maximumGracefulShutdownDuration: "10s"
 afterPipelineShutdownDelay: "21s"
 
-pipeline: ["prometheusIngester", "eventFilter", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["prometheusIngester", "eventFilter", "eventKeyGenerator", "metadataClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -21,6 +21,10 @@ modules:
       - type: histogram_increase
         query: 'prometheus_http_request_duration_seconds_bucket{handler="/metrics"}'
         interval: 30s
+        additionalLabels:
+          domain: "test-domain"
+          app: "test-app"
+          class: "test-class"
 
   eventFilter:
     metadataFilter:
@@ -32,23 +36,16 @@ modules:
     metadataKeys:
       - handler
 
-  dynamicClassifier:
-    regexpMatchesCsvFiles:
-      - "conf/from_prometheus/classification.csv"
-    unclassifiedEventMetadataKeys:
-      - "handler"
+  metadataClassifier:
+    sloDomainMetadataKey: "domain"
+    sloClassMetadataKey: "class"
+    sloAppMetadataKey: "app"
+    overrideExistingValues: true
 
   sloEventProducer:
     rulesFiles:
-      - "conf/from_prometheus/slo_rules.yaml"
+      - "examples/from_prometheus/slo_rules.yaml"
 
   prometheusExporter:
     metricName: "slo_events_total"
     maximumUniqueEventKeys: 100
-    ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
-    labelNames:
-      result: "result"
-      sloDomain: "slo_domain"
-      sloClass: "slo_class"
-      sloApp: "slo_app"
-      eventKey: "event_key"
