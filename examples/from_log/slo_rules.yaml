@@ -22,5 +22,3 @@ rules:
       slo_type: latency90
       percentile: 90
       le: 0.8
-
-
