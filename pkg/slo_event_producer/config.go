@@ -28,6 +28,7 @@ type ruleOptions struct {
 	FailureConditionsOptions         []operatorOptions   `yaml:"failure_conditions"`
 	AdditionalMetadata               stringmap.StringMap `yaml:"additional_metadata,omitempty"`
 	HonorSloResult                   bool                `yaml:"honor_slo_result"`
+	ExposeAsMetric                   bool                `yaml:"expose_as_metric"`
 }
 
 type rulesConfig struct {

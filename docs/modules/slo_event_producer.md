@@ -51,7 +51,14 @@ additional_metadata:
 #   if value equals event.Result's success value -> event is considered as successful
 #   otherwise, event is considered as failed
 #   if evaluated event's sloResult attribute is empty, failure_criteria are evaluated and events's result is set based on them.
-honor_slo_result: True
+honor_slo_result: False
+# If set to True, this rule will be exposed as one or more Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
+# - the rule has to contain 'metadata_matcher' with at least single key evaluated with 'equalTo' operator. All such keys will be used as resulting metric's labels.
+# - All failure conditions which evaluate against 'prometheusQueryResult' metadata key ((see prometheus_ingester module documentation for details)) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
+# - Additional_metadata are added as labels to resulting metric.
+#
+# See below for an example.
+expose_as_metric: False
 ```
 *Please note that if multiple types of matchers are used in a rule, all of them has to match the given event.*
 
@@ -107,4 +114,43 @@ rules:
       slo_type: latency90
       percentile: 90
       le: 0.8
+
+  - metadata_matcher:
+      - key: name
+        operator: equalTo
+        value: ad.advisual
+    failure_conditions:
+      - key: prometheusQueryResult
+        operator: numberHigherThan
+        value: 6300
+    additional_metadata:
+      slo_version: 6
+      slo_type: freshness
+    expose_as_metric: true
+
+  - metadata_matcher:
+      - key: name
+        operator: equalTo
+        value: ad.banner
+    failure_conditions:
+      - key: prometheusQueryResult
+        operator: numberHigherThan
+        value: 6300
+      - key: prometheusQueryResult
+        operator: numberEqualOrLessThan
+        value: 1
+    additional_metadata:
+      slo_version: 6
+      slo_type: freshness
+      foo: bar
+    expose_as_metric: true
+```
+The configuration above will result in the following metrics:
+
+```
+# HELP slo_exporter_slo_event_producer_slo_rules_threshold Threshold exposed based on information from slo_event_producer's slo_rules configuration
+# TYPE slo_exporter_slo_event_producer_slo_rules_threshold gauge
+slo_exporter_slo_event_producer_slo_rules_threshold{foo="",name="ad.advisual",operator="numberHigherThan",slo_type="freshness",slo_version="6"} 6300
+slo_exporter_slo_event_producer_slo_rules_threshold{foo="bar",name="ad.banner",operator="numberEqualOrLessThan",slo_type="freshness",slo_version="6"} 1
+slo_exporter_slo_event_producer_slo_rules_threshold{foo="bar",name="ad.banner",operator="numberHigherThan",slo_type="freshness",slo_version="6"} 6300
 ```
