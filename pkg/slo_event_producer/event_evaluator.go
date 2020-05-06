@@ -9,7 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_ingester"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"strconv"
 )
@@ -74,39 +73,29 @@ func (re *EventEvaluator) getMetricsFromRuleOptions() (*prometheus.GaugeVec, err
 
 	// get possible labels and labels->value mappings
 	for _, ruleConfig := range re.rulesOptions {
-		if !ruleConfig.ExposeAsMetric {
-			continue
-		}
-		labels := stringmap.StringMap{}
-		for _, matchCond := range ruleConfig.MetadataMatcherConditionsOptions {
-			if matchCond.Operator == equalToOperatorName {
-				possibleLabels.AddKeys(matchCond.Key)
-				labels[matchCond.Key] = matchCond.Value
-			}
-		}
-		if len(labels) == 0 {
-			return nil, fmt.Errorf("rule marked as to be exposed as Prometheus metrics does not contain any metadata_matcher with '%s' operator: %v", equalToOperatorName, ruleConfig)
-		}
-
-		possibleLabels.AddKeys(ruleConfig.AdditionalMetadata.Keys()...)
-		labels = labels.Merge(ruleConfig.AdditionalMetadata)
-
-		possibleLabels.AddKeys("operator")
-		var found bool
+		//possibleLabels.AddKeys("operator")
 		for _, failCond := range ruleConfig.FailureConditionsOptions {
-			if failCond.Key != prometheus_ingester.MetadataValueKey {
+			if !failCond.ExposeAsMetric {
 				continue
 			}
-			found = true
-			metricsLabels = append(metricsLabels, labels.Merge(stringmap.StringMap{"operator": failCond.Operator}))
+			ruleMetricLabels := stringmap.StringMap{}
+			ruleMetricLabels = ruleMetricLabels.Merge(stringmap.StringMap{"operator": failCond.Operator})
+
+			for _, matchCond := range ruleConfig.MetadataMatcherConditionsOptions {
+				if matchCond.Operator == equalToOperatorName {
+					ruleMetricLabels[matchCond.Key] = matchCond.Value
+				}
+			}
+			ruleMetricLabels = ruleMetricLabels.Merge(ruleConfig.AdditionalMetadata)
+
 			failCondValue, err := strconv.ParseFloat(failCond.Value, 64)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse failure_condition value as a float: %v", failCond)
 			}
 			metricsValues = append(metricsValues, failCondValue)
-		}
-		if !found {
-			return nil, fmt.Errorf("rule marked as to be exposed as Prometheus metric does not contain any failure_condition which matches Prometheus query result key ('%s'): %v", prometheus_ingester.MetadataValueKey, ruleConfig)
+			metricsLabels = append(metricsLabels, ruleMetricLabels)
+
+			possibleLabels.AddKeys(ruleMetricLabels.Keys()...)
 		}
 	}
 	// create metrics

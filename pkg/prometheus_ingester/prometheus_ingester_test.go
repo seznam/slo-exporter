@@ -128,19 +128,19 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 			},
 			eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{MetadataValueKey: "2", metadataTimestampKey: "0"}),
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{MetadataValueKey: "3", metadataTimestampKey: "0"}),
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "3", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{MetadataValueKey: "4", metadataTimestampKey: "0"}),
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "4", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -164,11 +164,11 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				ResultAsQuantity: newFalse(),
 			}, eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{MetadataValueKey: "2", metadataTimestampKey: "0"}),
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -184,7 +184,7 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				ResultAsQuantity: newFalse(),
 			}, eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -236,7 +236,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			},
 			eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: m.Merge(stringmap.StringMap{"a": "1", "job": "kubernetes", "locality": "nagano", "__name__": "test_metric", MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: m.Merge(stringmap.StringMap{"a": "1", "job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -257,7 +257,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			},
 			eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "osaka", "__name__": "test_metric", MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "osaka", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -278,7 +278,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			},
 			eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: m.Merge(stringmap.StringMap{"locality": "nagano", "__name__": "test_metric", MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: m.Merge(stringmap.StringMap{"locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -299,7 +299,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			},
 			eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "nagano", "__name__": "test_metric", MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -323,7 +323,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			},
 			eventsProduced: []*event.HttpRequest{
 				{
-					Metadata: m.Merge(stringmap.StringMap{"job": "openshift", "locality": "nagano", "__name__": "test_metric", MetadataValueKey: "1", metadataTimestampKey: "0"}),
+					Metadata: m.Merge(stringmap.StringMap{"job": "openshift", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
 					Quantity: 1,
 				},
 			},
@@ -527,7 +527,7 @@ func Test_processMetricsIncrease(t *testing.T) {
 			},
 			expectedEvents: []*event.HttpRequest{
 				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{MetadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
+					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
 					Quantity: 10,
 				},
 			},
@@ -570,11 +570,11 @@ func Test_processMetricsIncrease(t *testing.T) {
 			},
 			expectedEvents: []*event.HttpRequest{
 				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{MetadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
+					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
 					Quantity: 10,
 				},
 				{
-					Metadata: stringmap.NewFromMetric(y).Merge(stringmap.StringMap{MetadataValueKey: "1", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
+					Metadata: stringmap.NewFromMetric(y).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
 					Quantity: 1,
 				},
 			},
@@ -643,9 +643,9 @@ func Test_processHistogramIncrease(t *testing.T) {
 				},
 			},
 			expectedEvents: []*event.HttpRequest{
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", MetadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", MetadataValueKey: "6"}, Quantity: 6},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", MetadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
 			},
 		},
 	}

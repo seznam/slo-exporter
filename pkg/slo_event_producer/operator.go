@@ -29,10 +29,10 @@ type operatorFactory func() operator
 
 type operator interface {
 	Evaluate(*event.HttpRequest) (bool, error)
-	LoadOptions(operatorOptions) error
+	LoadOptions(exposableOperatorOptions) error
 }
 
-func newOperator(options operatorOptions) (operator, error) {
+func newOperator(options exposableOperatorOptions) (operator, error) {
 	operatorFactory, ok := operatorFactoryRegistry[options.Operator]
 	if !ok {
 		var allowedKeys []string
@@ -58,7 +58,7 @@ func (n *numberComparisonOperator) String() string {
 	return fmt.Sprintf("%s operator on key %q with value %f", n.name, n.key, n.value)
 }
 
-func (n *numberComparisonOperator) LoadOptions(options operatorOptions) error {
+func (n *numberComparisonOperator) LoadOptions(options exposableOperatorOptions) error {
 	n.key = options.Key
 	threshold, err := strconv.ParseFloat(options.Value, 64)
 	if err != nil {
@@ -162,7 +162,7 @@ func (r *durationHigherThan) String() string {
 	return fmt.Sprintf("durationHigherThan operator on key %q with value %q", r.key, r.thresholdDuration)
 }
 
-func (r *durationHigherThan) LoadOptions(options operatorOptions) error {
+func (r *durationHigherThan) LoadOptions(options exposableOperatorOptions) error {
 	r.key = options.Key
 	thresholdDuration, err := time.ParseDuration(options.Value)
 	if err != nil {
@@ -198,7 +198,7 @@ func (r *equalsTo) String() string {
 	return fmt.Sprintf("equalTo operator on key %q with value %q", r.key, r.value)
 }
 
-func (r *equalsTo) LoadOptions(options operatorOptions) error {
+func (r *equalsTo) LoadOptions(options exposableOperatorOptions) error {
 	r.key = options.Key
 	r.value = options.Value
 	return nil
@@ -226,7 +226,7 @@ func (r *matchesRegexp) String() string {
 	return fmt.Sprintf("matchesRegexp operator on key %q with matcher %q", r.key, r.regexp)
 }
 
-func (r *matchesRegexp) LoadOptions(options operatorOptions) error {
+func (r *matchesRegexp) LoadOptions(options exposableOperatorOptions) error {
 	var err error
 	r.key = options.Key
 	if r.regexp, err = regexp.Compile(options.Value); err != nil {
