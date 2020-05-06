@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	MetadataValueKey          = "prometheusQueryResult"
+	metadataValueKey          = "prometheusQueryResult"
 	metadataTimestampKey      = "unixTimestamp"
 	metadataHistogramMinValue = "prometheusHistogramMinValue"
 	metadataHistogramMaxValue = "prometheusHistogramMaxValue"
