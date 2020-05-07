@@ -11,12 +11,8 @@ import (
 	"time"
 )
 
-const (
-	equalToOperatorName = "equalTo"
-)
-
 var operatorFactoryRegistry = map[string]operatorFactory{
-	equalToOperatorName:       newEqualsTo,
+	"equalTo":                 newEqualsTo,
 	"matchesRegexp":           newMatchesRegexp,
 	"numberEqualTo":           newNumberEqualTo,
 	"numberHigherThan":        newNumberHigherThan,
@@ -30,6 +26,7 @@ type operatorFactory func() operator
 type operator interface {
 	Evaluate(*event.HttpRequest) (bool, error)
 	LoadOptions(exposableOperatorOptions) error
+	IsEqualityOperator() bool
 }
 
 func newOperator(options exposableOperatorOptions) (operator, error) {
@@ -97,6 +94,10 @@ func (r *numberHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, er
 	return testedValue > r.value, nil
 }
 
+func (r *numberHigherThan) IsEqualityOperator() bool {
+	return false
+}
+
 // Operator `numberEqualOrHigherThan`
 func newNumberEqualOrHigherThan() operator {
 	return &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan"}}
@@ -112,6 +113,10 @@ func (r *numberEqualOrHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (b
 		return false, err
 	}
 	return testedValue >= r.value, nil
+}
+
+func (r *numberEqualOrHigherThan) IsEqualityOperator() bool {
+	return false
 }
 
 // Operator `numberEqualOrLessThan`
@@ -131,6 +136,10 @@ func (r *numberEqualOrLessThan) Evaluate(evaluatedEvent *event.HttpRequest) (boo
 	return testedValue <= r.value, nil
 }
 
+func (r *numberEqualOrLessThan) IsEqualityOperator() bool {
+	return false
+}
+
 // Operator `numberEqualTo`
 func newNumberEqualTo() operator {
 	return &numberEqualTo{numberComparisonOperator{name: "numberEqualTo"}}
@@ -146,6 +155,10 @@ func (r *numberEqualTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error
 		return false, err
 	}
 	return testedValue == r.value, nil
+}
+
+func (r *numberEqualTo) IsEqualityOperator() bool {
+	return true
 }
 
 // Operator `durationHigherThan`
@@ -184,6 +197,10 @@ func (r *durationHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, 
 	return testedDuration > r.thresholdDuration, nil
 }
 
+func (r *durationHigherThan) IsEqualityOperator() bool {
+	return false
+}
+
 // Operator `equalsTo`
 func newEqualsTo() operator {
 	return &equalsTo{}
@@ -210,6 +227,10 @@ func (r *equalsTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
 		return false, nil
 	}
 	return r.value == testedValue, nil
+}
+
+func (r *equalsTo) IsEqualityOperator() bool {
+	return true
 }
 
 // Operator `matchesRegexp`
@@ -241,4 +262,8 @@ func (r *matchesRegexp) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error
 		return false, nil
 	}
 	return r.regexp.MatchString(testedValue), nil
+}
+
+func (r *matchesRegexp) IsEqualityOperator() bool {
+	return false
 }

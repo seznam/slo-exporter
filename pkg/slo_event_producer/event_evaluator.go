@@ -82,7 +82,11 @@ func (re *EventEvaluator) getMetricsFromRuleOptions() (*prometheus.GaugeVec, err
 			ruleMetricLabels = ruleMetricLabels.Merge(stringmap.StringMap{"operator": failCond.Operator})
 
 			for _, matchCond := range ruleConfig.MetadataMatcherConditionsOptions {
-				if matchCond.Operator == equalToOperatorName {
+				op, err := newOperator(exposableOperatorOptions{matchCond, false})
+				if err != nil {
+					return nil, fmt.Errorf("unable to determine whether given operator '%v' is of equality type: %v", matchCond, err)
+				}
+				if op.IsEqualityOperator() {
 					ruleMetricLabels[matchCond.Key] = matchCond.Value
 				}
 			}
