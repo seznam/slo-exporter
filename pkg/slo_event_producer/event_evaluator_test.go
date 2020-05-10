@@ -25,8 +25,11 @@ func TestSloEventProducer(t *testing.T) {
 				{
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
-					FailureConditionsOptions: []operatorOptions{
-						{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+					FailureConditionsOptions: []exposableOperatorOptions{
+						exposableOperatorOptions{
+							operatorOptions{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+							false,
+						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},
@@ -42,8 +45,11 @@ func TestSloEventProducer(t *testing.T) {
 				{
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
-					FailureConditionsOptions: []operatorOptions{
-						{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+					FailureConditionsOptions: []exposableOperatorOptions{
+						exposableOperatorOptions{
+							operatorOptions{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+							false,
+						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},

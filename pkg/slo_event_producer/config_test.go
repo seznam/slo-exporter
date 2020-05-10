@@ -22,8 +22,11 @@ func TestConfig_loadFromFile(t *testing.T) {
 			expectedConfig: rulesConfig{Rules: []ruleOptions{
 				{
 					SloMatcher: sloMatcher{Domain: "domain"},
-					FailureConditionsOptions: []operatorOptions{
-						{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+					FailureConditionsOptions: []exposableOperatorOptions{
+						exposableOperatorOptions{
+							operatorOptions{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+							false,
+						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				}}},
