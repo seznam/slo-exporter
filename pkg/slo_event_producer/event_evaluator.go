@@ -65,15 +65,17 @@ type EventEvaluator struct {
 	logger       logrus.FieldLogger
 }
 
-func (re *EventEvaluator) getMetricsFromRuleOptions() (*prometheus.GaugeVec, error) {
-	possibleLabels := stringmap.StringMap{}
+type metricFromRule struct {
+	Labels stringmap.StringMap
+	Value  float64
+}
 
-	metricsLabels := []stringmap.StringMap{}
-	metricsValues := []float64{}
+func (re *EventEvaluator) getMetricsFromRuleOptions() (metrics []metricFromRule, possibleLabels []string, err error) {
+	metrics = []metricFromRule{}
+	possibleLabelsMap := stringmap.StringMap{}
 
-	// get possible labels and labels->value mappings
+	// get possible Labels and Labels->value mappings
 	for _, ruleConfig := range re.rulesOptions {
-		//possibleLabels.AddKeys("operator")
 		for _, failCond := range ruleConfig.FailureConditionsOptions {
 			if !failCond.ExposeAsMetric {
 				continue
@@ -84,7 +86,7 @@ func (re *EventEvaluator) getMetricsFromRuleOptions() (*prometheus.GaugeVec, err
 			for _, matchCond := range ruleConfig.MetadataMatcherConditionsOptions {
 				op, err := newOperator(exposableOperatorOptions{matchCond, false})
 				if err != nil {
-					return nil, fmt.Errorf("unable to determine whether given operator '%v' is of equality type: %v", matchCond, err)
+					return nil, nil, fmt.Errorf("unable to determine whether given operator '%v' is of equality type: %v", matchCond, err)
 				}
 				if op.IsEqualityOperator() {
 					ruleMetricLabels[matchCond.Key] = matchCond.Value
@@ -94,38 +96,41 @@ func (re *EventEvaluator) getMetricsFromRuleOptions() (*prometheus.GaugeVec, err
 
 			failCondValue, err := strconv.ParseFloat(failCond.Value, 64)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse failure_condition value as a float: %v", failCond)
+				return nil, nil, fmt.Errorf("unable to parse failure_condition value as a float: %v", failCond)
 			}
-			metricsValues = append(metricsValues, failCondValue)
-			metricsLabels = append(metricsLabels, ruleMetricLabels)
-
-			possibleLabels.AddKeys(ruleMetricLabels.Keys()...)
+			metrics = append(metrics, metricFromRule{ruleMetricLabels, failCondValue})
+			possibleLabelsMap.AddKeys(ruleMetricLabels.Keys()...)
 		}
 	}
-	// create metrics
+
+	return metrics, possibleLabelsMap.Keys(), nil
+}
+
+func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer) error {
+	metrics, possibleLabels, err := re.getMetricsFromRuleOptions()
+	if err != nil {
+		return err
+	}
+
 	thresholdsGaugeVec := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name:        metricFromRulesName,
 			Help:        "Threshold exposed based on information from slo_event_producer's slo_rules configuration",
 			ConstLabels: prometheus.Labels{},
 		},
-		possibleLabels.Keys())
-	for i, value := range metricsValues {
-		m, err := thresholdsGaugeVec.GetMetricWith(prometheus.Labels(possibleLabels.Merge(metricsLabels[i])))
-		if err != nil {
-			return nil, err
-		}
-		m.Set(value)
-	}
-	return thresholdsGaugeVec, nil
-}
+		possibleLabels)
 
-func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer) error {
-	metric, err := re.getMetricsFromRuleOptions()
-	if err != nil {
-		return err
+	for _, metric := range metrics {
+		labels := stringmap.StringMap{}
+		labels.AddKeys(possibleLabels...)
+		m, err := thresholdsGaugeVec.GetMetricWith(prometheus.Labels(labels.Merge(metric.Labels)))
+		if err != nil {
+			return err
+		}
+		m.Set(metric.Value)
 	}
-	err = wrappedRegistry.Register(metric)
+
+	err = wrappedRegistry.Register(thresholdsGaugeVec)
 	if err != nil {
 		return err
 	}
