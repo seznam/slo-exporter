@@ -6,6 +6,7 @@ package slo_event_producer
 import (
 	"github.com/go-test/deep"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
@@ -76,5 +77,74 @@ func TestSloEventProducer(t *testing.T) {
 		if diff := deep.Equal(tc.expectedSloEvents, results); diff != nil {
 			t.Errorf("events are different %+v, \nexpected: %+v\n result: %+v\n input event metadata: %+v", diff, tc.expectedSloEvents, results, tc.inputEvent.Metadata)
 		}
+	}
+}
+
+type getMetricsFromRuleOptionsTestCase struct {
+	Name           string
+	Rules          []ruleOptions
+	ExpectedMetric []metricFromRule
+}
+
+func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
+	testCases := []getMetricsFromRuleOptionsTestCase{
+		{"One of the two presented failure conditions of single rule exposed as Prometheus metric",
+			[]ruleOptions{
+				{
+					MetadataMatcherConditionsOptions: []operatorOptions{
+						{
+							Operator: "equalTo",
+							Key:      "name",
+							Value:    "ad.banner",
+						},
+					},
+					SloMatcher: sloMatcher{},
+					FailureConditionsOptions: []exposableOperatorOptions{
+						{operatorOptions{
+							Operator: "numberHigherThan",
+							Key:      "prometheusQueryResult",
+							Value:    "6300",
+						},
+							true},
+						{operatorOptions{
+							Operator: "numberLowerThan",
+							Key:      "prometheusQueryResult",
+							Value:    "7000",
+						},
+							false},
+					},
+					AdditionalMetadata: stringmap.StringMap{"foo": "bar"},
+					HonorSloResult:     false,
+				},
+			},
+			[]metricFromRule{
+				{
+					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberHigherThan"},
+					Value:  6300,
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(
+			testCase.Name,
+			func(t *testing.T) {
+				var (
+					metrics []metricFromRule
+					err     error
+				)
+				evaluator := EventEvaluator{
+					rules:        nil,
+					rulesOptions: testCase.Rules,
+					logger:       nil,
+				}
+				metrics, _, err = evaluator.getMetricsFromRuleOptions()
+				if err != nil {
+					t.Error(err)
+				}
+				assert.Equal(t, testCase.ExpectedMetric, metrics)
+			},
+		)
 	}
 }
