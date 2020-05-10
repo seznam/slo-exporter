@@ -52,13 +52,6 @@ additional_metadata:
 #   otherwise, event is considered as failed
 #   if evaluated event's sloResult attribute is empty, failure_criteria are evaluated and events's result is set based on them.
 honor_slo_result: False
-# If set to True, this rule will be exposed as one or more Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
-# - the rule has to contain 'metadata_matcher' with at least single key evaluated with 'equalTo' operator. All such keys will be used as resulting metric's labels.
-# - All failure conditions which evaluate against 'prometheusQueryResult' metadata key ((see prometheus_ingester module documentation for details)) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
-# - Additional_metadata are added as labels to resulting metric.
-#
-# See below for an example.
-expose_as_metric: False
 ```
 *Please note that if multiple types of matchers are used in a rule, all of them has to match the given event.*
 
@@ -68,15 +61,22 @@ expose_as_metric: False
 operator: <operator_name>
 key: <value>
 value: <value>
+# If set to True, this failure condition will be exposed as a Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
+# - All metadata_matchers of the given slo rule which contain equality operator are added as labels to the resulting metric.
+# - All failure conditions which evaluate against 'prometheusQueryResult' metadata key ((see prometheus_ingester module documentation for details)) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
+# - Additional_metadata are added as labels to resulting metric.
+#
+# See below for an example.
+expose_as_metric: False
 ```
 
 Supported operators:
 
 | `operator_name`             | Expected string format        | Description |
 |-----------------------------|-------------------------------|-------------|
-| `equalTo      `             | Any string                    | Compares the string with the given value. |
+| `equalTo      `             | Any string                    | Compares the string with the given value. Qualifies as an equality operator. |
 | `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp form value. |
-| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. |
+| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. Qualifies as an equality operator. |
 | `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. |
 | `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. |
 | `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. |
@@ -114,19 +114,25 @@ rules:
       slo_type: latency90
       percentile: 90
       le: 0.8
+```
 
+`exposing individual failure conditions as a Prometheus metric:`
+```
   - metadata_matcher:
       - key: name
         operator: equalTo
         value: ad.advisual
+      - key: cluster
+        operator: matchesRegexp
+        value: tt-k8s1.+
     failure_conditions:
       - key: prometheusQueryResult
         operator: numberHigherThan
         value: 6300
+        expose_as_metric: true
     additional_metadata:
       slo_version: 6
       slo_type: freshness
-    expose_as_metric: true
 
   - metadata_matcher:
       - key: name
@@ -139,12 +145,15 @@ rules:
       - key: prometheusQueryResult
         operator: numberEqualOrLessThan
         value: 1
+        expose_as_metric: true
     additional_metadata:
       slo_version: 6
       slo_type: freshness
       foo: bar
-    expose_as_metric: true
 ```
+
+
+
 The configuration above will result in the following metrics:
 
 ```
@@ -152,5 +161,4 @@ The configuration above will result in the following metrics:
 # TYPE slo_exporter_slo_event_producer_slo_rules_threshold gauge
 slo_exporter_slo_event_producer_slo_rules_threshold{foo="",name="ad.advisual",operator="numberHigherThan",slo_type="freshness",slo_version="6"} 6300
 slo_exporter_slo_event_producer_slo_rules_threshold{foo="bar",name="ad.banner",operator="numberEqualOrLessThan",slo_type="freshness",slo_version="6"} 1
-slo_exporter_slo_event_producer_slo_rules_threshold{foo="bar",name="ad.banner",operator="numberHigherThan",slo_type="freshness",slo_version="6"} 6300
 ```
