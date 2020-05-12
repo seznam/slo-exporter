@@ -4,13 +4,11 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
-	"strconv"
 )
 
 const (
@@ -44,9 +42,8 @@ func NewEventEvaluatorFromConfigFiles(paths []string, logger logrus.FieldLogger)
 func NewEventEvaluatorFromConfig(config *rulesConfig, logger logrus.FieldLogger) (*EventEvaluator, error) {
 	var configurationErrors error
 	evaluator := EventEvaluator{
-		rules:        []*evaluationRule{},
-		rulesOptions: config.Rules,
-		logger:       logger,
+		rules:  []*evaluationRule{},
+		logger: logger,
 	}
 	for _, ruleOpts := range config.Rules {
 		rule, err := newEvaluationRule(ruleOpts, logger)
@@ -60,46 +57,34 @@ func NewEventEvaluatorFromConfig(config *rulesConfig, logger logrus.FieldLogger)
 }
 
 type EventEvaluator struct {
-	rules        []*evaluationRule
-	rulesOptions []ruleOptions
-	logger       logrus.FieldLogger
+	rules  []*evaluationRule
+	logger logrus.FieldLogger
 }
 
-type metricFromRule struct {
-	Labels stringmap.StringMap
-	Value  float64
-}
-
-func (re *EventEvaluator) getMetricsFromRuleOptions() (metrics []metricFromRule, possibleLabels []string, err error) {
-	metrics = []metricFromRule{}
+func (re *EventEvaluator) getMetricsFromRuleOptions() (metrics []metric, possibleLabels []string, err error) {
+	metrics = []metric{}
 	possibleLabelsMap := stringmap.StringMap{}
 
-	// get possible Labels and Labels->value mappings
-	for _, ruleConfig := range re.rulesOptions {
-		for _, failCond := range ruleConfig.FailureConditionsOptions {
-			if !failCond.ExposeAsMetric {
+	for _, rule := range re.rules {
+		for _, failureCondition := range rule.failureConditions {
+			exposableFailureCondition, ok := failureCondition.(exposableOperator)
+			if !ok || !exposableFailureCondition.Expose() {
 				continue
 			}
-			ruleMetricLabels := stringmap.StringMap{}
-			ruleMetricLabels = ruleMetricLabels.Merge(stringmap.StringMap{"operator": failCond.Operator})
+			metricFromFailureCondition := exposableFailureCondition.Metric()
+			metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(metricFromFailureCondition.Labels)
 
-			for _, matchCond := range ruleConfig.MetadataMatcherConditionsOptions {
-				op, err := newOperator(exposableOperatorOptions{matchCond, false})
-				if err != nil {
-					return nil, nil, fmt.Errorf("unable to determine whether given operator '%v' is of equality type: %v", matchCond, err)
-				}
-				if op.IsEqualityOperator() {
-					ruleMetricLabels[matchCond.Key] = matchCond.Value
-				}
-			}
-			ruleMetricLabels = ruleMetricLabels.Merge(ruleConfig.AdditionalMetadata)
+			metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(rule.additionalMetadata)
 
-			failCondValue, err := strconv.ParseFloat(failCond.Value, 64)
-			if err != nil {
-				return nil, nil, fmt.Errorf("unable to parse failure_condition value as a float: %v", failCond)
+			for _, metadataMatchingCondition := range rule.metadataMatcher {
+				metadataMatchingCondition, ok := metadataMatchingCondition.(labelsExposableOperator)
+				if !ok {
+					continue
+				}
+				metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(metadataMatchingCondition.Labels())
 			}
-			metrics = append(metrics, metricFromRule{ruleMetricLabels, failCondValue})
-			possibleLabelsMap.AddKeys(ruleMetricLabels.Keys()...)
+			metrics = append(metrics, metricFromFailureCondition)
+			possibleLabelsMap.AddKeys(metricFromFailureCondition.Labels.Keys()...)
 		}
 	}
 
