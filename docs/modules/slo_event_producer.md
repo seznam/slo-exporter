@@ -33,7 +33,7 @@ rules:
 ```yaml
 # Matcher of the events metadata. Rule will be applied only if all of them matches.
 metadata_matcher:
-  - <condition>
+  - <metadata_matcher_condition>
 # Matcher of the SLO classification of the event. Rule will be applied only if matches the event SLO classification.
 slo_matcher:
   domain: <value>
@@ -41,7 +41,7 @@ slo_matcher:
   app: <value>
 # Conditions to be checked on the matching event, if any of those results with true, the event is marked as failure, otherwise success.
 failure_conditions:
-  - <condition>
+  - <failure_condition>
 # Additional metadata that will be exported in the SLO metrics.
 additional_metadata:
   <value>: <value>
@@ -55,16 +55,18 @@ honor_slo_result: False
 ```
 *Please note that if multiple types of matchers are used in a rule, all of them has to match the given event.*
 
-`condition`
+`metadata_matcher_condition`, `failure_condition`
 ```yaml
 # Name of the operator to be evaluated on the value of the specified key.
 operator: <operator_name>
 key: <value>
 value: <value>
-# If set to True, this failure condition will be exposed as a Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
+# If set to True, the failure_condition will be exposed as a Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
 # - All metadata_matchers of the given slo rule which contain equality operator are added as labels to the resulting metric.
-# - All failure conditions which evaluate against 'prometheusQueryResult' metadata key ((see prometheus_ingester module documentation for details)) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
+# - All failure conditions which evaluate against number (e.g. numberEqualTo, numberHigherThan) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
 # - Additional_metadata are added as labels to resulting metric.
+#
+# Valid for `failure_conditions` only.
 #
 # See below for an example.
 expose_as_metric: False

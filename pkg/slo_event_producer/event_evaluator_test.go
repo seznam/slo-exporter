@@ -82,14 +82,15 @@ func TestSloEventProducer(t *testing.T) {
 
 type getMetricsFromRuleOptionsTestCase struct {
 	Name           string
-	Rules          []ruleOptions
-	ExpectedMetric []metricFromRule
+	RulesConfig    rulesConfig
+	ExpectedMetric []metric
 }
 
 func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 	testCases := []getMetricsFromRuleOptionsTestCase{
-		{"One of the two presented failure conditions of single rule exposed as Prometheus metric",
-			[]ruleOptions{
+		{
+			Name: "One of the two presented failure conditions of single rule exposed as Prometheus metric",
+			RulesConfig: rulesConfig{[]ruleOptions{
 				{
 					MetadataMatcherConditionsOptions: []operatorOptions{
 						{
@@ -107,7 +108,7 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 						},
 							true},
 						{operatorOptions{
-							Operator: "numberLowerThan",
+							Operator: "numberEqualOrLessThan",
 							Key:      "prometheusQueryResult",
 							Value:    "7000",
 						},
@@ -117,7 +118,8 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 					HonorSloResult:     false,
 				},
 			},
-			[]metricFromRule{
+			},
+			ExpectedMetric: []metric{
 				{
 					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberHigherThan"},
 					Value:  6300,
@@ -131,13 +133,12 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 			testCase.Name,
 			func(t *testing.T) {
 				var (
-					metrics []metricFromRule
+					metrics []metric
 					err     error
 				)
-				evaluator := EventEvaluator{
-					rules:        nil,
-					rulesOptions: testCase.Rules,
-					logger:       nil,
+				evaluator, err := NewEventEvaluatorFromConfig(&testCase.RulesConfig, logrus.New())
+				if err != nil {
+					t.Error(err)
 				}
 				metrics, _, err = evaluator.getMetricsFromRuleOptions()
 				if err != nil {

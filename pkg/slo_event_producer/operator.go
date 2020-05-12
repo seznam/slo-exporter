@@ -6,6 +6,7 @@ package slo_event_producer
 import (
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"regexp"
 	"strconv"
 	"time"
@@ -26,7 +27,26 @@ type operatorFactory func() operator
 type operator interface {
 	Evaluate(*event.HttpRequest) (bool, error)
 	LoadOptions(exposableOperatorOptions) error
-	IsEqualityOperator() bool
+}
+
+const (
+	operatorNameLabel = "operator"
+)
+
+type metric struct {
+	Labels stringmap.StringMap
+	Value  float64
+}
+
+// operator which is able to expose itself as a metric
+type exposableOperator interface {
+	Metric() metric
+	Expose() bool
+}
+
+// operators which is able to represent itself as a labels of Prometheus metric
+type labelsExposableOperator interface {
+	Labels() stringmap.StringMap
 }
 
 func newOperator(options exposableOperatorOptions) (operator, error) {
@@ -46,9 +66,10 @@ func newOperator(options exposableOperatorOptions) (operator, error) {
 }
 
 type numberComparisonOperator struct {
-	name  string
-	key   string
-	value float64
+	toExpose bool
+	name     string
+	key      string
+	value    float64
 }
 
 func (n *numberComparisonOperator) String() string {
@@ -56,6 +77,7 @@ func (n *numberComparisonOperator) String() string {
 }
 
 func (n *numberComparisonOperator) LoadOptions(options exposableOperatorOptions) error {
+	n.toExpose = options.ExposeAsMetric
 	n.key = options.Key
 	threshold, err := strconv.ParseFloat(options.Value, 64)
 	if err != nil {
@@ -77,6 +99,17 @@ func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.HttpReques
 	return testedValue, true, nil
 }
 
+func (n *numberComparisonOperator) Metric() metric {
+	return metric{
+		Labels: stringmap.StringMap{operatorNameLabel: n.name},
+		Value:  n.value,
+	}
+}
+
+func (n *numberComparisonOperator) Expose() bool {
+	return n.toExpose
+}
+
 // Operator `numberHigherThan`
 func newNumberHigherThan() operator {
 	return &numberHigherThan{numberComparisonOperator{name: "numberHigherThan"}}
@@ -92,10 +125,6 @@ func (r *numberHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, er
 		return false, err
 	}
 	return testedValue > r.value, nil
-}
-
-func (r *numberHigherThan) IsEqualityOperator() bool {
-	return false
 }
 
 // Operator `numberEqualOrHigherThan`
@@ -115,10 +144,6 @@ func (r *numberEqualOrHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (b
 	return testedValue >= r.value, nil
 }
 
-func (r *numberEqualOrHigherThan) IsEqualityOperator() bool {
-	return false
-}
-
 // Operator `numberEqualOrLessThan`
 func newNumberEqualOrLessThan() operator {
 	return &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan"}}
@@ -134,10 +159,6 @@ func (r *numberEqualOrLessThan) Evaluate(evaluatedEvent *event.HttpRequest) (boo
 		return false, err
 	}
 	return testedValue <= r.value, nil
-}
-
-func (r *numberEqualOrLessThan) IsEqualityOperator() bool {
-	return false
 }
 
 // Operator `numberEqualTo`
@@ -157,8 +178,8 @@ func (r *numberEqualTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error
 	return testedValue == r.value, nil
 }
 
-func (r *numberEqualTo) IsEqualityOperator() bool {
-	return true
+func (r *numberEqualTo) Labels() stringmap.StringMap {
+	return stringmap.StringMap{r.key: strconv.FormatFloat(r.value, 'f', 2, 64)}
 }
 
 // Operator `durationHigherThan`
@@ -167,6 +188,7 @@ func newDurationHigherThan() operator {
 }
 
 type durationHigherThan struct {
+	toExpose          bool
 	key               string
 	thresholdDuration time.Duration
 }
@@ -176,6 +198,7 @@ func (r *durationHigherThan) String() string {
 }
 
 func (r *durationHigherThan) LoadOptions(options exposableOperatorOptions) error {
+	r.toExpose = options.ExposeAsMetric
 	r.key = options.Key
 	thresholdDuration, err := time.ParseDuration(options.Value)
 	if err != nil {
@@ -197,18 +220,15 @@ func (r *durationHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, 
 	return testedDuration > r.thresholdDuration, nil
 }
 
-func (r *durationHigherThan) IsEqualityOperator() bool {
-	return false
-}
-
 // Operator `equalsTo`
 func newEqualsTo() operator {
 	return &equalsTo{}
 }
 
 type equalsTo struct {
-	key   string
-	value string
+	toExpose bool
+	key      string
+	value    string
 }
 
 func (r *equalsTo) String() string {
@@ -216,6 +236,7 @@ func (r *equalsTo) String() string {
 }
 
 func (r *equalsTo) LoadOptions(options exposableOperatorOptions) error {
+	r.toExpose = options.ExposeAsMetric
 	r.key = options.Key
 	r.value = options.Value
 	return nil
@@ -229,8 +250,8 @@ func (r *equalsTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
 	return r.value == testedValue, nil
 }
 
-func (r *equalsTo) IsEqualityOperator() bool {
-	return true
+func (r *equalsTo) Labels() stringmap.StringMap {
+	return stringmap.StringMap{r.key: r.value}
 }
 
 // Operator `matchesRegexp`
@@ -253,6 +274,9 @@ func (r *matchesRegexp) LoadOptions(options exposableOperatorOptions) error {
 	if r.regexp, err = regexp.Compile(options.Value); err != nil {
 		return fmt.Errorf("invalid regexp matcher for matchesRegexp operator: %w", err)
 	}
+	if options.ExposeAsMetric {
+		return fmt.Errorf("operator '%s' cannot be exposed as a metric", options.Operator)
+	}
 	return err
 }
 
@@ -262,8 +286,4 @@ func (r *matchesRegexp) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error
 		return false, nil
 	}
 	return r.regexp.MatchString(testedValue), nil
-}
-
-func (r *matchesRegexp) IsEqualityOperator() bool {
-	return false
 }
