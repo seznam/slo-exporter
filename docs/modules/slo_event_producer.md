@@ -69,7 +69,7 @@ value: <value>
 # Valid for `failure_conditions` only.
 #
 # See below for an example.
-expose_as_metric: False
+expose_as_metric: false
 ```
 
 Supported operators:
