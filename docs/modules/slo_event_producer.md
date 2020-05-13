@@ -51,7 +51,7 @@ additional_metadata:
 #   if value equals event.Result's success value -> event is considered as successful
 #   otherwise, event is considered as failed
 #   if evaluated event's sloResult attribute is empty, failure_criteria are evaluated and events's result is set based on them.
-honor_slo_result: False
+honor_slo_result: false
 ```
 *Please note that if multiple types of matchers are used in a rule, all of them has to match the given event.*
 
