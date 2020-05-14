@@ -122,8 +122,9 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				},
 			},
 			query: queryOptions{
-				Query: "1",
-				Type:  simpleQueryType,
+				Query:            "1",
+				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			},
 			eventsProduced: []*event.HttpRequest{
 				{
@@ -159,17 +160,18 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				},
 			},
 			query: queryOptions{
-				Type: simpleQueryType,
+				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			}, eventsProduced: []*event.HttpRequest{
-			{
-				Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
-				Quantity: 1,
+				{
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
+					Quantity: 1,
+				},
+				{
+					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
+					Quantity: 1,
+				},
 			},
-			{
-				Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
-				Quantity: 1,
-			},
-		},
 		},
 		{
 			// Test of Scalar ingestion
@@ -178,13 +180,14 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				Value:     model.SampleValue(1),
 			},
 			query: queryOptions{
-				Type: simpleQueryType,
+				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			}, eventsProduced: []*event.HttpRequest{
-			{
-				Metadata: stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
-				Quantity: 1,
+				{
+					Metadata: stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
+					Quantity: 1,
+				},
 			},
-		},
 		},
 	}
 
@@ -222,6 +225,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			query: queryOptions{
 				AdditionalLabels: map[string]string{"a": "1"},
 				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			},
 			prometheusResult: model.Vector{
 				{
@@ -242,6 +246,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			query: queryOptions{
 				AdditionalLabels: map[string]string{"locality": "osaka"},
 				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			},
 			prometheusResult: model.Vector{
 				{
@@ -260,8 +265,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 		{
 			// Tests dropping existing label
 			query: queryOptions{
-				DropLabels: []string{"job"},
-				Type:       simpleQueryType,
+				DropLabels:       []string{"job"},
+				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			},
 			prometheusResult: model.Vector{
 				{
@@ -280,8 +286,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 		{
 			// Tests dropping non-existing label
 			query: queryOptions{
-				DropLabels: []string{"a"},
-				Type:       simpleQueryType,
+				DropLabels:       []string{"a"},
+				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			},
 			prometheusResult: model.Vector{
 				{
@@ -304,7 +311,8 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 				AdditionalLabels: map[string]string{
 					"job": "openshift",
 				},
-				Type: simpleQueryType,
+				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			},
 			prometheusResult: model.Vector{
 				{
@@ -363,8 +371,9 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 			{
 				Query: "1",
 				// The interval is considered for query 1 to run 4 times before the query 2 runs
-				Interval: interval,
-				Type:     simpleQueryType,
+				Interval:         interval,
+				Type:             simpleQueryType,
+				ResultAsQuantity: newFalse(),
 			},
 		},
 	}, logrus.New())
@@ -433,9 +442,10 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 		{
 			&queryExecutor{
 				Query: queryOptions{
-					Query:    query,
-					Type:     counterQueryType,
-					Interval: interval,
+					Query:            query,
+					Type:             counterQueryType,
+					Interval:         interval,
+					ResultAsQuantity: newTrue(),
 				},
 				previousResult: queryResult{},
 			},
@@ -445,9 +455,10 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 		{
 			&queryExecutor{
 				Query: queryOptions{
-					Query:    query,
-					Type:     counterQueryType,
-					Interval: interval,
+					Query:            query,
+					Type:             counterQueryType,
+					Interval:         interval,
+					ResultAsQuantity: newTrue(),
 				},
 				previousResult: queryResult{timestamp: ts.Add(time.Hour * -1),
 					metrics: map[model.Fingerprint]model.SamplePair{
@@ -481,8 +492,9 @@ func Test_processMetricsIncrease(t *testing.T) {
 	ts := time.Now()
 	q := &queryExecutor{
 		Query: queryOptions{
-			Interval: time.Second * 20,
-			Type:     counterQueryType,
+			Interval:         time.Second * 20,
+			Type:             counterQueryType,
+			ResultAsQuantity: newTrue(),
 		},
 		previousResult: queryResult{
 			ts.Add(time.Hour * -1),
@@ -642,7 +654,8 @@ func Test_processHistogramIncrease(t *testing.T) {
 		q := &queryExecutor{
 			eventsChan: make(chan *event.HttpRequest),
 			Query: queryOptions{
-				Type: histogramQueryType,
+				Type:             histogramQueryType,
+				ResultAsQuantity: newTrue(),
 			},
 			previousResult: resultFromSampleStreams(testCase.ts, testCase.data, 0),
 		}
