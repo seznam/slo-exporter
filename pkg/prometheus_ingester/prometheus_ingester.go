@@ -70,6 +70,7 @@ type queryOptions struct {
 	DropLabels       []string
 	AdditionalLabels stringmap.StringMap
 	Type             queryType
+	ResultAsQuantity *bool
 }
 
 type PrometheusIngesterConfig struct {
@@ -80,7 +81,7 @@ type PrometheusIngesterConfig struct {
 }
 
 type PrometheusIngester struct {
-	queries         []queryOptions
+	queryExecutors  *[]queryExecutor
 	queryTimeout    time.Duration
 	client          api.Client
 	api             v1.API
@@ -130,12 +131,21 @@ func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*Prom
 	return New(config, logger)
 }
 
+func newTrue() *bool {
+	t := true
+	return &t
+}
+
+func newFalse() *bool {
+	f := false
+	return &f
+}
+
 func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*PrometheusIngester, error) {
-	for _, q := range initConfig.Queries {
-		if err := validateQueryType(q.Type); err != nil {
-			return nil, err
-		}
-	}
+	var (
+		queryExecutors = []queryExecutor{}
+		ingester       = PrometheusIngester{}
+	)
 
 	client, err := api.NewClient(api.Config{
 		Address:      initConfig.ApiUrl,
@@ -145,8 +155,8 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		return nil, fmt.Errorf("error creating Prometheus client: %w", err)
 	}
 
-	return &PrometheusIngester{
-		queries:         initConfig.Queries,
+	ingester = PrometheusIngester{
+		queryExecutors:  &queryExecutors,
 		queryTimeout:    initConfig.QueryTimeout,
 		client:          client,
 		api:             v1.NewAPI(client),
@@ -154,7 +164,38 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		done:            false,
 		shutdownChannel: make(chan struct{}),
 		logger:          logger,
-	}, nil
+	}
+
+	for _, q := range initConfig.Queries {
+		if err := validateQueryType(q.Type); err != nil {
+			return nil, err
+		}
+		if q.ResultAsQuantity == nil {
+			switch q.Type {
+			case counterQueryType:
+				q.ResultAsQuantity = newTrue()
+			case histogramQueryType:
+				q.ResultAsQuantity = newTrue()
+			default:
+				q.ResultAsQuantity = newFalse()
+			}
+		}
+		queryExecutors = append(
+			queryExecutors,
+			queryExecutor{
+				Query:        q,
+				queryTimeout: ingester.queryTimeout,
+				eventsChan:   ingester.outputChannel,
+				api:          ingester.api,
+				logger:       ingester.logger,
+				previousResult: queryResult{
+					metrics: make(map[model.Fingerprint]model.SamplePair),
+				},
+			},
+		)
+	}
+
+	return &ingester, nil
 }
 
 func (i *PrometheusIngester) Run() {
@@ -167,19 +208,9 @@ func (i *PrometheusIngester) Run() {
 
 		var wg sync.WaitGroup
 		// Start all queries
-		for _, query := range i.queries {
+		for _, queryExecutor := range *i.queryExecutors {
 			wg.Add(1)
-			executor := queryExecutor{
-				Query:        query,
-				queryTimeout: i.queryTimeout,
-				eventsChan:   i.outputChannel,
-				api:          i.api,
-				logger:       i.logger,
-				previousResult: queryResult{
-					metrics: make(map[model.Fingerprint]model.SamplePair),
-				},
-			}
-			go executor.run(queriesContext, &wg)
+			go queryExecutor.run(queriesContext, &wg)
 		}
 
 		<-i.shutdownChannel
