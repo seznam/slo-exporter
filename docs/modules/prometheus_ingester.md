@@ -25,6 +25,9 @@ queries:
 # PromQL that should be executed
 query: 'time() - last_successful_run_timestamp - on(app) group_left() min(alerting_threshold:last_successful_run_timestamp) by (app) > 0'
 type: '<query_type>'
+# resultAsQuantity determines whether result of the query should be used to set Quantity attribute of the new Event. If 'false', Quantity will be set to 1.
+# default value is based on query type: 'counter_increase' and 'histogram_increase' defaults to true, 'simple' default to false
+resultAsQuantity: false
 # How often to execute the query.
 interval: <go_duration>
 # Names of the labels that should be dropped from the result.
@@ -69,7 +72,6 @@ For every metric in the result:
 ```
 event.Metadata["unixTimestamp"] - sample timestamp
 event.Metadata["prometheusQueryResult"] - increase against the last seen value
-event.Quantity - increase against the last seen value ()
 ```
 The rest of the Metadata map contains values of the returned metrics, while taking into account the `dropLabels` and `additionalLabels` configuration.
 
