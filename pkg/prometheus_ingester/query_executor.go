@@ -142,7 +142,14 @@ func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 	}
 }
 
-func (q *queryExecutor) emitEvent(ts time.Time, quantity float64, result float64, metadata stringmap.StringMap) {
+func (q *queryExecutor) emitEvent(ts time.Time, result float64, metadata stringmap.StringMap) {
+	var quantity float64 = 1
+	if *q.Query.ResultAsQuantity {
+		quantity = result
+	}
+	if quantity == 0 {
+		return
+	}
 	e := &event.HttpRequest{
 		Metadata: metadata,
 		Quantity: quantity,
@@ -174,7 +181,7 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 	bucketIncreases := make(map[float64]metricIncrease)
 	var (
 		buckets []float64
-		errors error
+		errors  error
 	)
 	for increase := range q.processMatrixResultAsIncrease(matrix, ts) {
 		bucket, ok := increase.metric["le"]
@@ -200,16 +207,13 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 		maxValue := key
 		minValue := previousBucketKey
 		intervalIncrease := bucketIncreases[key].value - bucketIncreases[previousBucketKey].value
-		if intervalIncrease > 0 {
-			q.emitEvent(
-				ts,
-				intervalIncrease,
-				intervalIncrease,
-				stringmap.NewFromMetric(bucketIncreases[key].metric).Merge(stringmap.StringMap{
-					metadataHistogramMinValue: fmt.Sprintf("%g", minValue),
-					metadataHistogramMaxValue: fmt.Sprintf("%g", maxValue),
-				}))
-		}
+		q.emitEvent(
+			ts,
+			intervalIncrease,
+			stringmap.NewFromMetric(bucketIncreases[key].metric).Merge(stringmap.StringMap{
+				metadataHistogramMinValue: fmt.Sprintf("%g", minValue),
+				metadataHistogramMaxValue: fmt.Sprintf("%g", maxValue),
+			}))
 		previousBucketKey = key
 	}
 	return nil
@@ -217,7 +221,7 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 
 func (q *queryExecutor) processCountersIncrease(matrix model.Matrix, ts time.Time) {
 	for increase := range q.processMatrixResultAsIncrease(matrix, ts) {
-		q.emitEvent(increase.occurred, increase.value, increase.value, stringmap.NewFromMetric(increase.metric))
+		q.emitEvent(increase.occurred, increase.value, stringmap.NewFromMetric(increase.metric))
 	}
 }
 
@@ -251,9 +255,6 @@ func (q *queryExecutor) processMatrixResultAsIncrease(matrix model.Matrix, ts ti
 				previousSample = sample
 			}
 			currentResult.metrics[metricKey] = sample
-			if increase == 0 {
-				continue
-			}
 			outChan <- metricIncrease{
 				occurred: ts,
 				value:    increase,
@@ -268,7 +269,7 @@ func (q *queryExecutor) processMatrixResultAsIncrease(matrix model.Matrix, ts ti
 func (q *queryExecutor) processMatrixResult(matrix model.Matrix) error {
 	for _, sampleStream := range matrix {
 		for _, sample := range sampleStream.Values {
-			q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), stringmap.NewFromMetric(sampleStream.Metric))
+			q.emitEvent(sample.Timestamp.Time(), float64(sample.Value), stringmap.NewFromMetric(sampleStream.Metric))
 		}
 	}
 	return nil
@@ -276,12 +277,12 @@ func (q *queryExecutor) processMatrixResult(matrix model.Matrix) error {
 
 func (q *queryExecutor) processVectorResult(resultVector model.Vector) error {
 	for _, sample := range resultVector {
-		q.emitEvent(sample.Timestamp.Time(), 1, float64(sample.Value), stringmap.NewFromMetric(sample.Metric))
+		q.emitEvent(sample.Timestamp.Time(), float64(sample.Value), stringmap.NewFromMetric(sample.Metric))
 	}
 	return nil
 }
 
 func (q *queryExecutor) processScalarResult(scalar *model.Scalar) error {
-	q.emitEvent(scalar.Timestamp.Time(), 1, float64(scalar.Value), make(stringmap.StringMap, 0))
+	q.emitEvent(scalar.Timestamp.Time(), float64(scalar.Value), make(stringmap.StringMap, 0))
 	return nil
 }
