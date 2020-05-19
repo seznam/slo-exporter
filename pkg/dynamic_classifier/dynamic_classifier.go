@@ -325,7 +325,7 @@ func (dc *DynamicClassifier) Run() {
 				errorsTotal.WithLabelValues("failedToClassify").Inc()
 			}
 			if !classified {
-				dc.logger.Warnf("unable to classify %s", newEvent.EventKey())
+				dc.logger.Warnf("unable to classify %s", newEvent)
 			} else {
 				dc.logger.Debugf("processed newEvent with Key: %s", newEvent.EventKey())
 			}
