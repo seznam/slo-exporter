@@ -140,7 +140,7 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 				if err != nil {
 					t.Error(err)
 				}
-				metrics, _, err = evaluator.getMetricsFromRuleOptions()
+				metrics, _, err = evaluator.ruleOptionsToMetrics()
 				if err != nil {
 					t.Error(err)
 				}

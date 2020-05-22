@@ -40,7 +40,7 @@ type metric struct {
 
 // operator which is able to expose itself as a metric
 type exposableOperator interface {
-	Metric() metric
+	AsMetric() metric
 }
 
 // operators which is able to represent itself as a labels of Prometheus metric
@@ -96,7 +96,7 @@ func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.HttpReques
 	return testedValue, true, nil
 }
 
-func (n *numberComparisonOperator) Metric() metric {
+func (n *numberComparisonOperator) AsMetric() metric {
 	return metric{
 		Labels: stringmap.StringMap{operatorNameLabel: n.name},
 		Value:  n.value,
@@ -172,7 +172,7 @@ func (r *numberEqualTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error
 }
 
 func (r *numberEqualTo) Labels() stringmap.StringMap {
-	return stringmap.StringMap{r.key: strconv.FormatFloat(r.value, 'f', 2, 64)}
+	return stringmap.StringMap{r.key: fmt.Sprintf("%g", r.value)}
 }
 
 // Operator `durationHigherThan`
