@@ -6,6 +6,7 @@ package slo_event_producer
 import (
 	"github.com/go-test/deep"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"testing"
@@ -26,7 +27,9 @@ func TestSloEventProducer(t *testing.T) {
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
-						{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+						operatorOptions{
+							Operator: "numberHigherThan", Key: "statusCode", Value: "500",
+						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},
@@ -43,7 +46,9 @@ func TestSloEventProducer(t *testing.T) {
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
-						{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
+						operatorOptions{
+							Operator: "numberHigherThan", Key: "statusCode", Value: "500",
+						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},
@@ -70,5 +75,77 @@ func TestSloEventProducer(t *testing.T) {
 		if diff := deep.Equal(tc.expectedSloEvents, results); diff != nil {
 			t.Errorf("events are different %+v, \nexpected: %+v\n result: %+v\n input event metadata: %+v", diff, tc.expectedSloEvents, results, tc.inputEvent.Metadata)
 		}
+	}
+}
+
+type getMetricsFromRuleOptionsTestCase struct {
+	Name           string
+	RulesConfig    rulesConfig
+	ExpectedMetric []metric
+}
+
+func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
+	testCases := []getMetricsFromRuleOptionsTestCase{
+		{
+			Name: "Configured rules are exposed as Prometheus metric",
+			RulesConfig: rulesConfig{[]ruleOptions{
+				{
+					MetadataMatcherConditionsOptions: []operatorOptions{
+						{
+							Operator: "equalTo",
+							Key:      "name",
+							Value:    "ad.banner",
+						},
+					},
+					SloMatcher: sloMatcher{},
+					FailureConditionsOptions: []operatorOptions{
+						{
+							Operator: "numberHigherThan",
+							Key:      "prometheusQueryResult",
+							Value:    "6300",
+						},
+						{
+							Operator: "numberEqualOrLessThan",
+							Key:      "prometheusQueryResult",
+							Value:    "7000",
+						},
+					},
+					AdditionalMetadata: stringmap.StringMap{"foo": "bar"},
+					HonorSloResult:     false,
+				},
+			},
+			},
+			ExpectedMetric: []metric{
+				{
+					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberHigherThan"},
+					Value:  6300,
+				},
+				{
+					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberEqualOrLessThan"},
+					Value:  7000,
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(
+			testCase.Name,
+			func(t *testing.T) {
+				var (
+					metrics []metric
+					err     error
+				)
+				evaluator, err := NewEventEvaluatorFromConfig(&testCase.RulesConfig, logrus.New())
+				if err != nil {
+					t.Error(err)
+				}
+				metrics, _, err = evaluator.ruleOptionsToMetrics()
+				if err != nil {
+					t.Error(err)
+				}
+				assert.Equal(t, testCase.ExpectedMetric, metrics)
+			},
+		)
 	}
 }

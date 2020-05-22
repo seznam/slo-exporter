@@ -33,7 +33,8 @@ var (
 )
 
 type sloEventProducerConfig struct {
-	RulesFiles []string
+	ExposeRulesAsMetrics bool
+	RulesFiles           []string
 }
 
 func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*SloEventProducer, error) {
@@ -41,6 +42,7 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*SloEven
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
+	viperConfig.SetDefault("ExposeRulesAsMetrics", false)
 	return New(config, logger)
 }
 
@@ -50,21 +52,23 @@ func New(config sloEventProducerConfig, logger logrus.FieldLogger) (*SloEventPro
 		return nil, err
 	}
 	return &SloEventProducer{
-		eventEvaluator: eventEvaluator,
-		inputChannel:   make(chan *event.HttpRequest),
-		outputChannel:  make(chan *event.Slo),
-		logger:         logger,
-		done:           false,
+		eventEvaluator:       eventEvaluator,
+		inputChannel:         make(chan *event.HttpRequest),
+		outputChannel:        make(chan *event.Slo),
+		logger:               logger,
+		exposeRulesInMetrics: config.ExposeRulesAsMetrics,
+		done:                 false,
 	}, nil
 }
 
 type SloEventProducer struct {
-	eventEvaluator *EventEvaluator
-	observer       pipeline.EventProcessingDurationObserver
-	inputChannel   chan *event.HttpRequest
-	outputChannel  chan *event.Slo
-	logger         logrus.FieldLogger
-	done           bool
+	eventEvaluator       *EventEvaluator
+	observer             pipeline.EventProcessingDurationObserver
+	inputChannel         chan *event.HttpRequest
+	outputChannel        chan *event.Slo
+	logger               logrus.FieldLogger
+	exposeRulesInMetrics bool
+	done                 bool
 }
 
 func (sep *SloEventProducer) String() string {
@@ -83,6 +87,11 @@ func (sep *SloEventProducer) RegisterMetrics(_ prometheus.Registerer, wrappedReg
 	toRegister := []prometheus.Collector{didNotMatchAnyRule, evaluationDurationSeconds, unclassifiedEventsTotal}
 	for _, collector := range toRegister {
 		if err := wrappedRegistry.Register(collector); err != nil {
+			return err
+		}
+	}
+	if sep.exposeRulesInMetrics {
+		if err := sep.eventEvaluator.registerMetrics(wrappedRegistry); err != nil {
 			return err
 		}
 	}
