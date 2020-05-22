@@ -61,7 +61,7 @@ type EventEvaluator struct {
 	logger logrus.FieldLogger
 }
 
-func (re *EventEvaluator) getMetricsFromRuleOptions() (metrics []metric, possibleLabels []string, err error) {
+func (re *EventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabels []string, err error) {
 	metrics = []metric{}
 	possibleLabelsMap := stringmap.StringMap{}
 
@@ -71,7 +71,7 @@ func (re *EventEvaluator) getMetricsFromRuleOptions() (metrics []metric, possibl
 			if !ok {
 				continue
 			}
-			metricFromFailureCondition := exposableFailureCondition.Metric()
+			metricFromFailureCondition := exposableFailureCondition.AsMetric()
 			metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(metricFromFailureCondition.Labels)
 
 			metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(rule.additionalMetadata)
@@ -92,7 +92,7 @@ func (re *EventEvaluator) getMetricsFromRuleOptions() (metrics []metric, possibl
 }
 
 func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer) error {
-	metrics, possibleLabels, err := re.getMetricsFromRuleOptions()
+	metrics, possibleLabels, err := re.ruleOptionsToMetrics()
 	if err != nil {
 		return err
 	}

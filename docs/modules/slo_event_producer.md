@@ -16,7 +16,7 @@ Number of those rules can be higher, so they can be loaded from separate YAML fi
 `moduleConfig` (in the root slo exporter config file)
 ```yaml
 # if true, slo rules which are suitable will be exposed as prometheus metric (named 'slo_exporter_slo_event_producer_slo_rules_threshold'). See the further section for details.
-ExposeRulesAsMetrics: false
+exposeRulesAsMetrics: false
 # Paths to files containing rules for evaluation of SLO event result and it's metadata.
 rulesFiles:
   - <path>
@@ -67,15 +67,15 @@ value: <value>
 
 Supported operators:
 
-| `operator_name`             | Expected string format        | Description |
-|-----------------------------|-------------------------------|-------------|
-| `equalTo      `             | Any string                    | Compares the string with the given value. Qualifies as an equality operator. |
-| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp form value. |
-| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. Qualifies as an equality operator. |
-| `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. |
-| `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. |
-| `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. |
-| `durationHigherThan`        | Staring in Go duration format | Converts the string to duration if possible and compares it to the duration from value. |
+| `operator_name`             | Expected string format        | Description | Equality operator |
+|-----------------------------|-------------------------------|-------------|--------------------|
+| `equalTo      `             | Any string                    | Compares the string with the given value. | Yes |
+| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp form value. | No |
+| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. | Yes |
+| `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. | No |
+| `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. | No |
+| `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. | No |
+| `durationHigherThan`        | Staring in Go duration format | Converts the string to duration if possible and compares it to the duration from value. | No |
 
 ---
 
