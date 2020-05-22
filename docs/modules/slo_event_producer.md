@@ -15,6 +15,8 @@ Number of those rules can be higher, so they can be loaded from separate YAML fi
 
 `moduleConfig` (in the root slo exporter config file)
 ```yaml
+# if true, slo rules which are suitable will be exposed as prometheus metric (named 'slo_exporter_slo_event_producer_slo_rules_threshold'). See the further section for details.
+ExposeRulesAsMetrics: false
 # Paths to files containing rules for evaluation of SLO event result and it's metadata.
 rulesFiles:
   - <path>
@@ -61,15 +63,6 @@ honor_slo_result: false
 operator: <operator_name>
 key: <value>
 value: <value>
-# If set to True, the failure_condition will be exposed as a Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
-# - All metadata_matchers of the given slo rule which contain equality operator are added as labels to the resulting metric.
-# - All failure conditions which evaluate against number (e.g. numberEqualTo, numberHigherThan) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
-# - Additional_metadata are added as labels to resulting metric.
-#
-# Valid for `failure_conditions` only.
-#
-# See below for an example.
-expose_as_metric: false
 ```
 
 Supported operators:
@@ -118,7 +111,14 @@ rules:
       le: 0.8
 ```
 
-`exposing individual failure conditions as a Prometheus metric:`
+`exposing slo rules as a Prometheus metric:`
+If given option is set to True, the failure_condition of configured slo rules will be exposed as a Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
+The rules which must be met in order to failure condition to be exposed follows:
+- All metadata_matchers of the given slo rule which contain equality operator are added as labels to the resulting metric.
+- All failure conditions which evaluate against number (e.g. numberEqualTo, numberHigherThan) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
+- Additional_metadata are added as labels to resulting metric.
+
+Example:
 ```
   - metadata_matcher:
       - key: name
@@ -154,9 +154,7 @@ rules:
       foo: bar
 ```
 
-
-
-The configuration above will result in the following metrics:
+The slo rules configuration above will result in the following metrics:
 
 ```
 # HELP slo_exporter_slo_event_producer_slo_rules_threshold Threshold exposed based on information from slo_event_producer's slo_rules configuration

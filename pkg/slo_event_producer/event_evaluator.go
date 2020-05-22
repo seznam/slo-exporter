@@ -68,7 +68,7 @@ func (re *EventEvaluator) getMetricsFromRuleOptions() (metrics []metric, possibl
 	for _, rule := range re.rules {
 		for _, failureCondition := range rule.failureConditions {
 			exposableFailureCondition, ok := failureCondition.(exposableOperator)
-			if !ok || !exposableFailureCondition.Expose() {
+			if !ok {
 				continue
 			}
 			metricFromFailureCondition := exposableFailureCondition.Metric()
