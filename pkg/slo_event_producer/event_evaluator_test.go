@@ -26,10 +26,9 @@ func TestSloEventProducer(t *testing.T) {
 				{
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
-					FailureConditionsOptions: []exposableOperatorOptions{
-						exposableOperatorOptions{
-							operatorOptions{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
-							false,
+					FailureConditionsOptions: []operatorOptions{
+						operatorOptions{
+							Operator: "numberHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
@@ -46,10 +45,9 @@ func TestSloEventProducer(t *testing.T) {
 				{
 					SloMatcher:                       sloMatcher{Domain: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
-					FailureConditionsOptions: []exposableOperatorOptions{
-						exposableOperatorOptions{
-							operatorOptions{Operator: "numberHigherThan", Key: "statusCode", Value: "500"},
-							false,
+					FailureConditionsOptions: []operatorOptions{
+						operatorOptions{
+							Operator: "numberHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
@@ -89,7 +87,7 @@ type getMetricsFromRuleOptionsTestCase struct {
 func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 	testCases := []getMetricsFromRuleOptionsTestCase{
 		{
-			Name: "One of the two presented failure conditions of single rule exposed as Prometheus metric",
+			Name: "Configured rules are exposed as Prometheus metric",
 			RulesConfig: rulesConfig{[]ruleOptions{
 				{
 					MetadataMatcherConditionsOptions: []operatorOptions{
@@ -100,19 +98,17 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 						},
 					},
 					SloMatcher: sloMatcher{},
-					FailureConditionsOptions: []exposableOperatorOptions{
-						{operatorOptions{
+					FailureConditionsOptions: []operatorOptions{
+						{
 							Operator: "numberHigherThan",
 							Key:      "prometheusQueryResult",
 							Value:    "6300",
 						},
-							true},
-						{operatorOptions{
+						{
 							Operator: "numberEqualOrLessThan",
 							Key:      "prometheusQueryResult",
 							Value:    "7000",
 						},
-							false},
 					},
 					AdditionalMetadata: stringmap.StringMap{"foo": "bar"},
 					HonorSloResult:     false,
@@ -123,6 +119,10 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 				{
 					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberHigherThan"},
 					Value:  6300,
+				},
+				{
+					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberEqualOrLessThan"},
+					Value:  7000,
 				},
 			},
 		},

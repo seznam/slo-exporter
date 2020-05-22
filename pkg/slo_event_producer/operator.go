@@ -26,7 +26,7 @@ type operatorFactory func() operator
 
 type operator interface {
 	Evaluate(*event.HttpRequest) (bool, error)
-	LoadOptions(exposableOperatorOptions) error
+	LoadOptions(operatorOptions) error
 }
 
 const (
@@ -41,7 +41,6 @@ type metric struct {
 // operator which is able to expose itself as a metric
 type exposableOperator interface {
 	Metric() metric
-	Expose() bool
 }
 
 // operators which is able to represent itself as a labels of Prometheus metric
@@ -49,7 +48,7 @@ type labelsExposableOperator interface {
 	Labels() stringmap.StringMap
 }
 
-func newOperator(options exposableOperatorOptions) (operator, error) {
+func newOperator(options operatorOptions) (operator, error) {
 	operatorFactory, ok := operatorFactoryRegistry[options.Operator]
 	if !ok {
 		var allowedKeys []string
@@ -66,18 +65,16 @@ func newOperator(options exposableOperatorOptions) (operator, error) {
 }
 
 type numberComparisonOperator struct {
-	toExpose bool
-	name     string
-	key      string
-	value    float64
+	name  string
+	key   string
+	value float64
 }
 
 func (n *numberComparisonOperator) String() string {
 	return fmt.Sprintf("%s operator on key %q with value %f", n.name, n.key, n.value)
 }
 
-func (n *numberComparisonOperator) LoadOptions(options exposableOperatorOptions) error {
-	n.toExpose = options.ExposeAsMetric
+func (n *numberComparisonOperator) LoadOptions(options operatorOptions) error {
 	n.key = options.Key
 	threshold, err := strconv.ParseFloat(options.Value, 64)
 	if err != nil {
@@ -104,10 +101,6 @@ func (n *numberComparisonOperator) Metric() metric {
 		Labels: stringmap.StringMap{operatorNameLabel: n.name},
 		Value:  n.value,
 	}
-}
-
-func (n *numberComparisonOperator) Expose() bool {
-	return n.toExpose
 }
 
 // Operator `numberHigherThan`
@@ -188,7 +181,6 @@ func newDurationHigherThan() operator {
 }
 
 type durationHigherThan struct {
-	toExpose          bool
 	key               string
 	thresholdDuration time.Duration
 }
@@ -197,8 +189,7 @@ func (r *durationHigherThan) String() string {
 	return fmt.Sprintf("durationHigherThan operator on key %q with value %q", r.key, r.thresholdDuration)
 }
 
-func (r *durationHigherThan) LoadOptions(options exposableOperatorOptions) error {
-	r.toExpose = options.ExposeAsMetric
+func (r *durationHigherThan) LoadOptions(options operatorOptions) error {
 	r.key = options.Key
 	thresholdDuration, err := time.ParseDuration(options.Value)
 	if err != nil {
@@ -226,17 +217,15 @@ func newEqualsTo() operator {
 }
 
 type equalsTo struct {
-	toExpose bool
-	key      string
-	value    string
+	key   string
+	value string
 }
 
 func (r *equalsTo) String() string {
 	return fmt.Sprintf("equalTo operator on key %q with value %q", r.key, r.value)
 }
 
-func (r *equalsTo) LoadOptions(options exposableOperatorOptions) error {
-	r.toExpose = options.ExposeAsMetric
+func (r *equalsTo) LoadOptions(options operatorOptions) error {
 	r.key = options.Key
 	r.value = options.Value
 	return nil
@@ -268,14 +257,11 @@ func (r *matchesRegexp) String() string {
 	return fmt.Sprintf("matchesRegexp operator on key %q with matcher %q", r.key, r.regexp)
 }
 
-func (r *matchesRegexp) LoadOptions(options exposableOperatorOptions) error {
+func (r *matchesRegexp) LoadOptions(options operatorOptions) error {
 	var err error
 	r.key = options.Key
 	if r.regexp, err = regexp.Compile(options.Value); err != nil {
 		return fmt.Errorf("invalid regexp matcher for matchesRegexp operator: %w", err)
-	}
-	if options.ExposeAsMetric {
-		return fmt.Errorf("operator '%s' cannot be exposed as a metric", options.Operator)
 	}
 	return err
 }

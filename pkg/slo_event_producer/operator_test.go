@@ -13,24 +13,24 @@ import (
 )
 
 type testOperatorOpts struct {
-	opts             exposableOperatorOptions
+	opts             operatorOptions
 	expectedOperator operator
 	expectedErr      bool
 }
 
 func TestOperator_newOperator(t *testing.T) {
 	testCases := []testOperatorOpts{
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "numberHigherThan", Value: "10"}, false}, expectedOperator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", value: 10}}, expectedErr: false},
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "numberHigherThan", Value: "1.5"}, false}, expectedOperator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", value: 1.5}}, expectedErr: false},
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "numberHigherThan", Value: "foo"}, false}, expectedOperator: nil, expectedErr: true},
+		{opts: operatorOptions{Operator: "numberHigherThan", Value: "10"}, expectedOperator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", value: 10}}, expectedErr: false},
+		{opts: operatorOptions{Operator: "numberHigherThan", Value: "1.5"}, expectedOperator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", value: 1.5}}, expectedErr: false},
+		{opts: operatorOptions{Operator: "numberHigherThan", Value: "foo"}, expectedOperator: nil, expectedErr: true},
 
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "durationHigherThan", Value: "1s"}, false}, expectedOperator: &durationHigherThan{thresholdDuration: time.Second}, expectedErr: false},
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "durationHigherThan", Value: "foo"}, false}, expectedOperator: nil, expectedErr: true},
+		{opts: operatorOptions{Operator: "durationHigherThan", Value: "1s"}, expectedOperator: &durationHigherThan{thresholdDuration: time.Second}, expectedErr: false},
+		{opts: operatorOptions{Operator: "durationHigherThan", Value: "foo"}, expectedOperator: nil, expectedErr: true},
 
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "matchesRegexp", Value: ".*"}, false}, expectedOperator: &matchesRegexp{regexp: regexp.MustCompile(".*")}, expectedErr: false},
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "matchesRegexp", Value: "***"}, false}, expectedOperator: nil, expectedErr: true},
+		{opts: operatorOptions{Operator: "matchesRegexp", Value: ".*"}, expectedOperator: &matchesRegexp{regexp: regexp.MustCompile(".*")}, expectedErr: false},
+		{opts: operatorOptions{Operator: "matchesRegexp", Value: "***"}, expectedOperator: nil, expectedErr: true},
 
-		{opts: exposableOperatorOptions{operatorOptions{Operator: "xxx", Value: "xxx"}, false}, expectedOperator: nil, expectedErr: true},
+		{opts: operatorOptions{Operator: "xxx", Value: "xxx"}, expectedOperator: nil, expectedErr: true},
 	}
 	for _, c := range testCases {
 		newOperator, err := newOperator(c.opts)

@@ -22,17 +22,12 @@ type operatorOptions struct {
 	Value    string `yaml:"value"`
 }
 
-type exposableOperatorOptions struct {
-	operatorOptions `yaml:",inline"`
-	ExposeAsMetric  bool `yaml:"expose_as_metric"`
-}
-
 type ruleOptions struct {
-	MetadataMatcherConditionsOptions []operatorOptions          `yaml:"metadata_matcher"`
-	SloMatcher                       sloMatcher                 `yaml:"slo_matcher"`
-	FailureConditionsOptions         []exposableOperatorOptions `yaml:"failure_conditions"`
-	AdditionalMetadata               stringmap.StringMap        `yaml:"additional_metadata,omitempty"`
-	HonorSloResult                   bool                       `yaml:"honor_slo_result"`
+	MetadataMatcherConditionsOptions []operatorOptions   `yaml:"metadata_matcher"`
+	SloMatcher                       sloMatcher          `yaml:"slo_matcher"`
+	FailureConditionsOptions         []operatorOptions   `yaml:"failure_conditions"`
+	AdditionalMetadata               stringmap.StringMap `yaml:"additional_metadata,omitempty"`
+	HonorSloResult                   bool                `yaml:"honor_slo_result"`
 }
 
 type rulesConfig struct {

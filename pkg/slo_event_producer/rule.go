@@ -9,7 +9,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
-func getOperators(operatorOpts []exposableOperatorOptions) ([]operator, error) {
+func getOperators(operatorOpts []operatorOptions) ([]operator, error) {
 	var operators = make([]operator, len(operatorOpts))
 	for i, operatorOpts := range operatorOpts {
 		operator, err := newOperator(operatorOpts)
@@ -23,21 +23,11 @@ func getOperators(operatorOpts []exposableOperatorOptions) ([]operator, error) {
 
 func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluationRule, error) {
 	var (
-		matcherConditions            []operator
-		failureConditions            []operator
-		metadataMatchersOperatorOpts []exposableOperatorOptions
-		err                          error
+		matcherConditions []operator
+		failureConditions []operator
+		err               error
 	)
-	for _, op := range opts.MetadataMatcherConditionsOptions {
-		metadataMatchersOperatorOpts = append(
-			metadataMatchersOperatorOpts,
-			exposableOperatorOptions{
-				operatorOptions: op,
-				ExposeAsMetric:  false,
-			},
-		)
-	}
-	if matcherConditions, err = getOperators(metadataMatchersOperatorOpts); err != nil {
+	if matcherConditions, err = getOperators(opts.MetadataMatcherConditionsOptions); err != nil {
 		return nil, err
 	}
 	if failureConditions, err = getOperators(opts.FailureConditionsOptions); err != nil {
