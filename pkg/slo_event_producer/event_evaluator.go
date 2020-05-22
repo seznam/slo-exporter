@@ -8,6 +8,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+)
+
+const (
+	metricFromRulesName = "slo_rules_threshold"
 )
 
 func configFromFile(path string) (*rulesConfig, error) {
@@ -54,6 +59,67 @@ func NewEventEvaluatorFromConfig(config *rulesConfig, logger logrus.FieldLogger)
 type EventEvaluator struct {
 	rules  []*evaluationRule
 	logger logrus.FieldLogger
+}
+
+func (re *EventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabels []string, err error) {
+	metrics = []metric{}
+	possibleLabelsMap := stringmap.StringMap{}
+
+	for _, rule := range re.rules {
+		for _, failureCondition := range rule.failureConditions {
+			exposableFailureCondition, ok := failureCondition.(exposableOperator)
+			if !ok {
+				continue
+			}
+			metricFromFailureCondition := exposableFailureCondition.AsMetric()
+			metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(metricFromFailureCondition.Labels)
+
+			metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(rule.additionalMetadata)
+
+			for _, metadataMatchingCondition := range rule.metadataMatcher {
+				metadataMatchingCondition, ok := metadataMatchingCondition.(labelsExposableOperator)
+				if !ok {
+					continue
+				}
+				metricFromFailureCondition.Labels = metricFromFailureCondition.Labels.Merge(metadataMatchingCondition.Labels())
+			}
+			metrics = append(metrics, metricFromFailureCondition)
+			possibleLabelsMap.AddKeys(metricFromFailureCondition.Labels.Keys()...)
+		}
+	}
+
+	return metrics, possibleLabelsMap.Keys(), nil
+}
+
+func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer) error {
+	metrics, possibleLabels, err := re.ruleOptionsToMetrics()
+	if err != nil {
+		return err
+	}
+
+	thresholdsGaugeVec := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name:        metricFromRulesName,
+			Help:        "Threshold exposed based on information from slo_event_producer's slo_rules configuration",
+			ConstLabels: prometheus.Labels{},
+		},
+		possibleLabels)
+
+	for _, metric := range metrics {
+		labels := stringmap.StringMap{}
+		labels.AddKeys(possibleLabels...)
+		m, err := thresholdsGaugeVec.GetMetricWith(prometheus.Labels(labels.Merge(metric.Labels)))
+		if err != nil {
+			return err
+		}
+		m.Set(metric.Value)
+	}
+
+	err = wrappedRegistry.Register(thresholdsGaugeVec)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (re *EventEvaluator) AddEvaluationRule(rule *evaluationRule) {

@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - DynamicClassifier: Log entire event on unsuccessful classification.
 
+### Added
+- sloEventProducer: Expose metrics based on slo_rules configuration (`exposeRulesAsMetrics` slo_event_producer module option).
+
 ## [5.3.0] 2020-05-05
 ### Added
 - New Prometheus-ingester's query configuration option 'resultAsQuantity'

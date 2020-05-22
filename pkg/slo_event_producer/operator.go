@@ -6,6 +6,7 @@ package slo_event_producer
 import (
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"regexp"
 	"strconv"
 	"time"
@@ -26,6 +27,25 @@ type operatorFactory func() operator
 type operator interface {
 	Evaluate(*event.HttpRequest) (bool, error)
 	LoadOptions(operatorOptions) error
+}
+
+const (
+	operatorNameLabel = "operator"
+)
+
+type metric struct {
+	Labels stringmap.StringMap
+	Value  float64
+}
+
+// operator which is able to expose itself as a metric
+type exposableOperator interface {
+	AsMetric() metric
+}
+
+// operators which is able to represent itself as a labels of Prometheus metric
+type labelsExposableOperator interface {
+	Labels() stringmap.StringMap
 }
 
 func newOperator(options operatorOptions) (operator, error) {
@@ -74,6 +94,13 @@ func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.HttpReques
 		return 0, false, fmt.Errorf("invalid metadata value for operator %s, should be in float like format: %w", n.name, err)
 	}
 	return testedValue, true, nil
+}
+
+func (n *numberComparisonOperator) AsMetric() metric {
+	return metric{
+		Labels: stringmap.StringMap{operatorNameLabel: n.name},
+		Value:  n.value,
+	}
 }
 
 // Operator `numberHigherThan`
@@ -144,6 +171,10 @@ func (r *numberEqualTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error
 	return testedValue == r.value, nil
 }
 
+func (r *numberEqualTo) Labels() stringmap.StringMap {
+	return stringmap.StringMap{r.key: fmt.Sprintf("%g", r.value)}
+}
+
 // Operator `durationHigherThan`
 func newDurationHigherThan() operator {
 	return &durationHigherThan{}
@@ -206,6 +237,10 @@ func (r *equalsTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
 		return false, nil
 	}
 	return r.value == testedValue, nil
+}
+
+func (r *equalsTo) Labels() stringmap.StringMap {
+	return stringmap.StringMap{r.key: r.value}
 }
 
 // Operator `matchesRegexp`

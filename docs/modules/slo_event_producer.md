@@ -15,6 +15,8 @@ Number of those rules can be higher, so they can be loaded from separate YAML fi
 
 `moduleConfig` (in the root slo exporter config file)
 ```yaml
+# if true, slo rules which are suitable will be exposed as prometheus metric (named 'slo_exporter_slo_event_producer_slo_rules_threshold'). See the further section for details.
+exposeRulesAsMetrics: false
 # Paths to files containing rules for evaluation of SLO event result and it's metadata.
 rulesFiles:
   - <path>
@@ -33,7 +35,7 @@ rules:
 ```yaml
 # Matcher of the events metadata. Rule will be applied only if all of them matches.
 metadata_matcher:
-  - <condition>
+  - <metadata_matcher_condition>
 # Matcher of the SLO classification of the event. Rule will be applied only if matches the event SLO classification.
 slo_matcher:
   domain: <value>
@@ -41,7 +43,7 @@ slo_matcher:
   app: <value>
 # Conditions to be checked on the matching event, if any of those results with true, the event is marked as failure, otherwise success.
 failure_conditions:
-  - <condition>
+  - <failure_condition>
 # Additional metadata that will be exported in the SLO metrics.
 additional_metadata:
   <value>: <value>
@@ -51,11 +53,11 @@ additional_metadata:
 #   if value equals event.Result's success value -> event is considered as successful
 #   otherwise, event is considered as failed
 #   if evaluated event's sloResult attribute is empty, failure_criteria are evaluated and events's result is set based on them.
-honor_slo_result: True
+honor_slo_result: false
 ```
 *Please note that if multiple types of matchers are used in a rule, all of them has to match the given event.*
 
-`condition`
+`metadata_matcher_condition`, `failure_condition`
 ```yaml
 # Name of the operator to be evaluated on the value of the specified key.
 operator: <operator_name>
@@ -65,15 +67,15 @@ value: <value>
 
 Supported operators:
 
-| `operator_name`             | Expected string format        | Description |
-|-----------------------------|-------------------------------|-------------|
-| `equalTo      `             | Any string                    | Compares the string with the given value. |
-| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp form value. |
-| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. |
-| `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. |
-| `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. |
-| `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. |
-| `durationHigherThan`        | Staring in Go duration format | Converts the string to duration if possible and compares it to the duration from value. |
+| `operator_name`             | Expected string format        | Description | Equality operator |
+|-----------------------------|-------------------------------|-------------|--------------------|
+| `equalTo      `             | Any string                    | Compares the string with the given value. | Yes |
+| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp form value. | No |
+| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. | Yes |
+| `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. | No |
+| `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. | No |
+| `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. | No |
+| `durationHigherThan`        | Staring in Go duration format | Converts the string to duration if possible and compares it to the duration from value. | No |
 
 ---
 
@@ -107,4 +109,56 @@ rules:
       slo_type: latency90
       percentile: 90
       le: 0.8
+```
+
+`exposing slo rules as a Prometheus metric:`
+If given option is set to True, the failure_condition of configured slo rules will be exposed as a Prometheus metrics (named 'slo_exporter_slo_event_producer_slo_rules_threshold').
+The rules which must be met in order to failure condition to be exposed follows:
+- All metadata_matchers of the given slo rule which contain equality operator are added as labels to the resulting metric.
+- All failure conditions which evaluate against number (e.g. numberEqualTo, numberHigherThan) will result in single metric with operator name set in 'operator' label. At least one such failure condition has be found within the rule.
+- Additional_metadata are added as labels to resulting metric.
+
+Example:
+```
+  - metadata_matcher:
+      - key: name
+        operator: equalTo
+        value: ad.advisual
+      - key: cluster
+        operator: matchesRegexp
+        value: tt-k8s1.+
+    failure_conditions:
+      - key: prometheusQueryResult
+        operator: numberHigherThan
+        value: 6300
+        expose_as_metric: true
+    additional_metadata:
+      slo_version: 6
+      slo_type: freshness
+
+  - metadata_matcher:
+      - key: name
+        operator: equalTo
+        value: ad.banner
+    failure_conditions:
+      - key: prometheusQueryResult
+        operator: numberHigherThan
+        value: 6300
+      - key: prometheusQueryResult
+        operator: numberEqualOrLessThan
+        value: 1
+        expose_as_metric: true
+    additional_metadata:
+      slo_version: 6
+      slo_type: freshness
+      foo: bar
+```
+
+The slo rules configuration above will result in the following metrics:
+
+```
+# HELP slo_exporter_slo_event_producer_slo_rules_threshold Threshold exposed based on information from slo_event_producer's slo_rules configuration
+# TYPE slo_exporter_slo_event_producer_slo_rules_threshold gauge
+slo_exporter_slo_event_producer_slo_rules_threshold{foo="",name="ad.advisual",operator="numberHigherThan",slo_type="freshness",slo_version="6"} 6300
+slo_exporter_slo_event_producer_slo_rules_threshold{foo="bar",name="ad.banner",operator="numberEqualOrLessThan",slo_type="freshness",slo_version="6"} 1
 ```
