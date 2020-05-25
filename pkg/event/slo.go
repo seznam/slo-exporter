@@ -2,8 +2,6 @@ package event
 
 import (
 	"fmt"
-	"time"
-
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 )
 
@@ -24,9 +22,8 @@ var (
 
 type Slo struct {
 	// same value as in source event HttpRequest.EventKey()
-	Key      string
-	Result   Result
-	Occurred time.Time
+	Key    string
+	Result Result
 
 	Domain string
 	Class  string
@@ -48,7 +45,6 @@ func (s Slo) Copy() Slo {
 	return Slo{
 		Key:      s.Key,
 		Result:   s.Result,
-		Occurred: s.Occurred,
 		Domain:   s.Domain,
 		Class:    s.Class,
 		App:      s.App,
