@@ -28,7 +28,6 @@ positionPersistenceInterval: "2s"
 # Defines RE which is used to parse the log line.
 # Currently known named groups which are used to extract information for generated Events are:
 #   time - format is 02/Jan/2006:15:04:05 -0700
-#   requestDuration - in seconds (e.g. 1, 0.003)
 #   statusCode - HTTP status code
 #   request - HTTP request line
 #   frpcStatus - Resulting status code of the FastRPC request embedded in the HTTP request.
