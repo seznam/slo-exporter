@@ -5,13 +5,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 var conf = prometheusExporterConfig{
@@ -41,7 +39,6 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 	testCases := []testProcessEvent{
 		{
 			ev: &event.Slo{
-				Occurred: time.Time{},
 				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
 				Key:      "foo",
 				Domain:   "domain",
@@ -55,7 +52,6 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 		},
 		{
 			ev: &event.Slo{
-				Occurred: time.Time{},
 				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
 				Key:      "foo",
 				Domain:   "domain",
