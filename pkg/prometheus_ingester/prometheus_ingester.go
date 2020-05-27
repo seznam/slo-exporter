@@ -210,7 +210,9 @@ func (i *PrometheusIngester) Run() {
 		// Start all queries
 		for _, queryExecutor := range *i.queryExecutors {
 			wg.Add(1)
-			go queryExecutor.run(queriesContext, &wg)
+			// declare local scope variable to prevent shadowing by the next iterations
+			qe := queryExecutor
+			go qe.run(queriesContext, &wg)
 		}
 
 		<-i.shutdownChannel
