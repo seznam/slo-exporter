@@ -70,8 +70,11 @@ Supported operators:
 | `operator_name`             | Expected string format        | Description | Equality operator |
 |-----------------------------|-------------------------------|-------------|--------------------|
 | `equalTo      `             | Any string                    | Compares the string with the given value. | Yes |
-| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp form value. | No |
+| `notEqualTo      `          | Any string                    | Compares the string with the given value. | No |
+| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp from value. | No |
+| `notMatchesRegexp`          | Any string                    | Tries if value of the key does not match the regexp from value. | No |
 | `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. | Yes |
+| `numberNotEqualTo`          | String parsable as float      | Converts the string to float if possible and checks if is not equal to the value. | No |
 | `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. | No |
 | `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. | No |
 | `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. | No |
