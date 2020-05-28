@@ -14,8 +14,11 @@ import (
 
 var operatorFactoryRegistry = map[string]operatorFactory{
 	"equalTo":                 newEqualsTo,
+	"notEqualTo":              newNotEqualsTo,
 	"matchesRegexp":           newMatchesRegexp,
+	"notMatchesRegexp":        newNotMatchesRegexp,
 	"numberEqualTo":           newNumberEqualTo,
+	"numberNotEqualTo":        newNumberNotEqualTo,
 	"numberHigherThan":        newNumberHigherThan,
 	"numberEqualOrHigherThan": newNumberEqualOrHigherThan,
 	"numberEqualOrLessThan":   newNumberEqualOrLessThan,
@@ -175,6 +178,23 @@ func (r *numberEqualTo) Labels() stringmap.StringMap {
 	return stringmap.StringMap{r.key: fmt.Sprintf("%g", r.value)}
 }
 
+// Operator `numberNotEqualTo`
+func newNumberNotEqualTo() operator {
+	return &numberNotEqualTo{numberComparisonOperator{name: "numberNotEqualTo"}}
+}
+
+type numberNotEqualTo struct {
+	numberComparisonOperator
+}
+
+func (r *numberNotEqualTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
+	if !ok {
+		return false, err
+	}
+	return testedValue != r.value, nil
+}
+
 // Operator `durationHigherThan`
 func newDurationHigherThan() operator {
 	return &durationHigherThan{}
@@ -243,6 +263,34 @@ func (r *equalsTo) Labels() stringmap.StringMap {
 	return stringmap.StringMap{r.key: r.value}
 }
 
+// Operator `notEqualsTo`
+func newNotEqualsTo() operator {
+	return &notEqualsTo{}
+}
+
+type notEqualsTo struct {
+	key   string
+	value string
+}
+
+func (r *notEqualsTo) String() string {
+	return fmt.Sprintf("notEqualTo operator on key %q with value %q", r.key, r.value)
+}
+
+func (r *notEqualsTo) LoadOptions(options operatorOptions) error {
+	r.key = options.Key
+	r.value = options.Value
+	return nil
+}
+
+func (r *notEqualsTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+	testedValue, ok := evaluatedEvent.Metadata[r.key]
+	if !ok {
+		return false, nil
+	}
+	return r.value != testedValue, nil
+}
+
 // Operator `matchesRegexp`
 func newMatchesRegexp() operator {
 	return &matchesRegexp{}
@@ -272,4 +320,35 @@ func (r *matchesRegexp) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error
 		return false, nil
 	}
 	return r.regexp.MatchString(testedValue), nil
+}
+
+// Operator `notMatchesRegexp`
+func newNotMatchesRegexp() operator {
+	return &notMatchesRegexp{}
+}
+
+type notMatchesRegexp struct {
+	key    string
+	regexp *regexp.Regexp
+}
+
+func (r *notMatchesRegexp) String() string {
+	return fmt.Sprintf("notMatchesRegexp operator on key %q with matcher %q", r.key, r.regexp)
+}
+
+func (r *notMatchesRegexp) LoadOptions(options operatorOptions) error {
+	var err error
+	r.key = options.Key
+	if r.regexp, err = regexp.Compile(options.Value); err != nil {
+		return fmt.Errorf("invalid regexp matcher for matchesRegexp operator: %w", err)
+	}
+	return err
+}
+
+func (r *notMatchesRegexp) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+	testedValue, ok := evaluatedEvent.Metadata[r.key]
+	if !ok {
+		return false, nil
+	}
+	return !r.regexp.MatchString(testedValue), nil
 }
