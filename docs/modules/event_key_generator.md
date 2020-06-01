@@ -22,3 +22,14 @@ metadataKeys:
   - <metadata_key>
 ```
 
+If given metadata_key is missing in the event's metadata, the empty value is not included in the resulting eventKey.
+
+E.g. given the following configuration:
+```
+metadataKeys:
+  app: test_app
+  name: test_name
+  endpoint: test_endpoint
+```
+The following metadata `{'app': 'test_app', 'endpoint': 'test_endpoint'}` would result to event_key `test_app:test_endpoint`.
+
