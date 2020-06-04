@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
-- PrometheusIngester: queryType label for query_fails_total metric
+- PrometheusIngester: `query_type` label for `slo_exporter_prometheus_ingester_query_fails_total` metric
 
 ## [5.5.0] 2020-05-28
 ### Added
