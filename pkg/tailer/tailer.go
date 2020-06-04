@@ -80,7 +80,7 @@ func (c *tailerConfig) getDefaultPositionsFilePath() string {
 type Tailer struct {
 	filename                string
 	tail                    *tail.Tail
-	positions               *positions.Positions
+	positions               positions.Positions
 	persistPositionInterval time.Duration
 	observer                pipeline.EventProcessingDurationObserver
 	lineParseRegexp         *regexp.Regexp
@@ -112,7 +112,7 @@ func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 	var (
 		offset int64
 		err    error
-		pos    *positions.Positions
+		pos    positions.Positions
 	)
 
 	if config.PositionFile == "" {

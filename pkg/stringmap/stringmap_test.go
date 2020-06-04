@@ -2,6 +2,7 @@ package stringmap
 
 import (
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -183,5 +184,65 @@ func TestStringMap_NewFromMetric(t *testing.T) {
 
 	for _, tc := range testCases {
 		assert.Equal(t, tc.result, NewFromMetric(tc.a), tc)
+	}
+}
+
+func TestStringMap_AsPrometheusLabels(t *testing.T) {
+	testCases := []struct {
+		name   string
+		input  StringMap
+		output labels.Labels
+	}{
+		{
+			name:   "empty stringmap",
+			input:  StringMap{},
+			output: labels.Labels{},
+		},
+		{
+			name:   "filled stringmap",
+			input:  StringMap{"foo": "bar"},
+			output: labels.Labels{{Name: "foo", Value: "bar"}},
+		},
+		{
+			name:   "stringmap with empty value",
+			input:  StringMap{"": ""},
+			output: labels.Labels{{Name: "", Value: ""}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.output, tc.input.AsPrometheusLabels(), tc)
+		})
+	}
+}
+
+func TestStringMap_NewFromLabels(t *testing.T) {
+	testCases := []struct {
+		name   string
+		output StringMap
+		input  labels.Labels
+	}{
+		{
+			name:   "empty stringmap",
+			output: StringMap{},
+			input:  labels.Labels{},
+		},
+		{
+			name:   "filled stringmap",
+			output: StringMap{"foo": "bar"},
+			input:  labels.Labels{{Name: "foo", Value: "bar"}},
+		},
+		{
+			name:   "stringmap with empty value",
+			output: StringMap{"": ""},
+			input:  labels.Labels{{Name: "", Value: ""}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.output, NewFromLabels(tc.input), tc)
+		})
 	}
 }
