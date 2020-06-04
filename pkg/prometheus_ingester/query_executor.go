@@ -89,7 +89,7 @@ func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 			ts := time.Now()
 			result, err := q.execute(ts)
 			if err != nil {
-				prometheusQueryFail.Inc()
+				prometheusQueryFail.WithLabelValues(string(q.Query.Type)).Inc()
 				q.logger.WithField("query", q.Query.Query).Errorf("failed querying Prometheus: '%+v'", err)
 				continue
 			}
