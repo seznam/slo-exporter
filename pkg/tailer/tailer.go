@@ -8,7 +8,6 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
-	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -30,7 +29,6 @@ const (
 	requestDurationGroupName = "requestDuration"
 	statusCodeGroupName      = "statusCode"
 	requestGroupName         = "request"
-	ipGroupName              = "ip"
 	sloResultGroupName       = "sloResult"
 	sloDomainGroupName       = "sloDomain"
 	sloAppGroupName          = "sloApp"
@@ -38,7 +36,7 @@ const (
 )
 
 var (
-	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
+	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 
@@ -362,7 +360,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 
 	return &event.HttpRequest{
 		Time:              t,
-		IP:                net.ParseIP(lineData[ipGroupName]),
 		Duration:          duration,
 		URL:               parsedUrl,
 		StatusCode:        statusCode,
