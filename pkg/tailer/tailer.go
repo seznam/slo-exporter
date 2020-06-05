@@ -3,10 +3,6 @@ package tailer
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
 	"net/url"
 	"os"
@@ -14,6 +10,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 
 	logrusAdapter "github.com/go-kit/kit/log/logrus"
 	"github.com/grafana/loki/pkg/promtail/positions"
@@ -25,7 +26,6 @@ import (
 const (
 	timeLayout string = "02/Jan/2006:15:04:05 -0700"
 
-	timeGroupName            = "time"
 	requestDurationGroupName = "requestDuration"
 	statusCodeGroupName      = "statusCode"
 	requestGroupName         = "request"
@@ -36,8 +36,7 @@ const (
 )
 
 var (
-	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
-
+	knownGroupNames = []string{requestDurationGroupName, statusCodeGroupName, requestGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 
 		Name: "lines_read_total",
@@ -326,10 +325,6 @@ func parseRequestLine(requestLine string) (method string, uri string, protocol s
 
 // buildEvent returns *event.HttpRequest based on input lineData. All named RE match groups are put into new event's metadata map
 func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
-	t, err := time.Parse(timeLayout, lineData[timeGroupName])
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse time '%s' using the format '%s': %w", lineData[timeGroupName], timeLayout, err)
-	}
 
 	statusCode, err := strconv.Atoi(lineData[statusCodeGroupName])
 	if err != nil {
@@ -353,7 +348,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 	}
 
 	return &event.HttpRequest{
-		Time:              t,
 		URL:               parsedUrl,
 		StatusCode:        statusCode,
 		Metadata:          lineData,

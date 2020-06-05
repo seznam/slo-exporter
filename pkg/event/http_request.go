@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"net/url"
-	"time"
 )
 
 // HttpRequest represents single event as received by an EventsProcessor instance
 type HttpRequest struct {
-	Time              time.Time
 	StatusCode        int
 	URL               *url.URL
 	Metadata          stringmap.StringMap
@@ -61,10 +59,6 @@ func (e HttpRequest) GetSloMetadata() stringmap.StringMap {
 
 func (e HttpRequest) GetSloClassification() *SloClassification {
 	return e.SloClassification
-}
-
-func (e HttpRequest) GetTimeOccurred() time.Time {
-	return e.Time
 }
 
 func (e HttpRequest) String() string {
