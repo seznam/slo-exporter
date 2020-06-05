@@ -211,7 +211,6 @@ func (t *Tailer) OutputChannel() chan *event.HttpRequest {
 // E.g.:
 // - RequestEvent.IP may be nil in case invalid IP address is given in logline
 // - Slo* fields may not be filled at all
-// - Content of RequestEvent.Headers may vary
 func (t *Tailer) Run() {
 	go func() {
 		ticker := time.NewTicker(t.persistPositionInterval)
@@ -327,7 +326,7 @@ func parseRequestLine(requestLine string) (method string, uri string, protocol s
 	return "", "", "", &InvalidRequestError{requestLine}
 }
 
-// buildEvent returns *event.HttpRequest based on input lineData
+// buildEvent returns *event.HttpRequest based on input lineData. All named RE match groups are put into new event's metadata map
 func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 	t, err := time.Parse(timeLayout, lineData[timeGroupName])
 	if err != nil {
@@ -367,7 +366,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		Duration:          duration,
 		URL:               parsedUrl,
 		StatusCode:        statusCode,
-		Headers:           lineData.Copy().Without(knownGroupNames),
 		Metadata:          lineData,
 		Method:            method,
 		SloResult:         lineData[sloResultGroupName],
