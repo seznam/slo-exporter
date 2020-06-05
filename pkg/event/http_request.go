@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"net/url"
-	"time"
 )
 
 // HttpRequest represents single event as received by an EventsProcessor instance
