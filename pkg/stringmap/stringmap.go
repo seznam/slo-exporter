@@ -2,6 +2,7 @@ package stringmap
 
 import (
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/pkg/labels"
 	"sort"
 	"strings"
 )
@@ -10,6 +11,14 @@ func NewFromMetric(labels model.Metric) StringMap {
 	newStringMap := StringMap{}
 	for name, value := range labels {
 		newStringMap[string(name)] = string(value)
+	}
+	return newStringMap
+}
+
+func NewFromLabels(labels labels.Labels) StringMap {
+	newStringMap := StringMap{}
+	for _, label := range labels {
+		newStringMap[label.Name] = label.Value
 	}
 	return newStringMap
 }
@@ -158,3 +167,15 @@ func (m StringMap) Without(keys []string) StringMap {
 	}
 	return other
 }
+
+// AsPrometheusLabels converts the stringmap to prometheus labels as is.
+func (m StringMap) AsPrometheusLabels() labels.Labels {
+	newLabels := make(labels.Labels, len(m))
+	i := 0
+	for k, v := range m {
+		newLabels[i] = labels.Label{Name: k, Value: v}
+		i++
+	}
+	return newLabels
+}
+

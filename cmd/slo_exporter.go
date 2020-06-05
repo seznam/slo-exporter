@@ -10,14 +10,16 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_key_generator"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/metadata_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/normalizer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_exporter"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/prometheus_ingester"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/metadata_classifier"
+	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/relabel"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/statistical_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
+
 	"log"
 	"net/http"
 	"os"
@@ -65,6 +67,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return prometheus_ingester.NewFromViper(conf, logger)
 	case "normalizer":
 		return normalizer.NewFromViper(conf, logger)
+	case "relabel":
+		return relabel.NewFromViper(conf, logger)
 	case "eventKeyGenerator":
 		return event_key_generator.NewFromViper(conf, logger)
 	case "metadataClassifier":

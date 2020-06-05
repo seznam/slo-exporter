@@ -18,6 +18,7 @@ func TestEventKeyGenerator_generateEventKey(t *testing.T) {
 		{metadata: stringmap.StringMap{"foo": "foo"}, config: eventKeyGeneratorConfig{FiledSeparator: ":", MetadataKeys: []string{"foo"}}, result: "foo"},
 		{metadata: stringmap.StringMap{"foo": "foo", "bar": "bar"}, config: eventKeyGeneratorConfig{FiledSeparator: ":", MetadataKeys: []string{"foo"}}, result: "foo"},
 		{metadata: stringmap.StringMap{"foo": "foo", "bar": "bar"}, config: eventKeyGeneratorConfig{FiledSeparator: ":", MetadataKeys: []string{"foo", "bar"}}, result: "foo:bar"},
+		{metadata: stringmap.StringMap{"foo": "foo", "bar": ""}, config: eventKeyGeneratorConfig{FiledSeparator: ":", MetadataKeys: []string{"foo", "bar"}}, result: "foo:"},
 		{metadata: stringmap.StringMap{"foo": "foo", "bar": "bar"}, config: eventKeyGeneratorConfig{FiledSeparator: "|", MetadataKeys: []string{"foo", "bar"}}, result: "foo|bar"},
 		{metadata: stringmap.StringMap{"foo": "foo", "bar": "bar"}, config: eventKeyGeneratorConfig{FiledSeparator: ":", MetadataKeys: []string{"xxx", "bar"}}, result: "bar"},
 	}
