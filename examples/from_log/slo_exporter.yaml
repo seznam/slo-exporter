@@ -2,7 +2,7 @@ webServerListenAddress: "0.0.0.0:8080"
 maximumGracefulShutdownDuration: "10s"
 afterPipelineShutdownDelay: "1s"
 
-pipeline: ["tailer", "eventFilter", "normalizer", "eventKeyGenerator", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -15,35 +15,82 @@ modules:
     loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
     emptyGroupRE: '^-$'
 
-  eventFilter:
-    metadataFilter:
-      "(?i)statusCode": "30[12]|40[045]|411"
-      "(?i)userAgent": "(?i)(?:sentry|blackbox-exporter|kube-probe)"
+  relabel:
+    eventRelabelConfigs:
+      # Drop events with unwanted status codes
+      - source_labels: ["statusCode"]
+        regex: "30[12]|40[045]|411"
+        action: drop
+      # Drop events with unwanted user agent
+      - source_labels: ["userAgent"]
+        regex: "(?i)(?:sentry|blackbox-exporter|kube-probe)"
+        action: drop
 
-  normalizer:
-    getParamWithEventIdentifier: "operationName"
-    replaceRules:
-      - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
-        replacement: "/api/v1/ppchit/rule/0"
-      - regexp: '/campaigns/\\d+/groups/\\d+/placements/automatic/(\\w[\\w-]+\\.)+\w{2,}/urls'
-        replacement: "/campaigns/0/groups/0/placements/automatic/:domain/urls"
-      - regexp: "/api/v1/captchas/\\w+"
-        replacement: "/api/v1/captchas/:hash"
-    sanitizeHashes: true
-    sanitizeNumbers: true
-    sanitizeUids: true
-    sanitizeIps:     true
-    sanitizeImages:  true
-    sanitizeFonts:   true
+      # Parse out HTTP method as separate label
+      - source_labels: ["request"]
+        regex: '^\s*(GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+.*'
+        action: replace
+        replacement: "$1"
+        target_label: "http_method"
+      # Parse out HTTP URI as separate label
+      - source_labels: ["request"]
+        regex: '.*\s+(/[^?\s]*)(?:\?[^\s]*)?\s+.*'
+        action: replace
+        replacement: "$1"
+        target_label: "request_uri"
+
+      # Parse out GET parameter from URI as separate label
+      - source_labels: ["request"]
+        regex: '.*operationName=(.*)(?:&.*)$'
+        action: replace
+        target_label: "operation_name"
+
+      # Normalize numbers in URI
+      - source_labels: ["request_uri"]
+        regex: '(.*)/\d+(/(?:.*))?'
+        action: replace
+        target_label: "request_uri"
+        replacement: "$1/0$2"
+      # Normalize URI images names
+      - source_labels: ["request_uri"]
+        regex: '(.*)/.*\.(?:png|jpg|jpeg|svg|tif|tiff|gif|ico)'
+        action: replace
+        target_label: "request_uri"
+        replacement: "$1/:image"
+      # Normalize URI font names
+      - source_labels: ["request_uri"]
+        regex: '(.*)/.*\.(?:ttf|woff)'
+        action: replace
+        target_label: "request_uri"
+        replacement: "$1/:font"
+      # Normalize URI hashes
+      - source_labels: ["request_uri"]
+        regex: '(.*)/(?:[a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64})(/(?:.*))?'
+        action: replace
+        target_label: "request_uri"
+        replacement: "$1/:hash$2"
+      # Normalize URI UUIDs names
+      - source_labels: ["request_uri"]
+        regex: '(.*)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/(?:.*))?'
+        action: replace
+        target_label: "request_uri"
+        replacement: "$1/:uuid$2"
+      # Normalize URI IPs names
+      - source_labels: ["request_uri"]
+        regex: '(.*)/(?:\d+[.:]){3,}(?:\d+)(/(?:.*))?'
+        action: replace
+        target_label: "request_uri"
+        replacement: "$1/:ip$2"
 
   eventKeyGenerator:
     filedSeparator: ":"
     overrideExistingEventKey: false
     metadataKeys:
-      - request
+      - http_method
+      - request_uri
+      - operation_name
 
   dynamicClassifier:
-    exactMatchesCsvFiles: []
     regexpMatchesCsvFiles:
       - "examples/from_log/classification.csv"
     unclassifiedEventMetadataKeys:
