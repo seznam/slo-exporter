@@ -3,7 +3,6 @@ package event
 import (
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
-	"net"
 	"net/url"
 	"time"
 )
@@ -11,7 +10,6 @@ import (
 // HttpRequest represents single event as received by an EventsProcessor instance
 type HttpRequest struct {
 	Time              time.Time
-	IP                net.IP
 	StatusCode        int
 	Duration          time.Duration
 	URL               *url.URL
