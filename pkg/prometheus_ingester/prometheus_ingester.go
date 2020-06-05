@@ -30,10 +30,10 @@ var (
 		Name: "unsupported_query_result_type_total",
 		Help: "Total number of Query results with not supported type.",
 	}, []string{"result_type"})
-	prometheusQueryFail = prometheus.NewCounter(prometheus.CounterOpts{
+	prometheusQueryFail = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "query_fails_total",
 		Help: "Total number of Query fails.",
-	})
+	}, []string{"query_type"})
 	prometheusQueryDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "query_duration_seconds",
 		Help:    "Duration of queries on the Prometheus API.",
@@ -210,7 +210,9 @@ func (i *PrometheusIngester) Run() {
 		// Start all queries
 		for _, queryExecutor := range *i.queryExecutors {
 			wg.Add(1)
-			go queryExecutor.run(queriesContext, &wg)
+			// declare local scope variable to prevent shadowing by the next iterations
+			qe := queryExecutor
+			go qe.run(queriesContext, &wg)
 		}
 
 		<-i.shutdownChannel

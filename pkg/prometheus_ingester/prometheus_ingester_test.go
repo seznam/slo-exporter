@@ -369,8 +369,7 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 		QueryTimeout: 400 * time.Millisecond,
 		Queries: []queryOptions{
 			{
-				Query: "1",
-				// The interval is considered for query 1 to run 4 times before the query 2 runs
+				Query:            "1",
 				Interval:         interval,
 				Type:             simpleQueryType,
 				ResultAsQuantity: newFalse(),
