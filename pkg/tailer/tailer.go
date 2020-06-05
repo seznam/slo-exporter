@@ -331,12 +331,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 		return nil, fmt.Errorf("unable to parse time '%s' using the format '%s': %w", lineData[timeGroupName], timeLayout, err)
 	}
 
-	requestDuration := lineData[requestDurationGroupName] + "s"
-	duration, err := time.ParseDuration(requestDuration)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse duration '%s': %w", requestDuration, err)
-	}
-
 	statusCode, err := strconv.Atoi(lineData[statusCodeGroupName])
 	if err != nil {
 		return nil, fmt.Errorf("invalid HTTP status code '%d': %w", statusCode, err)
@@ -360,7 +354,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 
 	return &event.HttpRequest{
 		Time:              t,
-		Duration:          duration,
 		URL:               parsedUrl,
 		StatusCode:        statusCode,
 		Metadata:          lineData,

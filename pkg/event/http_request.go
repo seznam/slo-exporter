@@ -11,7 +11,6 @@ import (
 type HttpRequest struct {
 	Time              time.Time
 	StatusCode        int
-	Duration          time.Duration
 	URL               *url.URL
 	Metadata          stringmap.StringMap
 	Method            string
