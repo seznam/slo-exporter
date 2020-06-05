@@ -15,7 +15,6 @@ type HttpRequest struct {
 	StatusCode        int
 	Duration          time.Duration
 	URL               *url.URL
-	Headers           stringmap.StringMap // name:value, header name is in lower-case
 	Metadata          stringmap.StringMap
 	Method            string
 	SloResult         string

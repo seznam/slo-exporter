@@ -273,13 +273,13 @@ func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error)
 	}
 
 	if classification == nil {
-		dc.reportEvent(unclassifiedEventLabel, string(classifiedBy), strconv.Itoa(newEvent.StatusCode), newEvent.Headers)
+		dc.reportEvent(unclassifiedEventLabel, string(classifiedBy), strconv.Itoa(newEvent.StatusCode), newEvent.Metadata)
 		return false, classificationErrors
 	}
 
 	dc.logger.Debugf("event '%s' matched by %s matcher", newEvent.EventKey(), classifiedBy)
 	newEvent.UpdateSLOClassification(classification)
-	dc.reportEvent(classifiedEventLabel, string(classifiedBy), "", newEvent.Headers)
+	dc.reportEvent(classifiedEventLabel, string(classifiedBy), "", newEvent.Metadata)
 
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
