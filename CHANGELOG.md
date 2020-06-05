@@ -5,6 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- New module [`relabel`](/docs/modules/relabel.md) allowing to modify event metadata using Prometheus relabel config.
+
+### Changed
+- Upgraded to Go 1.14
+- PrometheusIngester: added `query_type` label for `slo_exporter_prometheus_ingester_query_fails_total` metric
+
+## [5.5.0] 2020-05-28
+### Added
+- sloEventProducer: notEqualTo, notMatchesRegexp, numberNotEqualTo operators
+
+## [5.4.1] 2020-05-27
+### Fixed
+- PrometheusIngester: last defined query shadows the previous ones
 
 ## [5.4.0] 2020-05-22
 ### Changed

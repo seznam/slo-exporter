@@ -8,7 +8,6 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
-	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -30,7 +29,6 @@ const (
 	requestDurationGroupName = "requestDuration"
 	statusCodeGroupName      = "statusCode"
 	requestGroupName         = "request"
-	ipGroupName              = "ip"
 	sloResultGroupName       = "sloResult"
 	sloDomainGroupName       = "sloDomain"
 	sloAppGroupName          = "sloApp"
@@ -38,7 +36,7 @@ const (
 )
 
 var (
-	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, ipGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
+	knownGroupNames = []string{timeGroupName, requestDurationGroupName, statusCodeGroupName, requestGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
 
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 
@@ -80,7 +78,7 @@ func (c *tailerConfig) getDefaultPositionsFilePath() string {
 type Tailer struct {
 	filename                string
 	tail                    *tail.Tail
-	positions               *positions.Positions
+	positions               positions.Positions
 	persistPositionInterval time.Duration
 	observer                pipeline.EventProcessingDurationObserver
 	lineParseRegexp         *regexp.Regexp
@@ -112,7 +110,7 @@ func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 	var (
 		offset int64
 		err    error
-		pos    *positions.Positions
+		pos    positions.Positions
 	)
 
 	if config.PositionFile == "" {
@@ -211,7 +209,6 @@ func (t *Tailer) OutputChannel() chan *event.HttpRequest {
 // E.g.:
 // - RequestEvent.IP may be nil in case invalid IP address is given in logline
 // - Slo* fields may not be filled at all
-// - Content of RequestEvent.Headers may vary
 func (t *Tailer) Run() {
 	go func() {
 		ticker := time.NewTicker(t.persistPositionInterval)
@@ -327,7 +324,7 @@ func parseRequestLine(requestLine string) (method string, uri string, protocol s
 	return "", "", "", &InvalidRequestError{requestLine}
 }
 
-// buildEvent returns *event.HttpRequest based on input lineData
+// buildEvent returns *event.HttpRequest based on input lineData. All named RE match groups are put into new event's metadata map
 func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 	t, err := time.Parse(timeLayout, lineData[timeGroupName])
 	if err != nil {
@@ -357,10 +354,8 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 
 	return &event.HttpRequest{
 		Time:              t,
-		IP:                net.ParseIP(lineData[ipGroupName]),
 		URL:               parsedUrl,
 		StatusCode:        statusCode,
-		Headers:           lineData.Copy().Without(knownGroupNames),
 		Metadata:          lineData,
 		Method:            method,
 		SloResult:         lineData[sloResultGroupName],
