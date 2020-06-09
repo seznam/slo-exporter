@@ -12,7 +12,7 @@ modules:
     reopen: true
     positionFile: ""
     positionPersistenceInterval: "2s"
-    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
+    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
     emptyGroupRE: '^-$'
 
   relabel:
@@ -26,69 +26,27 @@ modules:
         regex: "(?i)(?:sentry|blackbox-exporter|kube-probe)"
         action: drop
 
-      # Parse out HTTP method as separate label
-      - source_labels: ["request"]
-        regex: '^\s*(GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+.*'
-        action: replace
-        replacement: "$1"
-        target_label: "http_method"
-      # Parse out HTTP URI as separate label
-      - source_labels: ["request"]
-        regex: '.*\s+(/[^?\s]*)(?:\?[^\s]*)?\s+.*'
-        action: replace
-        replacement: "$1"
-        target_label: "request_uri"
-
       # Parse out GET parameter from URI as separate label
-      - source_labels: ["request"]
+      - source_labels: ["httpPath"]
         regex: '.*operationName=(.*)(?:&.*)$'
         action: replace
-        target_label: "operation_name"
+        target_label: "operationName"
 
       # Normalize numbers in URI
-      - source_labels: ["request_uri"]
+      - source_labels: ["httpPath"]
         regex: '(.*)/\d+(/(?:.*))?'
         action: replace
-        target_label: "request_uri"
+        target_label: "httpPath"
         replacement: "$1/0$2"
-      # Normalize URI images names
-      - source_labels: ["request_uri"]
-        regex: '(.*)/.*\.(?:png|jpg|jpeg|svg|tif|tiff|gif|ico)'
-        action: replace
-        target_label: "request_uri"
-        replacement: "$1/:image"
-      # Normalize URI font names
-      - source_labels: ["request_uri"]
-        regex: '(.*)/.*\.(?:ttf|woff)'
-        action: replace
-        target_label: "request_uri"
-        replacement: "$1/:font"
-      # Normalize URI hashes
-      - source_labels: ["request_uri"]
-        regex: '(.*)/(?:[a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64})(/(?:.*))?'
-        action: replace
-        target_label: "request_uri"
-        replacement: "$1/:hash$2"
-      # Normalize URI UUIDs names
-      - source_labels: ["request_uri"]
-        regex: '(.*)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/(?:.*))?'
-        action: replace
-        target_label: "request_uri"
-        replacement: "$1/:uuid$2"
-      # Normalize URI IPs names
-      - source_labels: ["request_uri"]
-        regex: '(.*)/(?:\d+[.:]){3,}(?:\d+)(/(?:.*))?'
-        action: replace
-        target_label: "request_uri"
-        replacement: "$1/:ip$2"
+
 
   eventKeyGenerator:
     filedSeparator: ":"
     overrideExistingEventKey: false
     metadataKeys:
-      - http_method
-      - request_uri
-      - operation_name
+      - httpMethod
+      - httpPath
+      - operationName
 
   dynamicClassifier:
     regexpMatchesCsvFiles:

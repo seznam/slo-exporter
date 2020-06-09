@@ -67,7 +67,6 @@ Possible `moduleType`:
 - processors:
     - [`eventFilter`](./docs/modules/event_filter.md)
     - [`eventKeyGenerator`](./docs/modules/event_key_generator.md)
-    - [`normalizer`](./docs/modules/normalizer.md)
     - [`metadataClassifier`](./docs/modules/metadata_classifier.md)
     - [`dynamicClassifier`](./docs/modules/dynamic_classifier.md)
     - [`statisticalClassifier`](./docs/modules/statistical_classifier.md)
@@ -112,30 +111,13 @@ Go profiling using pprof on `/debug/pprof/` web interface path. For usage see th
 ## Frequently asked questions
 
 ### How to add new normalization replacement rule?
-
-Event normalization is done in [`event normalizer`](pkg/normalizer/normalizer.go).
-User can add normalization replacement rule in slo-exporter main config under key [`.modules.normalizer.replaceRules`](examples/from_log/slo_exporter.yaml).
-
-Suppose you see a lot of events matching this regular expression `/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}` which you want to normalize, then your normalization replacement rule can look like following snippet:
-
-```yaml
-...
-modules:
-  normalizer:
-    replaceRules:
-      - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
-        # Replacement of the matched path
-        replacement: "/api/v1/ppchit/rule/0"
-```
+Event normalization can be done using the `relabel` module, see [its documentation](docs/modules/relabel.md).
 
 ### How to deal with malformed lines?
-
 Before !87. If you are seeing too many malformed lines then you should inspect [tailer package](pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
-
 After !87, slo-exporter main config supports to specify custom regular expression in field `.module.tailer.loglineParseRegexp`.
 
 ### How to deploy slo-exporter?
-
 slo-exporter can be deployed as:
  1. sidecar container application tailing local (emptydir) (proxy) logs
      * manifest example can be found in [userproxy repository](https://gitlab.seznam.net/sklik-frontend/Proxies/tree/master/userproxy/kubernetes)

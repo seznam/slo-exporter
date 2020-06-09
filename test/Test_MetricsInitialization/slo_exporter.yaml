@@ -1,6 +1,6 @@
 webServerListenAddress: "0.0.0.0:8080"
 
-pipeline: ["tailer", "eventFilter", "normalizer", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "eventFilter", "relabel", "eventKeyGenerator", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -10,7 +10,7 @@ modules:
     reopen: true
     positionFile: ""
     positionPersistenceInterval: "2s"
-    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"'
+    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"'
     emptyGroupRE: '^-$'
 
   prometheusIngester:
@@ -24,10 +24,20 @@ modules:
     metadataFilter:
       "(?i)statusCode": "404"
 
-  normalizer:
-    replaceRules:
-      - regexp: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,16}"
+  relabel:
+    eventRelabelConfigs:
+      - source_labels: ["httpPath"]
+        regex: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,24}"
+        action: replace
+        target_label: "httpPath"
         replacement: "/api/v1/ppchit/rule/0"
+
+  eventKeyGenerator:
+    filedSeparator: ":"
+    overrideExistingEventKey: false
+    metadataKeys:
+      - httpMethod
+      - httpPath
 
   dynamicClassifier:
     exactMatchesCsvFiles: []

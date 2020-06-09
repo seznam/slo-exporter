@@ -56,7 +56,7 @@ type eventRelabelManager struct {
 }
 
 func (r *eventRelabelManager) String() string {
-	return "normalizer"
+	return "relabel"
 }
 
 func (r *eventRelabelManager) Done() bool {
