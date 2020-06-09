@@ -65,7 +65,7 @@ func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
 }
 
 // evaluateEvent and return bool on whether it is to be considered as failed
-func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) bool {
+func (er *evaluationRule) evaluateEvent(newEvent *event.Raw) bool {
 	if er.honorSloResult && newEvent.SloResult != "" {
 		return newEvent.SloResult != string(event.Success)
 	}
@@ -84,7 +84,7 @@ func (er *evaluationRule) evaluateEvent(newEvent *event.HttpRequest) bool {
 	return failed
 }
 
-func (er *evaluationRule) processEvent(newEvent *event.HttpRequest) (*event.Slo, bool) {
+func (er *evaluationRule) processEvent(newEvent *event.Raw) (*event.Slo, bool) {
 	eventSloClassification := newEvent.GetSloClassification()
 	if !newEvent.IsClassified() || eventSloClassification == nil {
 		return nil, false

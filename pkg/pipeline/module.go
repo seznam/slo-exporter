@@ -37,7 +37,7 @@ type WebInterfaceModule interface {
 }
 
 type RawEventIngester interface {
-	SetInputChannel(chan *event.HttpRequest)
+	SetInputChannel(chan *event.Raw)
 }
 
 type RawEventIngesterModule interface {
@@ -46,7 +46,7 @@ type RawEventIngesterModule interface {
 }
 
 type RawEventProducer interface {
-	OutputChannel() chan *event.HttpRequest
+	OutputChannel() chan *event.Raw
 }
 
 type RawEventProducerModule interface {

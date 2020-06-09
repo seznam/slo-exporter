@@ -30,8 +30,8 @@ type EventKeyGenerator struct {
 	metadataKeys        []string
 	observer            pipeline.EventProcessingDurationObserver
 	logger              logrus.FieldLogger
-	inputChannel        chan *event.HttpRequest
-	outputChannel       chan *event.HttpRequest
+	inputChannel        chan *event.Raw
+	outputChannel       chan *event.Raw
 	done                bool
 }
 
@@ -51,11 +51,11 @@ func (e *EventKeyGenerator) Stop() {
 	return
 }
 
-func (e *EventKeyGenerator) SetInputChannel(channel chan *event.HttpRequest) {
+func (e *EventKeyGenerator) SetInputChannel(channel chan *event.Raw) {
 	e.inputChannel = channel
 }
 
-func (e *EventKeyGenerator) OutputChannel() chan *event.HttpRequest {
+func (e *EventKeyGenerator) OutputChannel() chan *event.Raw {
 	return e.outputChannel
 }
 
@@ -74,8 +74,8 @@ func NewFromConfig(config eventKeyGeneratorConfig, logger logrus.FieldLogger) (*
 		separator:           config.FiledSeparator,
 		overrideExistingKey: config.OverrideExistingEventKey,
 		metadataKeys:        config.MetadataKeys,
-		outputChannel:       make(chan *event.HttpRequest),
-		inputChannel:        make(chan *event.HttpRequest),
+		outputChannel:       make(chan *event.Raw),
+		inputChannel:        make(chan *event.Raw),
 		done:                false,
 		logger:              logger,
 	}

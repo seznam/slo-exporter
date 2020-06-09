@@ -126,7 +126,7 @@ func (re *EventEvaluator) AddEvaluationRule(rule *evaluationRule) {
 	re.rules = append(re.rules, rule)
 }
 
-func (re *EventEvaluator) Evaluate(newEvent *event.HttpRequest, outChan chan<- *event.Slo) {
+func (re *EventEvaluator) Evaluate(newEvent *event.Raw, outChan chan<- *event.Slo) {
 	if !newEvent.IsClassified() {
 		unclassifiedEventsTotal.Inc()
 		re.logger.Warnf("dropping event %s with no classification", newEvent)

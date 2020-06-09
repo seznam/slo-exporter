@@ -61,8 +61,8 @@ type DynamicClassifier struct {
 	unclassifiedEventMetadataKeys []string
 	eventsMetric                  *prometheus.CounterVec
 	observer                      pipeline.EventProcessingDurationObserver
-	inputChannel                  chan *event.HttpRequest
-	outputChannel                 chan *event.HttpRequest
+	inputChannel                  chan *event.Raw
+	outputChannel                 chan *event.Raw
 	logger                        logrus.FieldLogger
 	done                          bool
 }
@@ -103,11 +103,11 @@ func (dc *DynamicClassifier) Stop() {
 	return
 }
 
-func (dc *DynamicClassifier) SetInputChannel(channel chan *event.HttpRequest) {
+func (dc *DynamicClassifier) SetInputChannel(channel chan *event.Raw) {
 	dc.inputChannel = channel
 }
 
-func (dc *DynamicClassifier) OutputChannel() chan *event.HttpRequest {
+func (dc *DynamicClassifier) OutputChannel() chan *event.Raw {
 	return dc.outputChannel
 }
 
@@ -130,8 +130,8 @@ func New(conf classifierConfig, logger logrus.FieldLogger) (*DynamicClassifier, 
 		exactMatches:                  newMemoryExactMatcher(logger),
 		regexpMatches:                 newRegexpMatcher(logger),
 		unclassifiedEventMetadataKeys: conf.UnclassifiedEventMetadataKeys,
-		inputChannel:                  make(chan *event.HttpRequest),
-		outputChannel:                 make(chan *event.HttpRequest),
+		inputChannel:                  make(chan *event.Raw),
+		outputChannel:                 make(chan *event.Raw),
 		done:                          false,
 		logger:                        logger,
 	}
@@ -245,7 +245,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 }
 
 // Classify classifies endpoint by updating its Classification field
-func (dc *DynamicClassifier) Classify(newEvent *event.HttpRequest) (bool, error) {
+func (dc *DynamicClassifier) Classify(newEvent *event.Raw) (bool, error) {
 	var (
 		classificationErrors error
 		classification       *event.SloClassification
@@ -305,7 +305,7 @@ func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
 	return matcher.dumpCSV(w)
 }
 
-func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *event.HttpRequest) (*event.SloClassification, error) {
+func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *event.Raw) (*event.SloClassification, error) {
 	return matcher.get(event.EventKey())
 }
 

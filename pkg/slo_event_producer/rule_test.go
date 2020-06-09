@@ -14,7 +14,7 @@ import (
 
 type ruleTestCase struct {
 	rule           evaluationRule
-	inputEvent     event.HttpRequest
+	inputEvent     event.Raw
 	outputSloEvent *event.Slo
 	ok             bool
 }
@@ -27,7 +27,7 @@ func TestEvaluateEvent(t *testing.T) {
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				Metadata:          stringmap.StringMap{"statusCode": "200"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
@@ -41,7 +41,7 @@ func TestEvaluateEvent(t *testing.T) {
 				honorSloResult:     true,
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				SloResult:         string(event.Success),
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
@@ -56,7 +56,7 @@ func TestEvaluateEvent(t *testing.T) {
 				honorSloResult:     true,
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				SloResult:         string(event.Fail),
 				Metadata:          stringmap.StringMap{"statusCode": "200"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
@@ -70,7 +70,7 @@ func TestEvaluateEvent(t *testing.T) {
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("502")}},
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				SloResult:         string(event.Success),
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
@@ -84,7 +84,7 @@ func TestEvaluateEvent(t *testing.T) {
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				SloResult:         string(event.Fail),
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
@@ -98,7 +98,7 @@ func TestEvaluateEvent(t *testing.T) {
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: nil,
 			},
@@ -112,7 +112,7 @@ func TestEvaluateEvent(t *testing.T) {
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
@@ -127,7 +127,7 @@ func TestEvaluateEvent(t *testing.T) {
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				Metadata:          stringmap.StringMap{"statusCode": "200", "key": "value"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
@@ -142,7 +142,7 @@ func TestEvaluateEvent(t *testing.T) {
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				logger:             logrus.New(),
 			},
-			inputEvent: event.HttpRequest{
+			inputEvent: event.Raw{
 				Metadata:          stringmap.StringMap{"statusCode": "200"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
