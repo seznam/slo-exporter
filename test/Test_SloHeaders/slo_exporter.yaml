@@ -1,7 +1,7 @@
 
 webServerListenAddress: "0.0.0.0:8080"
 
-pipeline: ["tailer", "eventFilter", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -14,12 +14,12 @@ modules:
     loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)" frpc-status="(?P<frpcStatus>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<eventKey>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
     emptyGroupRE: '^-$'
 
-  eventFilter:
-    metadataFilter:
-      "(?i)statusCode": "404"
-
   relabel:
     eventRelabelConfigs:
+      - source_labels: ["statusCode"]
+        regex: "404"
+        action: drop
+
       - source_labels: ["httpPath"]
         regex: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,24}"
         target_label: "httpPath"

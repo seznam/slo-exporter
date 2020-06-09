@@ -2,7 +2,7 @@ webServerListenAddress: "0.0.0.0:8080"
 maximumGracefulShutdownDuration: "10s"
 afterPipelineShutdownDelay: "21s"
 
-pipeline: ["prometheusIngester", "eventFilter", "eventKeyGenerator", "metadataClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["prometheusIngester", "relabel", "eventKeyGenerator", "metadataClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -26,9 +26,11 @@ modules:
           app: "test-app"
           class: "test-class"
 
-  eventFilter:
-    metadataFilter:
-      "drop": "this"
+  relabel:
+    eventRelabelConfigs:
+      - source_labels: ["drop"]
+        regex: "this"
+        action: drop
 
   eventKeyGenerator:
     filedSeparator: ":"
