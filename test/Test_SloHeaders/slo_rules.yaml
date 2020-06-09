@@ -17,9 +17,9 @@ rules:
       domain: userportal
       class: critical
     failure_conditions:
-      - operator: durationHigherThan
+      - operator: numberHigherThan
         key: requestDuration
-        value: 8.0s
+        value: 8
     additional_metadata:
       slo_version: 1
       slo_type: latency90
@@ -30,9 +30,9 @@ rules:
       domain: userportal
       class: critical
     failure_conditions:
-      - operator: durationHigherThan
+      - operator: numberHigherThan
         key: requestDuration
-        value: 16.0s
+        value: 16
     additional_metadata:
       slo_version: 1
       slo_type: latency99

@@ -4,11 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -24,11 +21,6 @@ import (
 )
 
 const (
-	timeLayout string = "02/Jan/2006:15:04:05 -0700"
-
-	requestDurationGroupName = "requestDuration"
-	statusCodeGroupName      = "statusCode"
-	requestGroupName         = "request"
 	sloResultGroupName       = "sloResult"
 	sloDomainGroupName       = "sloDomain"
 	sloAppGroupName          = "sloApp"
@@ -36,8 +28,7 @@ const (
 )
 
 var (
-	knownGroupNames = []string{requestDurationGroupName, statusCodeGroupName, requestGroupName, sloResultGroupName, sloDomainGroupName, sloAppGroupName, sloClassGroupName}
-	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
+	linesReadTotal  = prometheus.NewCounter(prometheus.CounterOpts{
 
 		Name: "lines_read_total",
 		Help: "Total number of lines tailed from the file.",
@@ -202,12 +193,7 @@ func (t *Tailer) OutputChannel() chan *event.HttpRequest {
 	return t.outputChannel
 }
 
-// Run starts to tail the associated file, feeding RequestEvents, errors into separated channels.
-// Close eventsChan based on done chan signal (close, any read)
-// Content of RequestEvent structure depends on input log lines. So not all information may be present or valid, though basic validation is being made.
-// E.g.:
-// - RequestEvent.IP may be nil in case invalid IP address is given in logline
-// - Slo* fields may not be filled at all
+// Run starts to tail the associated file, feeding events to output channel.
 func (t *Tailer) Run() {
 	go func() {
 		ticker := time.NewTicker(t.persistPositionInterval)
@@ -297,50 +283,8 @@ func (t *Tailer) markOffsetPosition() error {
 	return nil
 }
 
-// InvalidRequestError is error representing invalid RequestEvent
-type InvalidRequestError struct {
-	request string
-}
-
-func (e *InvalidRequestError) Error() string {
-	return fmt.Sprintf("Request '%s' contains unexpected number of fields", e.request)
-}
-
-// parseRequestLine parses request line (see https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html)
-// golang's http/parseRequestLine is too strict, it does not consider missing HTTP protocol as a valid request line
-// however we need to accept those as well
-func parseRequestLine(requestLine string) (method string, uri string, protocol string, err error) {
-	requestLineArr := strings.Fields(requestLine)
-	// protocol is missing, happens in case of redirects
-	if len(requestLineArr) == 2 {
-		return requestLineArr[0], requestLineArr[1], "", nil
-	}
-	// full valid request line
-	if len(requestLineArr) == 3 {
-		return requestLineArr[0], requestLineArr[1], requestLineArr[2], nil
-	}
-	// in other cases we consider the request as invalid
-	return "", "", "", &InvalidRequestError{requestLine}
-}
-
 // buildEvent returns *event.HttpRequest based on input lineData. All named RE match groups are put into new event's metadata map
 func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
-
-	statusCode, err := strconv.Atoi(lineData[statusCodeGroupName])
-	if err != nil {
-		return nil, fmt.Errorf("invalid HTTP status code '%d': %w", statusCode, err)
-	}
-
-	method, requestURI, _, err := parseRequestLine(lineData[requestGroupName])
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse request line '%s': %w", lineData[requestGroupName], err)
-	}
-
-	parsedUrl, err := url.Parse(requestURI)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse parsedUrl '%s': %w", requestURI, err)
-	}
-
 	classification := &event.SloClassification{
 		Domain: lineData[sloDomainGroupName],
 		App:    lineData[sloAppGroupName],
@@ -348,10 +292,7 @@ func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
 	}
 
 	return &event.HttpRequest{
-		URL:               parsedUrl,
-		StatusCode:        statusCode,
 		Metadata:          lineData,
-		Method:            method,
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
 		Quantity:          1,
@@ -384,6 +325,9 @@ func (t *Tailer) processLine(line string) (*event.HttpRequest, error) {
 		return nil, err
 	}
 	e, err := buildEvent(lineData)
+	if err != nil {
+		return nil, err
+	}
 	// TODO refactor once new module for setting eventKey from metadata will be available
 	e.SetEventKey(lineData["eventKey"])
 	return e, err
