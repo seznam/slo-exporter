@@ -37,8 +37,8 @@ func (t *testModule) Done() bool {
 	return t.done
 }
 
-func (t *testModule) OutputChannel() chan *event.HttpRequest {
-	return make(chan *event.HttpRequest)
+func (t *testModule) OutputChannel() chan *event.Raw {
+	return make(chan *event.Raw)
 }
 
 func newTestManager() (*Manager, error) {

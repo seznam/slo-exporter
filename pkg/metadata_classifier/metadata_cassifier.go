@@ -31,8 +31,8 @@ type metadataClassifier struct {
 	appKey                 string
 	observer               pipeline.EventProcessingDurationObserver
 	logger                 logrus.FieldLogger
-	inputChannel           chan *event.HttpRequest
-	outputChannel          chan *event.HttpRequest
+	inputChannel           chan *event.Raw
+	outputChannel          chan *event.Raw
 	done                   bool
 }
 
@@ -52,11 +52,11 @@ func (e *metadataClassifier) Stop() {
 	return
 }
 
-func (e *metadataClassifier) SetInputChannel(channel chan *event.HttpRequest) {
+func (e *metadataClassifier) SetInputChannel(channel chan *event.Raw) {
 	e.inputChannel = channel
 }
 
-func (e *metadataClassifier) OutputChannel() chan *event.HttpRequest {
+func (e *metadataClassifier) OutputChannel() chan *event.Raw {
 	return e.outputChannel
 }
 
@@ -75,8 +75,8 @@ func NewFromConfig(config metadataClassifierConfig, logger logrus.FieldLogger) (
 		domainKey:              config.SloDomainMetadataKey,
 		classKey:               config.SloClassMetadataKey,
 		appKey:                 config.SloAppMetadataKey,
-		outputChannel:          make(chan *event.HttpRequest),
-		inputChannel:           make(chan *event.HttpRequest),
+		outputChannel:          make(chan *event.Raw),
+		inputChannel:           make(chan *event.Raw),
 		done:                   false,
 		logger:                 logger,
 	}
@@ -93,7 +93,7 @@ func (e *metadataClassifier) observeDuration(start time.Time) {
 	}
 }
 
-func (e *metadataClassifier) generateSloClassification(toBeClassified *event.HttpRequest) event.SloClassification {
+func (e *metadataClassifier) generateSloClassification(toBeClassified *event.Raw) event.SloClassification {
 	newClassification := event.SloClassification{}
 	if toBeClassified.SloClassification != nil {
 		newClassification.Domain = toBeClassified.SloClassification.Domain

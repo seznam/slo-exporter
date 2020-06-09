@@ -58,8 +58,8 @@ type StatisticalClassifier struct {
 	classifier    *weightedClassifier
 	observer      pipeline.EventProcessingDurationObserver
 	logger        logrus.FieldLogger
-	inputChannel  chan *event.HttpRequest
-	outputChannel chan *event.HttpRequest
+	inputChannel  chan *event.Raw
+	outputChannel chan *event.Raw
 	done          bool
 }
 
@@ -114,17 +114,17 @@ func New(conf classifierConfig, logger logrus.FieldLogger) (*StatisticalClassifi
 	return &StatisticalClassifier{
 		classifier:    newClassifier,
 		logger:        logger,
-		inputChannel:  make(chan *event.HttpRequest),
-		outputChannel: make(chan *event.HttpRequest),
+		inputChannel:  make(chan *event.Raw),
+		outputChannel: make(chan *event.Raw),
 		done:          false,
 	}, nil
 }
 
-func (sc *StatisticalClassifier) OutputChannel() chan *event.HttpRequest {
+func (sc *StatisticalClassifier) OutputChannel() chan *event.Raw {
 	return sc.outputChannel
 }
 
-func (sc *StatisticalClassifier) SetInputChannel(channel chan *event.HttpRequest) {
+func (sc *StatisticalClassifier) SetInputChannel(channel chan *event.Raw) {
 	sc.inputChannel = channel
 }
 
@@ -164,7 +164,7 @@ func (sc *StatisticalClassifier) sanitizeGuessedClassification(classification *e
 }
 
 // Classify classifies event. Classification is guessed based on frequency of observed classifications over history window.
-func (sc *StatisticalClassifier) Classify(event *event.HttpRequest) error {
+func (sc *StatisticalClassifier) Classify(event *event.Raw) error {
 	if !event.IsClassified() {
 		classification, err := sc.classifier.guessClass()
 		if err != nil {

@@ -11,13 +11,13 @@ import (
 func TestMetadataClassifier_generateSloClassification(t *testing.T) {
 	testCases := []struct {
 		name   string
-		event  event.HttpRequest
+		event  event.Raw
 		config metadataClassifierConfig
 		result event.SloClassification
 	}{
 		{
 			name: "non classified event with expected metadata is classified as expected",
-			event: event.HttpRequest{
+			event: event.Raw{
 				Metadata:          stringmap.StringMap{"domain": "domain", "class": "class", "app": "app"},
 				SloClassification: &event.SloClassification{Domain: "", Class: "", App: ""},
 			},
@@ -26,7 +26,7 @@ func TestMetadataClassifier_generateSloClassification(t *testing.T) {
 		},
 		{
 			name: "with overwrite enabled, metadata classification has precedence over former event classification",
-			event: event.HttpRequest{
+			event: event.Raw{
 				Metadata:          stringmap.StringMap{"domain": "domain", "class": "class", "app": "app"},
 				SloClassification: &event.SloClassification{Domain: "xxx", Class: "xxx", App: "xxx"},
 			},
@@ -35,7 +35,7 @@ func TestMetadataClassifier_generateSloClassification(t *testing.T) {
 		},
 		{
 			name: "with overwrite disabled, former event classification has precedence over metadata classification",
-			event: event.HttpRequest{
+			event: event.Raw{
 				Metadata:          stringmap.StringMap{"domain": "domain", "class": "class", "app": "app"},
 				SloClassification: &event.SloClassification{Domain: "xxx", Class: "xxx", App: "xxx"},
 			},
@@ -44,7 +44,7 @@ func TestMetadataClassifier_generateSloClassification(t *testing.T) {
 		},
 		{
 			name: "if specified key is not found in metadata, original value of classification is left intact",
-			event: event.HttpRequest{
+			event: event.Raw{
 				Metadata:          stringmap.StringMap{"domain": "domain", "class": "class"},
 				SloClassification: &event.SloClassification{Domain: "xxx", Class: "xxx", App: "xxx"},
 			},

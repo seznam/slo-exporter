@@ -43,7 +43,7 @@ func TestOperator_newOperator(t *testing.T) {
 }
 
 type testEvent struct {
-	event    event.HttpRequest
+	event    event.Raw
 	operator operator
 	result   bool
 	err      bool
@@ -52,53 +52,53 @@ type testEvent struct {
 func TestCriteria(t *testing.T) {
 	testCases := []testEvent{
 		// numberHigherThan
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "20"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "12.5"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "foo"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: false, err: true},
-		{event: event.HttpRequest{}, operator: &numberHigherThan{numberComparisonOperator{value: 10}}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "20"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "12.5"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "foo"}}, operator: &numberHigherThan{numberComparisonOperator{name: "numberHigherThan", key: "number", value: 10}}, result: false, err: true},
+		{event: event.Raw{}, operator: &numberHigherThan{numberComparisonOperator{value: 10}}, result: false, err: false},
 
 		// numberEqualOrHigherThan
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan", key: "number", value: 10}}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan", key: "number", value: 10}}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "12.5"}}, operator: &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan", key: "number", value: 10}}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "12.5"}}, operator: &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan", key: "number", value: 10}}, result: true, err: false},
 
 		// numberEqualTo
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberEqualTo{numberComparisonOperator{name: "numberEqualTo", key: "number", value: 10}}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberEqualTo{numberComparisonOperator{name: "numberEqualTo", key: "number", value: 10}}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberEqualTo{numberComparisonOperator{name: "numberEqualTo", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberEqualTo{numberComparisonOperator{name: "numberEqualTo", key: "number", value: 10}}, result: false, err: false},
 
 		// numberNotEqualTo
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberNotEqualTo{numberComparisonOperator{name: "numberNotEqualTo", key: "number", value: 10}}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "11"}}, operator: &numberNotEqualTo{numberComparisonOperator{name: "numberNotEqualTo", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberNotEqualTo{numberComparisonOperator{name: "numberNotEqualTo", key: "number", value: 10}}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "11"}}, operator: &numberNotEqualTo{numberComparisonOperator{name: "numberNotEqualTo", key: "number", value: 10}}, result: true, err: false},
 
 		// numberEqualOrLessThan
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan", key: "number", value: 10}}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan", key: "number", value: 10}}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"number": "20"}}, operator: &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan", key: "number", value: 10}}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "10"}}, operator: &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "1"}}, operator: &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan", key: "number", value: 10}}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"number": "20"}}, operator: &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan", key: "number", value: 10}}, result: false, err: false},
 
 		// durationHigherThan
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "20s"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "5ms"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"duration": "foo"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: false, err: true},
-		{event: event.HttpRequest{}, operator: &numberHigherThan{numberComparisonOperator{value: 10}}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"duration": "20s"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"duration": "5ms"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"duration": "foo"}}, operator: &durationHigherThan{key: "duration", thresholdDuration: 10 * time.Second}, result: false, err: true},
+		{event: event.Raw{}, operator: &numberHigherThan{numberComparisonOperator{value: 10}}, result: false, err: false},
 
 		// equalTo
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &equalsTo{key: "foo", value: "foobar"}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &equalsTo{key: "foo", value: "xxx"}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &equalsTo{key: "foo", value: "foobar"}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &equalsTo{key: "foo", value: "xxx"}, result: false, err: false},
 
 		// notEqualTo
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notEqualsTo{key: "foo", value: "foobar"}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notEqualsTo{key: "foo", value: "xxx"}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notEqualsTo{key: "foo", value: "foobar"}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notEqualsTo{key: "foo", value: "xxx"}, result: true, err: false},
 
 		// matchesRegexp
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &matchesRegexp{key: "foo", regexp: regexp.MustCompile("bar")}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &matchesRegexp{key: "foo", regexp: regexp.MustCompile("xxx")}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": ""}}, operator: &matchesRegexp{key: "foo", regexp: regexp.MustCompile(".*")}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &matchesRegexp{key: "foo", regexp: regexp.MustCompile("bar")}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &matchesRegexp{key: "foo", regexp: regexp.MustCompile("xxx")}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": ""}}, operator: &matchesRegexp{key: "foo", regexp: regexp.MustCompile(".*")}, result: true, err: false},
 
 		// notMatchesRegexp
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notMatchesRegexp{key: "foo", regexp: regexp.MustCompile("bar")}, result: false, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notMatchesRegexp{key: "foo", regexp: regexp.MustCompile("xxx")}, result: true, err: false},
-		{event: event.HttpRequest{Metadata: stringmap.StringMap{"foo": ""}}, operator: &notMatchesRegexp{key: "foo", regexp: regexp.MustCompile(".*")}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notMatchesRegexp{key: "foo", regexp: regexp.MustCompile("bar")}, result: false, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": "foobar"}}, operator: &notMatchesRegexp{key: "foo", regexp: regexp.MustCompile("xxx")}, result: true, err: false},
+		{event: event.Raw{Metadata: stringmap.StringMap{"foo": ""}}, operator: &notMatchesRegexp{key: "foo", regexp: regexp.MustCompile(".*")}, result: false, err: false},
 	}
 	for _, c := range testCases {
 		res, err := c.operator.Evaluate(&c.event)

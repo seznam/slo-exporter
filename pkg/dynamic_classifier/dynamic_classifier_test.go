@@ -76,7 +76,7 @@ func TestClassificationByExactMatches(t *testing.T) {
 	}
 
 	for _, ec := range data {
-		newEvent := &event.HttpRequest{
+		newEvent := &event.Raw{
 			SloClassification: ec.expectedClassification,
 		}
 		newEvent.SetEventKey(ec.endpoint)
@@ -110,7 +110,7 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 	}
 
 	for _, ec := range data {
-		newEvent := &event.HttpRequest{
+		newEvent := &event.Raw{
 			SloClassification: ec.expectedClassification,
 		}
 		newEvent.SetEventKey(ec.endpoint)
@@ -129,7 +129,7 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 
 func Test_DynamicClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
-	classifiedEvent := &event.HttpRequest{
+	classifiedEvent := &event.Raw{
 		SloClassification: &event.SloClassification{
 			Domain: "domain",
 			App:    "app",
@@ -156,7 +156,7 @@ func Test_DynamicClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 // test that classified event updates dynamic classifier cache as initialized from golden file
 func Test_DynamicClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
-	classifiedEvent := &event.HttpRequest{
+	classifiedEvent := &event.Raw{
 		SloClassification: &event.SloClassification{
 			Domain: "domain",
 			App:    "app",
@@ -191,7 +191,7 @@ func Test_DynamicClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t
 
 	classifier := newClassifier(t, classifierConfig{})
 	for _, eventClass := range eventClasses {
-		classifiedEvent := &event.HttpRequest{
+		classifiedEvent := &event.Raw{
 			SloClassification: &event.SloClassification{
 				Domain: "domain",
 				App:    "app",

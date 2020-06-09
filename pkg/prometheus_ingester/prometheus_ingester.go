@@ -86,7 +86,7 @@ type PrometheusIngester struct {
 	client          api.Client
 	api             v1.API
 	shutdownChannel chan struct{}
-	outputChannel   chan *event.HttpRequest
+	outputChannel   chan *event.Raw
 	logger          logrus.FieldLogger
 	done            bool
 }
@@ -113,7 +113,7 @@ func (i *PrometheusIngester) Done() bool {
 	return i.done
 }
 
-func (i *PrometheusIngester) OutputChannel() chan *event.HttpRequest {
+func (i *PrometheusIngester) OutputChannel() chan *event.Raw {
 	return i.outputChannel
 }
 
@@ -160,7 +160,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		queryTimeout:    initConfig.QueryTimeout,
 		client:          client,
 		api:             v1.NewAPI(client),
-		outputChannel:   make(chan *event.HttpRequest),
+		outputChannel:   make(chan *event.Raw),
 		done:            false,
 		shutdownChannel: make(chan struct{}),
 		logger:          logger,

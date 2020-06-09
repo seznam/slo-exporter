@@ -21,7 +21,7 @@ var (
 )
 
 type Slo struct {
-	// same value as in source event HttpRequest.EventKey()
+	// same value as in source event Raw.EventKey()
 	Key    string
 	Result Result
 

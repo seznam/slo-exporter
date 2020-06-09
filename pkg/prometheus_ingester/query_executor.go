@@ -21,7 +21,7 @@ import (
 type queryExecutor struct {
 	Query             queryOptions
 	queryTimeout      time.Duration
-	eventsChan        chan *event.HttpRequest
+	eventsChan        chan *event.Raw
 	logger            logrus.FieldLogger
 	api               v1.API
 	previousResult    queryResult
@@ -150,7 +150,7 @@ func (q *queryExecutor) emitEvent(ts time.Time, result float64, metadata stringm
 	if quantity == 0 {
 		return
 	}
-	e := &event.HttpRequest{
+	e := &event.Raw{
 		Metadata: metadata,
 		Quantity: quantity,
 	}

@@ -205,7 +205,7 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 		}
 		parsedEvent, err := buildEvent(data)
 
-		var expectedEvent *event.HttpRequest
+		var expectedEvent *event.Raw
 
 		if test.isLineValid {
 			// line is considered valid, build the expectedEvent struct in order to compare it to the parsed one
@@ -281,7 +281,7 @@ type offsetPersistenceTest struct {
 }
 
 // reads in chan and on close returns count to out chan
-func countEvents(in chan *event.HttpRequest, out chan int) {
+func countEvents(in chan *event.Raw, out chan int) {
 	count := 0
 	for range in {
 		count++
