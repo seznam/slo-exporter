@@ -1,6 +1,6 @@
 webServerListenAddress: "0.0.0.0:8080"
 
-pipeline: ["tailer", "eventFilter", "relabel", "eventKeyGenerator", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "statisticalClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -20,12 +20,12 @@ modules:
       - query: 'up{app_label="puzzler"}'
         interval: 3s
 
-  eventFilter:
-    metadataFilter:
-      "(?i)statusCode": "404"
-
   relabel:
     eventRelabelConfigs:
+      - source_labels: ["statusCode"]
+        regex: "404"
+        action: drop
+
       - source_labels: ["httpPath"]
         regex: "/api/v1/ppchit/rule/[0-9a-fA-F]{5,24}"
         action: replace

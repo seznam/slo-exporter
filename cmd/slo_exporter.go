@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/dynamic_classifier"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_filter"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event_key_generator"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/metadata_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
@@ -70,8 +69,6 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return event_key_generator.NewFromViper(conf, logger)
 	case "metadataClassifier":
 		return metadata_classifier.NewFromViper(conf, logger)
-	case "eventFilter":
-		return event_filter.NewFromViper(conf, logger)
 	case "dynamicClassifier":
 		return dynamic_classifier.NewFromViper(conf, logger)
 	case "statisticalClassifier":

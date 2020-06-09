@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PrometheusIngester: added `query_type` label for `slo_exporter_prometheus_ingester_query_fails_total` metric
 - **BREAKING** Dropped the `normalizer` module in favour of the `relabel` and `eventKeyGenerator` modules.
   Those can be used to sanitize metadata values and compose the event key from any metadata keys.
+- **BREAKING** Dropped the `eventFilter` module in favour of the `relabel` module.
 
 ## [5.5.0] 2020-05-28
 ### Added
