@@ -222,7 +222,7 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 			minValue := previousBucketKey
 			intervalIncrease := metric[key].value - metric[previousBucketKey].value
 			if intervalIncrease < 0 {
-				return fmt.Errorf("lower hitogram bucket has higher cumulative count than higher, probably inconsistent data: le=%g %g and le=%g %g", key, metric[key].value, previousBucketKey, metric[previousBucketKey].value)
+				return fmt.Errorf("lower histogram bucket has higher cumulative count than higher bucket - probably inconsistent data: le=%g %g and le=%g %g", key, metric[key].value, previousBucketKey, metric[previousBucketKey].value)
 			}
 			q.emitEvent(
 				ts,
