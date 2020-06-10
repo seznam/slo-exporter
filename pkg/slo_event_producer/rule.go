@@ -42,7 +42,6 @@ func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluation
 		metadataMatcher:    matcherConditions,
 		failureConditions:  failureConditions,
 		additionalMetadata: opts.AdditionalMetadata,
-		honorSloResult:     opts.HonorSloResult,
 		logger:             logger,
 	}, nil
 }
@@ -52,7 +51,6 @@ type evaluationRule struct {
 	metadataMatcher    []operator
 	failureConditions  []operator
 	additionalMetadata stringmap.StringMap
-	honorSloResult     bool
 	logger             logrus.FieldLogger
 }
 
@@ -66,9 +64,6 @@ func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
 
 // evaluateEvent and return bool on whether it is to be considered as failed
 func (er *evaluationRule) evaluateEvent(newEvent *event.Raw) bool {
-	if er.honorSloResult && newEvent.SloResult != "" {
-		return newEvent.SloResult != string(event.Success)
-	}
 	failed := false
 	// Evaluate all criteria and if matches any, mark it as failed.
 	for _, operator := range er.failureConditions {
