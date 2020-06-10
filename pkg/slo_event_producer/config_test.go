@@ -26,7 +26,7 @@ func TestConfig_loadFromFile(t *testing.T) {
 					SloMatcher: sloMatcher{Domain: "domain"},
 					FailureConditionsOptions: []operatorOptions{
 						operatorOptions{
-							Operator: "numberHigherThan", Key: "statusCode", Value: "500",
+							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},

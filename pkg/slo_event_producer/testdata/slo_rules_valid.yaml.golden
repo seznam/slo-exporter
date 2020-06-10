@@ -2,7 +2,7 @@ rules:
   - slo_matcher:
         domain: domain
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: "statusCode"
         value: 500
     additional_metadata:

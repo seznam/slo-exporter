@@ -13,16 +13,16 @@ import (
 )
 
 var operatorFactoryRegistry = map[string]operatorFactory{
-	"equalTo":                 newEqualsTo,
-	"notEqualTo":              newNotEqualsTo,
-	"matchesRegexp":           newMatchesRegexp,
-	"notMatchesRegexp":        newNotMatchesRegexp,
-	"numberEqualTo":           newNumberEqualTo,
-	"numberNotEqualTo":        newNumberNotEqualTo,
-	"numberHigherThan":        newNumberHigherThan,
-	"numberEqualOrHigherThan": newNumberEqualOrHigherThan,
-	"numberEqualOrLessThan":   newNumberEqualOrLessThan,
-	"durationHigherThan":      newDurationHigherThan,
+	"isEqualTo":                 newIsEqualTo,
+	"isNotEqualTo":              newIsNotEqualTo,
+	"isMatchingRegexp":          newIsMatchingRegexp,
+	"isNotMatchingRegexp":       newIsNotMatchingRegexp,
+	"numberIsEqualTo":           newNumberIsEqualTo,
+	"numberIsNotEqualTo":        newNumberIsNotEqualTo,
+	"numberIsHigherThan":        newNumberIsHigherThan,
+	"numberIsEqualOrHigherThan": newNumberIsEqualOrHigherThan,
+	"numberIsEqualOrLessThan":   newNumberIsEqualOrLessThan,
+	"durationIsHigherThan":      newDurationIsHigherThan,
 }
 
 type operatorFactory func() operator
@@ -106,16 +106,16 @@ func (n *numberComparisonOperator) AsMetric() metric {
 	}
 }
 
-// Operator `numberHigherThan`
-func newNumberHigherThan() operator {
-	return &numberHigherThan{numberComparisonOperator{name: "numberHigherThan"}}
+// Operator `numberIsHigherThan`
+func newNumberIsHigherThan() operator {
+	return &numberIsHigherThan{numberComparisonOperator{name: "numberIsHigherThan"}}
 }
 
-type numberHigherThan struct {
+type numberIsHigherThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -123,16 +123,16 @@ func (r *numberHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return testedValue > r.value, nil
 }
 
-// Operator `numberEqualOrHigherThan`
-func newNumberEqualOrHigherThan() operator {
-	return &numberEqualOrHigherThan{numberComparisonOperator{name: "numberEqualOrHigherThan"}}
+// Operator `numberIsEqualOrHigherThan`
+func newNumberIsEqualOrHigherThan() operator {
+	return &numberIsEqualOrHigherThan{numberComparisonOperator{name: "numberIsEqualOrHigherThan"}}
 }
 
-type numberEqualOrHigherThan struct {
+type numberIsEqualOrHigherThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberEqualOrHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsEqualOrHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -140,16 +140,16 @@ func (r *numberEqualOrHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, err
 	return testedValue >= r.value, nil
 }
 
-// Operator `numberEqualOrLessThan`
-func newNumberEqualOrLessThan() operator {
-	return &numberEqualOrLessThan{numberComparisonOperator{name: "numberEqualOrLessThan"}}
+// Operator `numberIsEqualOrLessThan`
+func newNumberIsEqualOrLessThan() operator {
+	return &numberIsEqualOrLessThan{numberComparisonOperator{name: "numberIsEqualOrLessThan"}}
 }
 
-type numberEqualOrLessThan struct {
+type numberIsEqualOrLessThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberEqualOrLessThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsEqualOrLessThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -157,16 +157,16 @@ func (r *numberEqualOrLessThan) Evaluate(evaluatedEvent *event.Raw) (bool, error
 	return testedValue <= r.value, nil
 }
 
-// Operator `numberEqualTo`
-func newNumberEqualTo() operator {
-	return &numberEqualTo{numberComparisonOperator{name: "numberEqualTo"}}
+// Operator `numberIsEqualTo`
+func newNumberIsEqualTo() operator {
+	return &numberIsEqualTo{numberComparisonOperator{name: "numberIsEqualTo"}}
 }
 
-type numberEqualTo struct {
+type numberIsEqualTo struct {
 	numberComparisonOperator
 }
 
-func (r *numberEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -174,20 +174,20 @@ func (r *numberEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return testedValue == r.value, nil
 }
 
-func (r *numberEqualTo) Labels() stringmap.StringMap {
+func (r *numberIsEqualTo) Labels() stringmap.StringMap {
 	return stringmap.StringMap{r.key: fmt.Sprintf("%g", r.value)}
 }
 
-// Operator `numberNotEqualTo`
-func newNumberNotEqualTo() operator {
-	return &numberNotEqualTo{numberComparisonOperator{name: "numberNotEqualTo"}}
+// Operator `numberIsNotEqualTo`
+func newNumberIsNotEqualTo() operator {
+	return &numberIsNotEqualTo{numberComparisonOperator{name: "numberIsNotEqualTo"}}
 }
 
-type numberNotEqualTo struct {
+type numberIsNotEqualTo struct {
 	numberComparisonOperator
 }
 
-func (r *numberNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -195,63 +195,63 @@ func (r *numberNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return testedValue != r.value, nil
 }
 
-// Operator `durationHigherThan`
-func newDurationHigherThan() operator {
-	return &durationHigherThan{}
+// Operator `durationIsHigherThan`
+func newDurationIsHigherThan() operator {
+	return &durationIsHigherThan{}
 }
 
-type durationHigherThan struct {
+type durationIsHigherThan struct {
 	key               string
 	thresholdDuration time.Duration
 }
 
-func (r *durationHigherThan) String() string {
-	return fmt.Sprintf("durationHigherThan operator on key %q with value %q", r.key, r.thresholdDuration)
+func (r *durationIsHigherThan) String() string {
+	return fmt.Sprintf("durationIsHigherThan operator on key %q with value %q", r.key, r.thresholdDuration)
 }
 
-func (r *durationHigherThan) LoadOptions(options operatorOptions) error {
+func (r *durationIsHigherThan) LoadOptions(options operatorOptions) error {
 	r.key = options.Key
 	thresholdDuration, err := time.ParseDuration(options.Value)
 	if err != nil {
-		return fmt.Errorf("invalid duration value for operator durationHigherThan, should be in Go duration format: %w", err)
+		return fmt.Errorf("invalid duration value for operator durationIsHigherThan, should be in Go duration format: %w", err)
 	}
 	r.thresholdDuration = thresholdDuration
 	return nil
 }
 
-func (r *durationHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *durationIsHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	metadataValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
 	}
 	testedDuration, err := time.ParseDuration(metadataValue)
 	if err != nil {
-		return false, fmt.Errorf("invalid metadata value for operator durationHigherThan, should be in Go duration format: %w", err)
+		return false, fmt.Errorf("invalid metadata value for operator durationIsHigherThan, should be in Go duration format: %w", err)
 	}
 	return testedDuration > r.thresholdDuration, nil
 }
 
-// Operator `equalsTo`
-func newEqualsTo() operator {
-	return &equalsTo{}
+// Operator `isEqualTo`
+func newIsEqualTo() operator {
+	return &isEqualTo{}
 }
 
-type equalsTo struct {
+type isEqualTo struct {
 	key   string
 	value string
 }
 
-func (r *equalsTo) String() string {
-	return fmt.Sprintf("equalTo operator on key %q with value %q", r.key, r.value)
+func (r *isEqualTo) String() string {
+	return fmt.Sprintf("isEqualTo operator on key %q with value %q", r.key, r.value)
 }
 
-func (r *equalsTo) LoadOptions(options operatorOptions) error {
+func (r *isEqualTo) LoadOptions(options operatorOptions) error {
 	r.key = options.Key
 	r.value = options.Value
 	return nil
 }
 
-func (r *equalsTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *isEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
@@ -259,31 +259,31 @@ func (r *equalsTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return r.value == testedValue, nil
 }
 
-func (r *equalsTo) Labels() stringmap.StringMap {
+func (r *isEqualTo) Labels() stringmap.StringMap {
 	return stringmap.StringMap{r.key: r.value}
 }
 
-// Operator `notEqualsTo`
-func newNotEqualsTo() operator {
-	return &notEqualsTo{}
+// Operator `isNotEqualTo`
+func newIsNotEqualTo() operator {
+	return &isNotEqualTo{}
 }
 
-type notEqualsTo struct {
+type isNotEqualTo struct {
 	key   string
 	value string
 }
 
-func (r *notEqualsTo) String() string {
-	return fmt.Sprintf("notEqualTo operator on key %q with value %q", r.key, r.value)
+func (r *isNotEqualTo) String() string {
+	return fmt.Sprintf("isNotEqualTo operator on key %q with value %q", r.key, r.value)
 }
 
-func (r *notEqualsTo) LoadOptions(options operatorOptions) error {
+func (r *isNotEqualTo) LoadOptions(options operatorOptions) error {
 	r.key = options.Key
 	r.value = options.Value
 	return nil
 }
 
-func (r *notEqualsTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *isNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
@@ -291,30 +291,30 @@ func (r *notEqualsTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return r.value != testedValue, nil
 }
 
-// Operator `matchesRegexp`
-func newMatchesRegexp() operator {
-	return &matchesRegexp{}
+// Operator `isMatchingRegexp`
+func newIsMatchingRegexp() operator {
+	return &isMatchingRegexp{}
 }
 
-type matchesRegexp struct {
+type isMatchingRegexp struct {
 	key    string
 	regexp *regexp.Regexp
 }
 
-func (r *matchesRegexp) String() string {
-	return fmt.Sprintf("matchesRegexp operator on key %q with matcher %q", r.key, r.regexp)
+func (r *isMatchingRegexp) String() string {
+	return fmt.Sprintf("newIsMatchingRegexp operator on key %q with matcher %q", r.key, r.regexp)
 }
 
-func (r *matchesRegexp) LoadOptions(options operatorOptions) error {
+func (r *isMatchingRegexp) LoadOptions(options operatorOptions) error {
 	var err error
 	r.key = options.Key
 	if r.regexp, err = regexp.Compile(options.Value); err != nil {
-		return fmt.Errorf("invalid regexp matcher for matchesRegexp operator: %w", err)
+		return fmt.Errorf("invalid regexp matcher for isMatchingRegexp operator: %w", err)
 	}
 	return err
 }
 
-func (r *matchesRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *isMatchingRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
@@ -322,30 +322,30 @@ func (r *matchesRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return r.regexp.MatchString(testedValue), nil
 }
 
-// Operator `notMatchesRegexp`
-func newNotMatchesRegexp() operator {
-	return &notMatchesRegexp{}
+// Operator `isNotMatchingRegexp`
+func newIsNotMatchingRegexp() operator {
+	return &isNotMatchingRegexp{}
 }
 
-type notMatchesRegexp struct {
+type isNotMatchingRegexp struct {
 	key    string
 	regexp *regexp.Regexp
 }
 
-func (r *notMatchesRegexp) String() string {
-	return fmt.Sprintf("notMatchesRegexp operator on key %q with matcher %q", r.key, r.regexp)
+func (r *isNotMatchingRegexp) String() string {
+	return fmt.Sprintf("isNotMatchRegexp operator on key %q with matcher %q", r.key, r.regexp)
 }
 
-func (r *notMatchesRegexp) LoadOptions(options operatorOptions) error {
+func (r *isNotMatchingRegexp) LoadOptions(options operatorOptions) error {
 	var err error
 	r.key = options.Key
 	if r.regexp, err = regexp.Compile(options.Value); err != nil {
-		return fmt.Errorf("invalid regexp matcher for matchesRegexp operator: %w", err)
+		return fmt.Errorf("invalid regexp matcher for isMatchingRegexp operator: %w", err)
 	}
 	return err
 }
 
-func (r *notMatchesRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *isNotMatchingRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil

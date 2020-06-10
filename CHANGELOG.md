@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Those can be used to sanitize metadata values and compose the event key from any metadata keys.
 - **BREAKING** Dropped the `eventFilter` module in favour of the `relabel` module.
 - **BREAKING** sloEventProducer: dropped `honor_slo_result` configuration option, same behavior can be now achieved using failure conditions and metadata filters. 
-
+- **BREAKING** sloEventProducer: all operators renamed
 
 ## [5.6.0] 2020-06-10
 ### Added
