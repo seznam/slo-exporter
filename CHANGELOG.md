@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New module [`relabel`](/docs/modules/relabel.md) allowing to modify event metadata using Prometheus relabel config.
 - New flag `--check-config` to verify if configuration is ok.
+- Enabled mutex and block profiling.
 
 ### Changed
 - Upgraded to Go 1.14
