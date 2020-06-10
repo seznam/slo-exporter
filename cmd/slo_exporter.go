@@ -132,6 +132,7 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 func main() {
 	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
 	logLevel := kingpin.Flag("log-level", "Log level (error, warn, info, debug,trace).").Default("info").String()
+	checkConfig := kingpin.Flag("check-config", "Only check config file and exit with 0 if ok and other status code if not.").Default("false").Bool()
 	kingpin.Parse()
 	envLogLevel, ok := syscall.Getenv("SLO_EXPORTER_LOGLEVEL")
 	if ok {
@@ -146,6 +147,18 @@ func main() {
 	conf := config.New(logger.WithField("component", "config"))
 	if err := conf.LoadFromFile(*configFilePath); err != nil {
 		logger.Fatalf("failed to load configuration file: %v", err)
+	}
+
+	// Initialize the pipeline
+	pipelineManager, err := pipeline.NewManager(moduleFactory, conf, logger.WithField("component", "pipeline_manager"))
+	if err != nil {
+		logger.Fatalf("failed to initialize the pipeline: %v", err)
+	}
+
+	// If only  configuration check is required, end here.
+	if *checkConfig {
+		logger.Info("Configuration is valid!")
+		return
 	}
 
 	liveness, err := prober.NewLiveness(prometheusRegistry, logger.WithField("component", "prober"))
@@ -170,11 +183,6 @@ func main() {
 		}
 	}()
 
-	// Initialize the pipeline
-	pipelineManager, err := pipeline.NewManager(moduleFactory, conf, logger.WithField("component", "pipeline_manager"))
-	if err != nil {
-		logger.Fatalf("failed to initialize the pipeline: %v", err)
-	}
 	if err := pipelineManager.RegisterPrometheusMetrics(prometheusRegistry, wrappedPrometheusRegistry); err != nil {
 		logger.Fatalf("failed to register pipeline metrics: %v", err)
 	}
