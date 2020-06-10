@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded to Go 1.14
 - PrometheusIngester: added `query_type` label for `slo_exporter_prometheus_ingester_query_fails_total` metric
 
+### Fixed
+- PrometheusIngester: fixed isolation of `histogram_increase` query type causing invalid computation of increase.
+
 ## [5.5.0] 2020-05-28
 ### Added
 - sloEventProducer: notEqualTo, notMatchesRegexp, numberNotEqualTo operators

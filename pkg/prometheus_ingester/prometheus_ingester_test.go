@@ -640,11 +640,21 @@ func Test_processHistogramIncrease(t *testing.T) {
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "+Inf"}),
 					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
 				},
+				{
+					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "0.5"}),
+					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(2)}},
+				},
+				{
+					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "+Inf"}),
+					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
+				},
 			},
 			expectedEvents: []*event.HttpRequest{
 				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
 				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
 				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "0.5", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "0.5", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "0.5", metadataHistogramMaxValue: "+Inf", metadataValueKey: "8"}, Quantity: 8},
 			},
 		},
 	}
