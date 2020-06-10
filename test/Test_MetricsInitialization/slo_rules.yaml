@@ -2,7 +2,7 @@ rules:
   - slo_matcher:
       domain: testdomain
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: statusCode
         value: 499
     additional_metadata:
@@ -13,7 +13,7 @@ rules:
       domain: testdomain
       class: high_fast
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: requestDuration
         value: 8
     additional_metadata:
@@ -26,7 +26,7 @@ rules:
       domain: testdomain
       class: high_fast
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: requestDuration
         value: 16
     additional_metadata:

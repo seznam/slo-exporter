@@ -62,16 +62,16 @@ Supported operators:
 
 | `operator_name`             | Expected string format        | Description | Equality operator |
 |-----------------------------|-------------------------------|-------------|--------------------|
-| `equalTo      `             | Any string                    | Compares the string with the given value. | Yes |
-| `notEqualTo      `          | Any string                    | Compares the string with the given value. | No |
-| `matchesRegexp`             | Any string                    | Tries if value of the key matches the regexp from value. | No |
-| `notMatchesRegexp`          | Any string                    | Tries if value of the key does not match the regexp from value. | No |
-| `numberEqualTo`             | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. | Yes |
-| `numberNotEqualTo`          | String parsable as float      | Converts the string to float if possible and checks if is not equal to the value. | No |
-| `numberHigherThan`          | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. | No |
-| `numberEqualOrHigherThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. | No |
-| `numberEqualOrLessThan`     | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. | No |
-| `durationHigherThan`        | Staring in Go duration format | Converts the string to duration if possible and compares it to the duration from value. | No |
+| `isEqualTo`                 | Any string                    | Compares the string with the given value. | Yes |
+| `isNotEqualTo`              | Any string                    | Compares the string with the given value. | No |
+| `isMatchingRegexp`          | Any string                    | Tries if value of the key matches the regexp from value. | No |
+| `isNotMatchingRegexp`       | Any string                    | Tries if value of the key does not match the regexp from value. | No |
+| `numberIsEqualTo`           | String parsable as float      | Converts the string to float if possible and checks if is equal to the value. | Yes |
+| `numberIsNotEqualTo`        | String parsable as float      | Converts the string to float if possible and checks if is not equal to the value. | No |
+| `numberIsHigherThan`        | String parsable as float      | Converts the string to float if possible and checks if is higher than the value. | No |
+| `numberIsEqualOrHigherThan` | String parsable as float      | Converts the string to float if possible and checks if is equal or higher than the value. | No |
+| `numberIsEqualOrLessThan`   | String parsable as float      | Converts the string to float if possible and checks if is equal or less than the value. | No |
+| `durationIsHigherThan`      | Staring in Go duration format | Converts the string to duration if possible and compares it to the duration from value. | No |
 
 ---
 
@@ -153,6 +153,6 @@ The slo rules configuration above will result in the following metrics:
 ```
 # HELP slo_exporter_slo_event_producer_slo_rules_threshold Threshold exposed based on information from slo_event_producer's slo_rules configuration
 # TYPE slo_exporter_slo_event_producer_slo_rules_threshold gauge
-slo_exporter_slo_event_producer_slo_rules_threshold{foo="",name="ad.advisual",operator="numberHigherThan",slo_type="freshness",slo_version="6"} 6300
-slo_exporter_slo_event_producer_slo_rules_threshold{foo="bar",name="ad.banner",operator="numberEqualOrLessThan",slo_type="freshness",slo_version="6"} 1
+slo_exporter_slo_event_producer_slo_rules_threshold{foo="",name="ad.advisual",operator="numberIsHigherThan",slo_type="freshness",slo_version="6"} 6300
+slo_exporter_slo_event_producer_slo_rules_threshold{foo="bar",name="ad.banner",operator="numberIsEqualOrLessThan",slo_type="freshness",slo_version="6"} 1
 ```

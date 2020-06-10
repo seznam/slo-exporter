@@ -2,7 +2,7 @@ rules:
   - slo_matcher:
       domain: userportal
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: statusCode
         value: 499
     additional_metadata:
@@ -10,14 +10,14 @@ rules:
       slo_version: 1
 
   - metadata_matcher:
-      - operator: matchesRegexp
+      - operator: isMatchingRegexp
         key: requestDuration
         value: ".*"
     slo_matcher:
       domain: userportal
       class: critical
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: requestDuration
         value: 8
     additional_metadata:
@@ -30,7 +30,7 @@ rules:
       domain: userportal
       class: critical
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: requestDuration
         value: 16
     additional_metadata:
