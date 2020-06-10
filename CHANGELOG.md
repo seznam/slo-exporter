@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **BREAKING** Dropped the `normalizer` module in favour of the `relabel` and `eventKeyGenerator` modules.
+  Those can be used to sanitize metadata values and compose the event key from any metadata keys.
+- **BREAKING** Dropped the `eventFilter` module in favour of the `relabel` module.
+
 
 ## [5.6.0] 2020-06-10
 ### Added
