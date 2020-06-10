@@ -3,16 +3,11 @@ package event
 import (
 	"fmt"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
-	"net/url"
 )
 
 // Raw represents single event as received by an EventsProcessor instance
 type Raw struct {
-	StatusCode        int
-	URL               *url.URL
 	Metadata          stringmap.StringMap
-	Method            string
-	SloResult         string
 	SloClassification *SloClassification
 	Quantity          float64
 }
