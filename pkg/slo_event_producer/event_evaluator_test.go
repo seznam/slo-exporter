@@ -28,7 +28,7 @@ func TestSloEventProducer(t *testing.T) {
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
 						operatorOptions{
-							Operator: "numberHigherThan", Key: "statusCode", Value: "500",
+							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
@@ -47,7 +47,7 @@ func TestSloEventProducer(t *testing.T) {
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
 						operatorOptions{
-							Operator: "numberHigherThan", Key: "statusCode", Value: "500",
+							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
@@ -92,7 +92,7 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 				{
 					MetadataMatcherConditionsOptions: []operatorOptions{
 						{
-							Operator: "equalTo",
+							Operator: "isEqualTo",
 							Key:      "name",
 							Value:    "ad.banner",
 						},
@@ -100,12 +100,12 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 					SloMatcher: sloMatcher{},
 					FailureConditionsOptions: []operatorOptions{
 						{
-							Operator: "numberHigherThan",
+							Operator: "numberIsHigherThan",
 							Key:      "prometheusQueryResult",
 							Value:    "6300",
 						},
 						{
-							Operator: "numberEqualOrLessThan",
+							Operator: "numberIsEqualOrLessThan",
 							Key:      "prometheusQueryResult",
 							Value:    "7000",
 						},
@@ -116,11 +116,11 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 			},
 			ExpectedMetric: []metric{
 				{
-					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberHigherThan"},
+					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberIsHigherThan"},
 					Value:  6300,
 				},
 				{
-					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberEqualOrLessThan"},
+					Labels: stringmap.StringMap{"foo": "bar", "name": "ad.banner", "operator": "numberIsEqualOrLessThan"},
 					Value:  7000,
 				},
 			},
