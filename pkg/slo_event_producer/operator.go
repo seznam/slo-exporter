@@ -28,7 +28,7 @@ var operatorFactoryRegistry = map[string]operatorFactory{
 type operatorFactory func() operator
 
 type operator interface {
-	Evaluate(*event.HttpRequest) (bool, error)
+	Evaluate(*event.Raw) (bool, error)
 	LoadOptions(operatorOptions) error
 }
 
@@ -87,7 +87,7 @@ func (n *numberComparisonOperator) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.HttpRequest) (float64, bool, error) {
+func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.Raw) (float64, bool, error) {
 	metadataValue, ok := evaluatedEvent.Metadata[n.key]
 	if !ok {
 		return 0, false, nil
@@ -115,7 +115,7 @@ type numberHigherThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *numberHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -132,7 +132,7 @@ type numberEqualOrHigherThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberEqualOrHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *numberEqualOrHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -149,7 +149,7 @@ type numberEqualOrLessThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberEqualOrLessThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *numberEqualOrLessThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -166,7 +166,7 @@ type numberEqualTo struct {
 	numberComparisonOperator
 }
 
-func (r *numberEqualTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *numberEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -187,7 +187,7 @@ type numberNotEqualTo struct {
 	numberComparisonOperator
 }
 
-func (r *numberNotEqualTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *numberNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -219,7 +219,7 @@ func (r *durationHigherThan) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (r *durationHigherThan) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *durationHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	metadataValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
@@ -251,7 +251,7 @@ func (r *equalsTo) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (r *equalsTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *equalsTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
@@ -283,7 +283,7 @@ func (r *notEqualsTo) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (r *notEqualsTo) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *notEqualsTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
@@ -314,7 +314,7 @@ func (r *matchesRegexp) LoadOptions(options operatorOptions) error {
 	return err
 }
 
-func (r *matchesRegexp) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *matchesRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil
@@ -345,7 +345,7 @@ func (r *notMatchesRegexp) LoadOptions(options operatorOptions) error {
 	return err
 }
 
-func (r *notMatchesRegexp) Evaluate(evaluatedEvent *event.HttpRequest) (bool, error) {
+func (r *notMatchesRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	testedValue, ok := evaluatedEvent.Metadata[r.key]
 	if !ok {
 		return false, nil

@@ -73,7 +73,7 @@ type Tailer struct {
 	observer                pipeline.EventProcessingDurationObserver
 	lineParseRegexp         *regexp.Regexp
 	emptyGroupRegexp        *regexp.Regexp
-	outputChannel           chan *event.HttpRequest
+	outputChannel           chan *event.Raw
 	shutdownChannel         chan struct{}
 	logger                  logrus.FieldLogger
 	done                    bool
@@ -158,7 +158,7 @@ func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 		persistPositionInterval: config.PositionPersistenceInterval,
 		lineParseRegexp:         lineParseRegexp,
 		emptyGroupRegexp:        emptyGroupRegexp,
-		outputChannel:           make(chan *event.HttpRequest),
+		outputChannel:           make(chan *event.Raw),
 		shutdownChannel:         make(chan struct{}),
 		done:                    false,
 		logger:                  logger,
@@ -189,7 +189,7 @@ func (t *Tailer) Done() bool {
 	return t.done
 }
 
-func (t *Tailer) OutputChannel() chan *event.HttpRequest {
+func (t *Tailer) OutputChannel() chan *event.Raw {
 	return t.outputChannel
 }
 
@@ -283,15 +283,15 @@ func (t *Tailer) markOffsetPosition() error {
 	return nil
 }
 
-// buildEvent returns *event.HttpRequest based on input lineData. All named RE match groups are put into new event's metadata map
-func buildEvent(lineData stringmap.StringMap) (*event.HttpRequest, error) {
+// buildEvent returns *event.Raw based on input lineData. All named RE match groups are put into new event's metadata map
+func buildEvent(lineData stringmap.StringMap) (*event.Raw, error) {
 	classification := &event.SloClassification{
 		Domain: lineData[sloDomainGroupName],
 		App:    lineData[sloAppGroupName],
 		Class:  lineData[sloClassGroupName],
 	}
 
-	return &event.HttpRequest{
+	return &event.Raw{
 		Metadata:          lineData,
 		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
@@ -319,7 +319,7 @@ func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, 
 	return lineData, nil
 }
 
-func (t *Tailer) processLine(line string) (*event.HttpRequest, error) {
+func (t *Tailer) processLine(line string) (*event.Raw, error) {
 	lineData, err := parseLine(t.lineParseRegexp, t.emptyGroupRegexp, line)
 	if err != nil {
 		return nil, err

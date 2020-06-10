@@ -36,7 +36,7 @@ func (t testRawIngester) Done() bool {
 	return false
 }
 
-func (t testRawIngester) SetInputChannel(chan *event.HttpRequest) {
+func (t testRawIngester) SetInputChannel(chan *event.Raw) {
 	return
 }
 
@@ -54,8 +54,8 @@ func (t testRawProducer) Done() bool {
 	return false
 }
 
-func (t testRawProducer) OutputChannel() chan *event.HttpRequest {
-	return make(chan *event.HttpRequest)
+func (t testRawProducer) OutputChannel() chan *event.Raw {
+	return make(chan *event.Raw)
 }
 
 type testSloIngester struct{}

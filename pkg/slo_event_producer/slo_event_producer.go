@@ -53,7 +53,7 @@ func New(config sloEventProducerConfig, logger logrus.FieldLogger) (*SloEventPro
 	}
 	return &SloEventProducer{
 		eventEvaluator:       eventEvaluator,
-		inputChannel:         make(chan *event.HttpRequest),
+		inputChannel:         make(chan *event.Raw),
 		outputChannel:        make(chan *event.Slo),
 		logger:               logger,
 		exposeRulesInMetrics: config.ExposeRulesAsMetrics,
@@ -64,7 +64,7 @@ func New(config sloEventProducerConfig, logger logrus.FieldLogger) (*SloEventPro
 type SloEventProducer struct {
 	eventEvaluator       *EventEvaluator
 	observer             pipeline.EventProcessingDurationObserver
-	inputChannel         chan *event.HttpRequest
+	inputChannel         chan *event.Raw
 	outputChannel        chan *event.Slo
 	logger               logrus.FieldLogger
 	exposeRulesInMetrics bool
@@ -79,7 +79,7 @@ func (sep *SloEventProducer) OutputChannel() chan *event.Slo {
 	return sep.outputChannel
 }
 
-func (sep *SloEventProducer) SetInputChannel(channel chan *event.HttpRequest) {
+func (sep *SloEventProducer) SetInputChannel(channel chan *event.Raw) {
 	sep.inputChannel = channel
 }
 
@@ -116,7 +116,7 @@ func (sep *SloEventProducer) observeDuration(start time.Time) {
 	}
 }
 
-func (sep *SloEventProducer) generateSLOEvents(event *event.HttpRequest, sloEventsChan chan<- *event.Slo) {
+func (sep *SloEventProducer) generateSLOEvents(event *event.Raw, sloEventsChan chan<- *event.Slo) {
 	sep.eventEvaluator.Evaluate(event, sloEventsChan)
 }
 

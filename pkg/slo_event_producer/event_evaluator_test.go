@@ -13,7 +13,7 @@ import (
 )
 
 type sloEventTestCase struct {
-	inputEvent        event.HttpRequest
+	inputEvent        event.Raw
 	expectedSloEvents []event.Slo
 	rulesConfig       rulesConfig
 }
@@ -21,7 +21,7 @@ type sloEventTestCase struct {
 func TestSloEventProducer(t *testing.T) {
 	testCases := []sloEventTestCase{
 		{
-			inputEvent: event.HttpRequest{Metadata: stringmap.StringMap{"statusCode": "502"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "502"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
 					SloMatcher:                       sloMatcher{Domain: "domain"},
@@ -40,7 +40,7 @@ func TestSloEventProducer(t *testing.T) {
 			},
 		},
 		{
-			inputEvent: event.HttpRequest{Metadata: stringmap.StringMap{"statusCode": "200"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "200"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
 					SloMatcher:                       sloMatcher{Domain: "domain"},
