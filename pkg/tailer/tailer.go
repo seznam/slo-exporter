@@ -325,7 +325,5 @@ func (t *Tailer) processLine(line string) (*event.Raw, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO refactor once new module for setting eventKey from metadata will be available
-	e.SetEventKey(lineData["eventKey"])
 	return e, err
 }
