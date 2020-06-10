@@ -12,7 +12,7 @@ modules:
     reopen: true
     positionFile: ""
     positionPersistenceInterval: "2s"
-    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
+    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)?\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'
     emptyGroupRE: '^-$'
 
   relabel:
