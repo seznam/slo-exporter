@@ -19,6 +19,7 @@ import (
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/slo_event_producer"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/statistical_classifier"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/tailer"
+	"runtime"
 
 	"log"
 	"net/http"
@@ -130,6 +131,10 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 }
 
 func main() {
+	// Enable mutex and block profiling
+	runtime.SetBlockProfileRate(1)
+	runtime.SetMutexProfileFraction(1)
+
 	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
 	logLevel := kingpin.Flag("log-level", "Log level (error, warn, info, debug,trace).").Default("info").String()
 	checkConfig := kingpin.Flag("check-config", "Only check config file and exit with 0 if ok and other status code if not.").Default("false").Bool()
