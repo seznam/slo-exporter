@@ -25,12 +25,17 @@ modules:
         target_label: "httpPath"
         replacement: "/api/v1/ppchit/rule/0"
 
+      - source_labels: ["eventKey","httpMethod","httpPath"]
+        separator: ":"
+        regex: ":(.*)"
+        target_label: "eventKey"
+        replacement: "$1"
+
   eventKeyGenerator:
     filedSeparator: ":"
     overrideExistingEventKey: false
     metadataKeys:
-      - httpMethod
-      - httpPath
+      - eventKey
 
   dynamicClassifier:
     exactMatchesCsvFiles: []
