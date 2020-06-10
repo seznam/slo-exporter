@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
-	"github.com/prometheus/client_golang/prometheus"
 	"math"
 	"sort"
 	"strconv"
@@ -67,9 +66,11 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 	default:
 		return nil, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
 	}
-	apiQueryTimer := prometheus.NewTimer(prometheusQueryDuration.WithLabelValues(string(q.Query.Type)))
+	start := time.Now()
 	result, warnings, err = q.api.Query(timeoutCtx, query, ts)
-	apiQueryTimer.ObserveDuration()
+	duration := time.Since(start)
+	prometheusQueryDuration.WithLabelValues(string(q.Query.Type)).Observe(float64(duration))
+	q.logger.WithField("query", query).WithField("timestamp", ts).WithField("duration", duration).Debug("executed query")
 	if len(warnings) > 0 {
 		q.logger.WithField("query", query).Warnf("warnings in query execution: %+v", warnings)
 	}
@@ -145,6 +146,10 @@ func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 func (q *queryExecutor) emitEvent(ts time.Time, result float64, metadata stringmap.StringMap) {
 	var quantity float64 = 1
 	if *q.Query.ResultAsQuantity {
+		if result < 0 {
+			q.logger.WithField("event", metadata).WithField("result", result).Error("cannot report negative result as quantity")
+			return
+		}
 		quantity = result
 	}
 	if quantity == 0 {
@@ -178,10 +183,9 @@ type metricIncrease struct {
 }
 
 func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Time) error {
-	bucketIncreases := make(map[float64]metricIncrease)
+	metricBucketIncreases := make(map[string]map[float64]metricIncrease)
 	var (
-		buckets []float64
-		errors  error
+		errors error
 	)
 	for increase := range q.processMatrixResultAsIncrease(matrix, ts) {
 		bucket, ok := increase.metric["le"]
@@ -194,27 +198,41 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 			errors = multierror.Append(errors, fmt.Errorf("histogram metric `%s` has invalid `le` label", increase.metric))
 			continue
 		}
-		bucketIncreases[bucketValue] = increase
-		buckets = append(buckets, bucketValue)
+		metricLabels := stringmap.NewFromMetric(increase.metric).Without([]string{"le"}).String()
+		if _, ok := metricBucketIncreases[metricLabels]; !ok {
+			metricBucketIncreases[metricLabels] = make(map[float64]metricIncrease)
+		}
+		metricBucketIncreases[metricLabels][bucketValue] = increase
 	}
 	if errors != nil {
 		return errors
 	}
-	sort.Float64s(buckets)
-	var previousBucketKey float64 = math.Inf(-1)
-	// Iterate over all buckets and report event with quantity equal to difference of it's and preceding bucket increase.
-	for _, key := range buckets {
-		maxValue := key
-		minValue := previousBucketKey
-		intervalIncrease := bucketIncreases[key].value - bucketIncreases[previousBucketKey].value
-		q.emitEvent(
-			ts,
-			intervalIncrease,
-			stringmap.NewFromMetric(bucketIncreases[key].metric).Merge(stringmap.StringMap{
-				metadataHistogramMinValue: fmt.Sprintf("%g", minValue),
-				metadataHistogramMaxValue: fmt.Sprintf("%g", maxValue),
-			}))
-		previousBucketKey = key
+	for _, metric := range metricBucketIncreases {
+		metricBuckets := make([]float64, len(metric))
+		i := 0
+		for bucket, _ := range metric {
+			metricBuckets[i] = bucket
+			i++
+		}
+		sort.Float64s(metricBuckets)
+		var previousBucketKey float64 = math.Inf(-1)
+		// Iterate over all buckets and report event with quantity equal to difference of it's and preceding bucket increase.
+		for _, key := range metricBuckets {
+			maxValue := key
+			minValue := previousBucketKey
+			intervalIncrease := metric[key].value - metric[previousBucketKey].value
+			if intervalIncrease < 0 {
+				return fmt.Errorf("lower hitogram bucket has higher cumulative count than higher, probably inconsistent data: le=%g %g and le=%g %g", key, metric[key].value, previousBucketKey, metric[previousBucketKey].value)
+			}
+			q.emitEvent(
+				ts,
+				intervalIncrease,
+				stringmap.NewFromMetric(metric[key].metric).Merge(stringmap.StringMap{
+					metadataHistogramMinValue: fmt.Sprintf("%g", minValue),
+					metadataHistogramMaxValue: fmt.Sprintf("%g", maxValue),
+				}))
+			previousBucketKey = key
+		}
 	}
 	return nil
 }
