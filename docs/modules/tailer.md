@@ -28,7 +28,6 @@ positionFile: ""
 positionPersistenceInterval: "2s"
 # Defines RE which is used to parse the log line.
 # Currently known named groups which are used to extract information for generated Events are:
-#   sloResult - see 'honor_slo_result' in 'modules.sloEventProducer.rulesFiles'
 #   sloDomain - part of SLO classification for the given event.
 #   sloApp - part of SLO classification for the given event.
 #   sloClass - part of SLO classification for the given event.
