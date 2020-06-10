@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -146,7 +145,7 @@ func New(conf classifierConfig, logger logrus.FieldLogger) (*DynamicClassifier, 
 }
 
 func (dc *DynamicClassifier) initializeEventsMetric() {
-	labels := []string{"result", "classified_by", "status_code"}
+	labels := []string{"result", "classified_by"}
 	for _, key := range dc.unclassifiedEventMetadataKeys {
 		labels = append(labels, metadataKeyToLabel(key))
 	}
@@ -159,8 +158,8 @@ func (dc *DynamicClassifier) initializeEventsMetric() {
 	)
 }
 
-func (dc *DynamicClassifier) reportEvent(result, classifiedBy, statusCode string, metadata stringmap.StringMap) {
-	labels := stringmap.StringMap{"result": result, "classified_by": classifiedBy, "status_code": statusCode}
+func (dc *DynamicClassifier) reportEvent(result, classifiedBy string, metadata stringmap.StringMap) {
+	labels := stringmap.StringMap{"result": result, "classified_by": classifiedBy}
 	for _, key := range dc.unclassifiedEventMetadataKeys {
 		if result == unclassifiedEventLabel {
 			labels[metadataKeyToLabel(key)] = metadata[key]
@@ -273,13 +272,13 @@ func (dc *DynamicClassifier) Classify(newEvent *event.Raw) (bool, error) {
 	}
 
 	if classification == nil {
-		dc.reportEvent(unclassifiedEventLabel, string(classifiedBy), strconv.Itoa(newEvent.StatusCode), newEvent.Metadata)
+		dc.reportEvent(unclassifiedEventLabel, string(classifiedBy), newEvent.Metadata)
 		return false, classificationErrors
 	}
 
 	dc.logger.Debugf("event '%s' matched by %s matcher", newEvent.EventKey(), classifiedBy)
 	newEvent.UpdateSLOClassification(classification)
-	dc.reportEvent(classifiedEventLabel, string(classifiedBy), "", newEvent.Metadata)
+	dc.reportEvent(classifiedEventLabel, string(classifiedBy), newEvent.Metadata)
 
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
