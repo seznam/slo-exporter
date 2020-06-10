@@ -43,31 +43,6 @@ func getRequestLine(formatMap map[string]string) (requestLine string) {
 	return requestLine
 }
 
-type parseRequestLineTestData struct {
-	request    string
-	method     string
-	requestURI string
-	proto      string
-	err        error
-}
-
-var parseRequestLineTestTable = []parseRequestLineTestData{
-	{"GET / HTTP/1.1", "GET", "/", "HTTP/1.1", nil},
-	{"POST /api/v1/notifications/flash HTTP/2.0", "POST", "/api/v1/notifications/flash", "HTTP/2.0", nil},
-	{"GET /", "GET", "/", "", nil},
-	{"lv[endof]", "", "", "", &InvalidRequestError{"lv[endof]"}},
-}
-
-func TestParseRequestLine(t *testing.T) {
-	for _, test := range parseRequestLineTestTable {
-		method, requestURI, proto, err := parseRequestLine(test.request)
-		assert.IsType(t, test.err, err)
-		assert.Equal(t, test.method, method)
-		assert.Equal(t, test.requestURI, requestURI)
-		assert.Equal(t, test.proto, proto)
-	}
-}
-
 type parseLineTest struct {
 	// lineContentMapping is to be used to generate the request log line via getRequestLine func
 	// (see it for what the defaults are, so that you dont have to fill them for every test case)
