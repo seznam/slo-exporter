@@ -40,7 +40,7 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventRe
 func NewFromConfig(relabelConfig []relabel.Config, logger logrus.FieldLogger) (*eventRelabelManager, error) {
 	relabelManager := eventRelabelManager{
 		relabelConfig: relabelConfig,
-		outputChannel: make(chan *event.HttpRequest),
+		outputChannel: make(chan *event.Raw),
 		logger:        logger,
 	}
 	return &relabelManager, nil
@@ -49,8 +49,8 @@ func NewFromConfig(relabelConfig []relabel.Config, logger logrus.FieldLogger) (*
 type eventRelabelManager struct {
 	relabelConfig []relabel.Config
 	observer      pipeline.EventProcessingDurationObserver
-	inputChannel  chan *event.HttpRequest
-	outputChannel chan *event.HttpRequest
+	inputChannel  chan *event.Raw
+	outputChannel chan *event.Raw
 	done          bool
 	logger        logrus.FieldLogger
 }
@@ -67,11 +67,11 @@ func (r *eventRelabelManager) RegisterMetrics(_ prometheus.Registerer, wrappedRe
 	return wrappedRegistry.Register(droppedEventsTotal)
 }
 
-func (r *eventRelabelManager) SetInputChannel(channel chan *event.HttpRequest) {
+func (r *eventRelabelManager) SetInputChannel(channel chan *event.Raw) {
 	r.inputChannel = channel
 }
 
-func (r *eventRelabelManager) OutputChannel() chan *event.HttpRequest {
+func (r *eventRelabelManager) OutputChannel() chan *event.Raw {
 	return r.outputChannel
 }
 
@@ -91,7 +91,7 @@ func (r *eventRelabelManager) observeDuration(start time.Time) {
 
 // relabelEvent applies the relabel configs on the event metadata.
 // If event is about to be dropped, nil is returned.
-func (r *eventRelabelManager) relabelEvent(event *event.HttpRequest) *event.HttpRequest {
+func (r *eventRelabelManager) relabelEvent(event *event.Raw) *event.Raw {
 	newLabels := event.Metadata.AsPrometheusLabels()
 	for _, relabelConfigRule := range r.relabelConfig {
 		newLabels = relabel.Process(newLabels, &relabelConfigRule)
