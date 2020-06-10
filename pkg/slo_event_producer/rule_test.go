@@ -13,6 +13,7 @@ import (
 )
 
 type ruleTestCase struct {
+	name           string
 	rule           evaluationRule
 	inputEvent     event.Raw
 	outputSloEvent *event.Slo
@@ -22,9 +23,10 @@ type ruleTestCase struct {
 func TestEvaluateEvent(t *testing.T) {
 	testCases := []ruleTestCase{
 		{
+			name: "no metadata_matcher, failure_condition does not match -> successful event",
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
-				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				failureConditions:  []operator{&numberEqualOrHigherThan{numberComparisonOperator{key: "statusCode", value: 500}}},
 				logger:             logrus.New(),
 			},
 			inputEvent: event.Raw{
@@ -35,43 +37,13 @@ func TestEvaluateEvent(t *testing.T) {
 			ok:             true,
 		},
 		{
+			name: "no metadata_matcher, failure_condition does match -> failed event",
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
-				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				honorSloResult:     true,
+				failureConditions:  []operator{&numberEqualOrHigherThan{numberComparisonOperator{key: "statusCode", value: 500}}},
 				logger:             logrus.New(),
 			},
 			inputEvent: event.Raw{
-				SloResult:         string(event.Success),
-				Metadata:          stringmap.StringMap{"statusCode": "502"},
-				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
-			},
-			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
-			ok:             true,
-		},
-		{
-			rule: evaluationRule{
-				additionalMetadata: stringmap.StringMap{},
-				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				honorSloResult:     true,
-				logger:             logrus.New(),
-			},
-			inputEvent: event.Raw{
-				SloResult:         string(event.Fail),
-				Metadata:          stringmap.StringMap{"statusCode": "200"},
-				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
-			},
-			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Fail},
-			ok:             true,
-		},
-		{
-			rule: evaluationRule{
-				additionalMetadata: stringmap.StringMap{},
-				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("502")}},
-				logger:             logrus.New(),
-			},
-			inputEvent: event.Raw{
-				SloResult:         string(event.Success),
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
@@ -79,20 +51,7 @@ func TestEvaluateEvent(t *testing.T) {
 			ok:             true,
 		},
 		{
-			rule: evaluationRule{
-				additionalMetadata: stringmap.StringMap{},
-				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				logger:             logrus.New(),
-			},
-			inputEvent: event.Raw{
-				SloResult:         string(event.Fail),
-				Metadata:          stringmap.StringMap{"statusCode": "502"},
-				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
-			},
-			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
-			ok:             true,
-		},
-		{
+			name: "event is unclassified -> error reported",
 			rule: evaluationRule{
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
@@ -106,6 +65,7 @@ func TestEvaluateEvent(t *testing.T) {
 			ok:             false,
 		},
 		{
+			name: "event does not match the only matcher -> error reported",
 			rule: evaluationRule{
 				sloMatcher:         event.SloClassification{Domain: "foo"},
 				additionalMetadata: stringmap.StringMap{},
@@ -120,21 +80,7 @@ func TestEvaluateEvent(t *testing.T) {
 			ok:             false,
 		},
 		{
-			rule: evaluationRule{
-				sloMatcher:         event.SloClassification{Domain: "domain"},
-				metadataMatcher:    []operator{&matchesRegexp{key: "key", regexp: regexp.MustCompile("value")}},
-				additionalMetadata: stringmap.StringMap{},
-				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
-				logger:             logrus.New(),
-			},
-			inputEvent: event.Raw{
-				Metadata:          stringmap.StringMap{"statusCode": "200", "key": "value"},
-				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
-			},
-			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
-			ok:             true,
-		},
-		{
+			name: "event does not match any matcher -> error reported",
 			rule: evaluationRule{
 				sloMatcher:         event.SloClassification{Domain: "domain"},
 				metadataMatcher:    []operator{&matchesRegexp{key: "key", regexp: regexp.MustCompile("value")}},
@@ -149,11 +95,30 @@ func TestEvaluateEvent(t *testing.T) {
 			outputSloEvent: nil,
 			ok:             false,
 		},
+		{
+			name: "metadata matcher matches, failure_condition does not match -> succesful event",
+			rule: evaluationRule{
+				sloMatcher:         event.SloClassification{Domain: "domain"},
+				metadataMatcher:    []operator{&matchesRegexp{key: "key", regexp: regexp.MustCompile("value")}},
+				additionalMetadata: stringmap.StringMap{},
+				failureConditions:  []operator{&matchesRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
+				logger:             logrus.New(),
+			},
+			inputEvent: event.Raw{
+				Metadata:          stringmap.StringMap{"statusCode": "200", "key": "value"},
+				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
+			},
+			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
+			ok:             true,
+		},
 	}
 
 	for _, tc := range testCases {
-		sloEvent, ok := tc.rule.processEvent(&tc.inputEvent)
-		assert.Equal(t, ok, tc.ok)
-		assert.Equal(t, tc.outputSloEvent, sloEvent, "unexpected result evaluating rule: %+v\n  with conditions: %+v\non event:\n  metadata: %+v\n  classification: %+v", tc.rule, tc.rule.failureConditions[0], tc.inputEvent.Metadata, tc.inputEvent.SloClassification)
+		t.Run(tc.name, func(t *testing.T) {
+			sloEvent, ok := tc.rule.processEvent(&tc.inputEvent)
+			assert.Equal(t, ok, tc.ok)
+			assert.Equal(t, tc.outputSloEvent, sloEvent, "unexpected result evaluating rule: %+v\n  with conditions: %+v\non event:\n  metadata: %+v\n  classification: %+v", tc.rule, tc.rule.failureConditions[0], tc.inputEvent.Metadata, tc.inputEvent.SloClassification)
+
+		})
 	}
 }

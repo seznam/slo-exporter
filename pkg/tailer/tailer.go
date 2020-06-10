@@ -3,15 +3,14 @@ package tailer
 import (
 	"errors"
 	"fmt"
-	"io"
-	"os"
-	"regexp"
-	"time"
-
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"io"
+	"os"
+	"regexp"
+	"time"
 
 	logrusAdapter "github.com/go-kit/kit/log/logrus"
 	"github.com/grafana/loki/pkg/promtail/positions"
@@ -21,14 +20,13 @@ import (
 )
 
 const (
-	sloResultGroupName       = "sloResult"
-	sloDomainGroupName       = "sloDomain"
-	sloAppGroupName          = "sloApp"
-	sloClassGroupName        = "sloClass"
+	sloDomainGroupName = "sloDomain"
+	sloAppGroupName    = "sloApp"
+	sloClassGroupName  = "sloClass"
 )
 
 var (
-	linesReadTotal  = prometheus.NewCounter(prometheus.CounterOpts{
+	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
 
 		Name: "lines_read_total",
 		Help: "Total number of lines tailed from the file.",
@@ -293,7 +291,6 @@ func buildEvent(lineData stringmap.StringMap) (*event.Raw, error) {
 
 	return &event.Raw{
 		Metadata:          lineData,
-		SloResult:         lineData[sloResultGroupName],
 		SloClassification: classification,
 		Quantity:          1,
 	}, nil

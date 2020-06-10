@@ -47,13 +47,6 @@ failure_conditions:
 # Additional metadata that will be exported in the SLO metrics.
 additional_metadata:
   <value>: <value>
-# If the event already contains information about it's result,
-# it will be used and the failure conditions wont apply at all for this event.
-#   if evaluated event's sloResult attribute is nonempty, use its content to determine the event's result (ignoring all failure_criteria)
-#   if value equals event.Result's success value -> event is considered as successful
-#   otherwise, event is considered as failed
-#   if evaluated event's sloResult attribute is empty, failure_criteria are evaluated and events's result is set based on them.
-honor_slo_result: false
 ```
 *Please note that if multiple types of matchers are used in a rule, all of them has to match the given event.*
 
@@ -94,8 +87,6 @@ rules:
     additional_metadata:
       slo_type: availability
       slo_version: 6
-    honor_slo_result: True
-
   - metadata_matcher:
       - operator: matchesRegexp
         key: statusCode
