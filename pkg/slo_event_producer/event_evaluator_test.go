@@ -111,7 +111,6 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"foo": "bar"},
-					HonorSloResult:     false,
 				},
 			},
 			},
