@@ -48,8 +48,8 @@ webServerListenAddress: "0.0.0.0:8080"
 maximumGracefulShutdownDuration: "10s"
 # How long to wait after processing pipeline has been shutdown before stopping http server w metric serving.
 # Useful to make sure metrics are scraped by Prometheus. Ideally set it to Prometheus scrape interval + 1s or more.
-# Should be less or equal to maximumGracefulShutdownDuration
-minimumGracefulShutdownDuration: "1s"
+# Should be less or equal to afterPipelineShutdownDelay
+afterPipelineShutdownDelay: "1s"
 
 # Defines architecture of the pipeline.
 pipeline: [<moduleType>]
