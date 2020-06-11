@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
 	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
 	"io"
 	"os"
 	"regexp"
@@ -17,12 +16,6 @@ import (
 	"github.com/hpcloud/tail"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	sloDomainGroupName = "sloDomain"
-	sloAppGroupName    = "sloApp"
-	sloClassGroupName  = "sloClass"
 )
 
 var (
@@ -281,21 +274,6 @@ func (t *Tailer) markOffsetPosition() error {
 	return nil
 }
 
-// buildEvent returns *event.Raw based on input lineData. All named RE match groups are put into new event's metadata map
-func buildEvent(lineData stringmap.StringMap) (*event.Raw, error) {
-	classification := &event.SloClassification{
-		Domain: lineData[sloDomainGroupName],
-		App:    lineData[sloAppGroupName],
-		Class:  lineData[sloClassGroupName],
-	}
-
-	return &event.Raw{
-		Metadata:          lineData,
-		SloClassification: classification,
-		Quantity:          1,
-	}, nil
-}
-
 // parseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
 // - if content of any of the matched named groups matches emptyGroupRegexp, it is replaced by an empty string ""
@@ -321,9 +299,5 @@ func (t *Tailer) processLine(line string) (*event.Raw, error) {
 	if err != nil {
 		return nil, err
 	}
-	e, err := buildEvent(lineData)
-	if err != nil {
-		return nil, err
-	}
-	return e, err
+	return &event.Raw{Quantity: 1, Metadata: lineData}, nil
 }

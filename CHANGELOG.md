@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING** sloEventProducer: all operators renamed
 - Dynamic classifier no longer exposes status_code label to unclassified events metric, you have to explicitly specify it in the `unclassifiedEventMetadataKeys` configuration option.
 - **BREAKING** Tailer: no longer sets the event key, use the `eventKeyGenerator` module. 
+- **BREAKING** Tailer: no longer sets the SLO classification of the event, use the `metadataClassifier` module.
 
 
 ## [5.6.0] 2020-06-10
