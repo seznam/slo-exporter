@@ -1,7 +1,7 @@
 
 webServerListenAddress: "0.0.0.0:8080"
 
-pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["tailer", "relabel", "eventKeyGenerator", "metadataClassifier", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
@@ -36,6 +36,12 @@ modules:
     overrideExistingEventKey: false
     metadataKeys:
       - eventKey
+
+  metadataClassifier:
+    sloDomainMetadataKey: "sloDomain"
+    sloClassMetadataKey: "sloClass"
+    sloAppMetadataKey: "sloApp"
+    overrideExistingValues: true
 
   dynamicClassifier:
     exactMatchesCsvFiles: []
