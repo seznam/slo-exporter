@@ -56,12 +56,3 @@ func (c *Config) ModuleConfig(moduleName string) (*viper.Viper, error) {
 	subConfig.AutomaticEnv()
 	return subConfig, nil
 }
-
-// TODO FUSAKLA: remove once we have dynamic module loading
-func (c *Config) MustModuleConfig(moduleName string) *viper.Viper {
-	conf, err := c.ModuleConfig(moduleName)
-	if err != nil {
-		c.logger.Fatalf("failed to load %s configuration: %+v", moduleName, err)
-	}
-	return conf
-}
