@@ -203,7 +203,7 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 				continue
 			}
 		}
-		parsedEvent, err := buildEvent(data)
+		parsedEvent := &event.Raw{Metadata: data}
 
 		var expectedEvent *event.Raw
 
@@ -216,20 +216,11 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 					delete(test.lineContentMapping, k)
 				}
 			}
-			expectedEvent, err = buildEvent(test.lineContentMapping)
-			if err != nil {
-				t.Fatalf("Unable to build event from test data: %v", err)
-			}
+			expectedEvent = &event.Raw{Metadata: test.lineContentMapping}
 			if !reflect.DeepEqual(expectedEvent, parsedEvent) {
 				t.Errorf("Unexpected result of parse line: %s\nGot: %+v\nExpected: %+v", requestLine, parsedEvent, expectedEvent)
 			}
-		} else {
-			// line is not valid, just check that err is returned
-			if err == nil {
-				t.Errorf("Line wrongly considered as valid: %s", requestLine)
-			}
 		}
-
 	}
 }
 
