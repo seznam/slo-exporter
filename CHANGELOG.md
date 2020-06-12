@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [6.0.0] 2020-06-12
 ### Changed
 - **BREAKING** Dropped the `normalizer` module in favour of the `relabel` and `eventKeyGenerator` modules.
   Those can be used to sanitize metadata values and compose the event key from any metadata keys.
@@ -14,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dynamic classifier no longer exposes status_code label to unclassified events metric, you have to explicitly specify it in the `unclassifiedEventMetadataKeys` configuration option.
 - **BREAKING** Tailer: no longer sets the event key, use the `eventKeyGenerator` module. 
 - **BREAKING** Tailer: no longer sets the SLO classification of the event, use the `metadataClassifier` module.
-
 
 ## [5.6.0] 2020-06-10
 ### Added
