@@ -12,7 +12,7 @@ slo-exporter is golang tool used for
  * exporting SLO metrics based on the processed events
 
 ## Architecture
-It is built using [the pipeline pattern](https://blog.golang.org/pipelines). 
+It is built using [the pipeline pattern](https://blog.golang.org/pipelines).
 The processed event is passed from one module to another to allow it's modification or filtering
 for the final state to be reported as an SLI event.
 
@@ -73,7 +73,7 @@ Possible `moduleType`:
 - ingesters:
     - [`prometheusExporter`](./docs/modules/prometheus_exporter.md)
 
-Details how they work and their `moduleConfig` can be found in their own 
+Details how they work and their `moduleConfig` can be found in their own
 linked documentation in the [docs/modules](./docs/modules) folder.
 
 #### Configuration examples
@@ -91,7 +91,7 @@ make
 If you need to dynamically change the log level of the application, you can use the `/logging` HTTP endpoint.
 To set the log level use the `POST` method with URL parameter `level` of value `error`, `warning`, `info` or `debug`.
 
-Example using `cURL` 
+Example using `cURL`
 ```bash
 # Use GET to get current log level.
 $ curl -s http://0.0.0.0:8080/logging
@@ -103,7 +103,7 @@ logging level set to: info
 ```
 
 #### Profiling
-In case of issues with leaking resources for example, slo-exporter supports the 
+In case of issues with leaking resources for example, slo-exporter supports the
 Go profiling using pprof on `/debug/pprof/` web interface path. For usage see the official [docs](https://golang.org/pkg/net/http/pprof/).
 
 
@@ -115,15 +115,5 @@ Event normalization can be done using the `relabel` module, see [its documentati
 ### How to deal with malformed lines?
 Before !87. If you are seeing too many malformed lines then you should inspect [tailer package](pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
 After !87, slo-exporter main config supports to specify custom regular expression in field `.module.tailer.loglineParseRegexp`.
-
-### How to deploy slo-exporter?
-slo-exporter can be deployed as:
- 1. sidecar container application tailing local (emptydir) (proxy) logs
-     * manifest example can be found in [userproxy repository](https://gitlab.seznam.net/sklik-frontend/Proxies/tree/master/userproxy/kubernetes)
- 1. standalone application tailing remote logs using [`htail` web page tailer over http](https://gitlab.seznam.net/Sklik-DevOps/htail)
-     * manifest example can be found in [kubernetes directory](kubernetes/)
-
-
-
 
 - [Code coverage](https://sklik-devops.gitlab.seznam.net/slo-exporter/coverage.html)
