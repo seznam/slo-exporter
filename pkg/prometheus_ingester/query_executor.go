@@ -69,7 +69,7 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 	start := time.Now()
 	result, warnings, err = q.api.Query(timeoutCtx, query, ts)
 	duration := time.Since(start)
-	prometheusQueryDuration.WithLabelValues(string(q.Query.Type)).Observe(float64(duration))
+	prometheusQueryDuration.WithLabelValues(string(q.Query.Type)).Observe(duration.Seconds())
 	q.logger.WithField("query", query).WithField("timestamp", ts).WithField("duration", duration).Debug("executed query")
 	if len(warnings) > 0 {
 		q.logger.WithField("query", query).Warnf("warnings in query execution: %+v", warnings)
