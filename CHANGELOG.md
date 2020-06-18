@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+- PrometheusIngester: Fixed unit of the `slo_exporter_prometheus_ingester_query_duration_seconds_bucket` metric.
+
 ## [6.0.0] 2020-06-12
 ### Changed
 - **BREAKING** Dropped the `normalizer` module in favour of the `relabel` and `eventKeyGenerator` modules.
