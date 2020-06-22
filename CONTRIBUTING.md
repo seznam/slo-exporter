@@ -45,7 +45,7 @@ Before creating bug reports, please check [this list](#before-submitting-a-bug-r
 #### Before Submitting A Bug Report
 
 * **Check the [debugging guide](docs/operating.md).** You might be able to find the cause of the problem and fix things yourself. Most importantly, check if you can reproduce the problem in the latest version of slo-exporter.
-* **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3Aslo-exporter)** to see if the problem has already been reported. If it has **and the issue is still open**, add a comment to the existing issue instead of opening a new one.
+* **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+repo%3Aslo-exporter)** to see if the problem has already been reported. If it has **and the issue is still open**, add a comment to the existing issue instead of opening a new one.
 
 #### How Do I Submit A (Good) Bug Report?
 
@@ -82,7 +82,7 @@ Before creating enhancement suggestions, please check [this list](#before-submit
 #### Before Submitting An Enhancement Suggestion
 
 * **Check the [debugging guide](docs/operating.md)** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version and if you can get the desired behavior by changing [configuration settings](docs/configuration.md).
-* **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3Aslo-exporter)** to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
+* **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+repo%3Aslo-exporter)** to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
 
 #### How Do I Submit A (Good) Enhancement Suggestion?
 
