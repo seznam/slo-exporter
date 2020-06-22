@@ -1,6 +1,6 @@
 # Contribution guide
 
-:+1::tada: First off, thanks for taking the time to contribute! :tada::+1:
+    :tada: First off, thanks for taking the time to contribute! :tada:
 
 The following is a set of guidelines for contributing to slo-exporter and its packages, which are hosted in the [Seznam Organization on GitHub](https://github.com/seznam). These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
