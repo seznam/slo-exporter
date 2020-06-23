@@ -1,1 +1,3 @@
-# TODO add prometheus alerts and how to use them
+# Prometheus alerts and recording rules
+
+- [alerts](./alerts.yaml) contains examples of alerts based on slo-exporter's application metrics
