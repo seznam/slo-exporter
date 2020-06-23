@@ -1,0 +1,88 @@
+# This file contains an example set of alerts based on slo-exporter's application metrics.
+#
+groups:
+- name: slo-exporter-alerts
+  rules:
+    - alert: SloExporterNotUp
+      expr: (label_replace(avg_over_time(up{instance=~"slo-exporter.*"}[4m]), "pod", "$1", "instance", "(.*)") < 0.9) and on(namespace, pod) (kube_pod_status_ready{condition="true"}==1)
+      for: 10m
+      labels:
+        severity: critical
+      annotations:
+        title: Prometheus failed to scrape SLO exporter metrics.
+        description: Slo-exporter metrics cannot be scraped for more than 10 minutes.
+
+    - alert: SloExporterNoNewLines
+      expr: rate(slo_exporter_tailer_lines_read_total[1m]) == 0
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        title: No new lines has been processed in last 10m.
+        description: SLO exporter did not process any new lines in last 10m.
+
+    - alert: SloExporterFallingBehindShort
+      expr: (slo_exporter_tailer_file_size_bytes{} - slo_exporter_tailer_file_offset_bytes{}) > 1024^2
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        title: Slo-exporter falling behind in processing of the tailed file.
+        description: SLO exporter does not keep up with the amount of new logs, there is more than 1MB of unproccessed data for more than 10m.
+
+    - alert: SloExporterFallingBehindLong
+      expr: (slo_exporter_tailer_file_size_bytes{} - slo_exporter_tailer_file_offset_bytes{}) > 1024^2
+      for: 2h
+      labels:
+        severity: critical
+      annotations:
+        title: Long-term falling behind in processing of the tailed file.
+        description: SLO exporter does not keep up with the amount of new logs, there is more than 1MB of unproccessed data for more than 2h.
+
+    - alert: SloExporterMalformedLines
+      expr: increase(slo_exporter_tailer_malformed_lines_total{}[10m]) > 100
+      labels:
+        severity: warning
+      annotations:
+        title: There is higher number of malformed lines.
+        description: SLO exporter tailer failed to process {{$value}} lines in last 10m.
+
+    - alert: SloExporterPrometheusIngesterUnsupportedQueryResult
+      expr: increase(slo_exporter_prometheus_ingester_unsupported_query_result_type_total{}[10m]) > 10
+      labels:
+        severity: critical
+      annotations:
+        title: Prometheus ingester query returns an unsupported type.
+        description: SLO exporter Prometheus ingester module failed to process {{$value}} results in last 10m.
+
+    - alert: SloExporterPrometheusIngesterQueryFails
+      expr: increase(slo_exporter_prometheus_ingester_query_fails_total{}[10m]) > 10
+      labels:
+        severity: critical
+      annotations:
+        title: Prometheus ingester fails to execute query.
+        description: SLO exporter Prometheus ingester module failed to execute {{$value}} queries in last 10m.
+
+    - alert: SloExporterEventsNotMatchingAnyRules
+      expr: increase(slo_exporter_slo_event_producer_events_not_matching_any_rule{}[1m]) > 0
+      labels:
+        severity: warning
+      annotations:
+        title: Some events did not match any SLO evaluation rule.
+        description: SLO exporter encountered {{$value}} events which did not match any SLO evaluation rules in last 1m.
+
+    - alert: SloExporterEventKeyLimitExceeded
+      expr: slo_exporter_prometheus_exporter_event_keys{} >= slo_exporter_prometheus_exporter_event_keys_limit{}
+      labels:
+        severity: warning
+      annotations:
+        title: The limit of event keys in Prometheus metrics exceeded.
+        description: SLO exporter hit the limit of maximum unique event keys exposed in Prometheus metrics, from now on it replaces any new encountered with placeholder.
+
+    - alert: SloExporterUnclassifiedEvents
+      expr: sum(slo_exporter_dynamic_classifier_events_processed_total{result="unclassified", status_code!~"[45].."}) by (namespace)
+      labels:
+        severity: warning
+      annotations:
+        title: Unclassified endpoints occured.
+        description: SLO exporter is unable to classify some events.
