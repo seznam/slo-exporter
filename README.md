@@ -5,8 +5,7 @@ Slo-exporter is a tool that allows you to compute standardized SLO metrics
 based on events coming from various data sources. It follows principles from
 [the SRE Workbook](https://landing.google.com/sre/workbook).
 With already prepared [examples](examples/README.md), [Prometheus alert rules](prometheus_rules/README.md) and [Grafana dashboards](grafana_dashboards/README.md) you can easily
-start to alert on SLO in your infrastructure.  
-
+start to alert on SLO in your infrastructure.
 
 ## Motivation
 After more than year of experience of maintaining SLO alerting based on application metrics

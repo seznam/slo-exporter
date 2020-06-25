@@ -1,5 +1,4 @@
 # This file contains an example set of alerts based on slo-exporter's application metrics.
-#
 groups:
 - name: slo-exporter-alerts
   rules:
@@ -22,7 +21,7 @@ groups:
         description: SLO exporter did not process any new lines in last 10m.
 
     - alert: SloExporterFallingBehindShort
-      expr: (slo_exporter_tailer_file_size_bytes{} - slo_exporter_tailer_file_offset_bytes{}) > 1024^2
+      expr: (slo_exporter_tailer_file_size_bytes - slo_exporter_tailer_file_offset_bytes) > 1024^2
       for: 10m
       labels:
         severity: warning
@@ -31,7 +30,7 @@ groups:
         description: SLO exporter does not keep up with the amount of new logs, there is more than 1MB of unproccessed data for more than 10m.
 
     - alert: SloExporterFallingBehindLong
-      expr: (slo_exporter_tailer_file_size_bytes{} - slo_exporter_tailer_file_offset_bytes{}) > 1024^2
+      expr: (slo_exporter_tailer_file_size_bytes - slo_exporter_tailer_file_offset_bytes) > 1024^2
       for: 2h
       labels:
         severity: critical
@@ -40,7 +39,7 @@ groups:
         description: SLO exporter does not keep up with the amount of new logs, there is more than 1MB of unproccessed data for more than 2h.
 
     - alert: SloExporterMalformedLines
-      expr: increase(slo_exporter_tailer_malformed_lines_total{}[10m]) > 100
+      expr: increase(slo_exporter_tailer_malformed_lines_total[10m]) > 100
       labels:
         severity: warning
       annotations:
@@ -48,7 +47,7 @@ groups:
         description: SLO exporter tailer failed to process {{$value}} lines in last 10m.
 
     - alert: SloExporterPrometheusIngesterUnsupportedQueryResult
-      expr: increase(slo_exporter_prometheus_ingester_unsupported_query_result_type_total{}[10m]) > 10
+      expr: increase(slo_exporter_prometheus_ingester_unsupported_query_result_type_total[10m]) > 10
       labels:
         severity: critical
       annotations:
@@ -56,7 +55,7 @@ groups:
         description: SLO exporter Prometheus ingester module failed to process {{$value}} results in last 10m.
 
     - alert: SloExporterPrometheusIngesterQueryFails
-      expr: increase(slo_exporter_prometheus_ingester_query_fails_total{}[10m]) > 10
+      expr: increase(slo_exporter_prometheus_ingester_query_fails_total[10m]) > 10
       labels:
         severity: critical
       annotations:
@@ -64,7 +63,7 @@ groups:
         description: SLO exporter Prometheus ingester module failed to execute {{$value}} queries in last 10m.
 
     - alert: SloExporterEventsNotMatchingAnyRules
-      expr: increase(slo_exporter_slo_event_producer_events_not_matching_any_rule{}[1m]) > 0
+      expr: increase(slo_exporter_slo_event_producer_events_not_matching_any_rule[1m]) > 0
       labels:
         severity: warning
       annotations:
@@ -72,7 +71,7 @@ groups:
         description: SLO exporter encountered {{$value}} events which did not match any SLO evaluation rules in last 1m.
 
     - alert: SloExporterEventKeyLimitExceeded
-      expr: slo_exporter_prometheus_exporter_event_keys{} >= slo_exporter_prometheus_exporter_event_keys_limit{}
+      expr: slo_exporter_prometheus_exporter_event_keys >= slo_exporter_prometheus_exporter_event_keys_limit
       labels:
         severity: warning
       annotations:

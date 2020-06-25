@@ -1,0 +1,43 @@
+# SLO events rate coefficient is a multiplicator which make sure that SLO burn rate alerts are triggered
+# not only depending on the absolute burn rate threshold, but also depending on the current traffic rate.
+# In other words,
+# - generally lower burn rate is needed in order to trigger an alert when current traffic rate is higher than long term average
+# - generally higher burn rate is tolerated if current traffic rate is lower than the long term average
+groups:
+  - name: slo-events-rate-coefficient
+    # every slo:events_rate_coefficient is multiplied by a constant which normalizes the difference of time_ranges
+    # it is needed because slo:events_over_time is computed using increase rather than rate (in which case this wouldn't be needed)
+    interval: 1m
+    rules:
+      - record: slo:events_rate_coefficient
+        expr:
+            (sum(slo:events_over_time{slo_time_range="1h"}) without (result) * 24*28 )
+            / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
+            sum(slo:events_over_time{slo_time_range="4w"}) without (result)
+        labels:
+          slo_time_range: 1h
+
+      - record: slo:events_rate_coefficient
+        expr:
+            (sum(slo:events_over_time{slo_time_range="6h"}) without (result) * 4*28 )
+            / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
+            sum(slo:events_over_time{slo_time_range="4w"}) without (result)
+        labels:
+          slo_time_range: 6h
+
+      - record: slo:events_rate_coefficient
+        expr:
+            (sum(slo:events_over_time{slo_time_range="1d"}) without (result) * 28 )
+            / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
+            sum(slo:events_over_time{slo_time_range="4w"}) without (result)
+        labels:
+          slo_time_range: 1d
+
+      - record: slo:events_rate_coefficient
+        expr:
+            (sum(slo:events_over_time{slo_time_range="3d"}) without (result) * 28/3 )
+            / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
+            sum(slo:events_over_time{slo_time_range="4w"}) without (result)
+        labels:
+          slo_time_range: 3d
+

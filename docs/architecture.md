@@ -9,8 +9,9 @@ for various use cases and event types.
 
 ### Event Types
 Slo-exporter differentiates between two event types:
+
 ##### Raw
-This is an event which came from the data source, it has metadata and quantity 
+This is an event which came from the data source, it has metadata and quantity
 and you can set its event key which will be in the resulting metrics and can be used for classification of the event.
 
 ##### SLO event
