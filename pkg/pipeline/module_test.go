@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/event"
 )
 
 func testModuleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (Module, error) {

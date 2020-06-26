@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/event"
 )
 
 func TestArchive(t *testing.T) {

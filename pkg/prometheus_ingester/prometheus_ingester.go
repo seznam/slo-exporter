@@ -14,8 +14,8 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
 const (

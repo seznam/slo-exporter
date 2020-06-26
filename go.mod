@@ -1,4 +1,4 @@
-module gitlab.seznam.net/sklik-devops/slo-exporter
+module github.com/seznam/slo-exporter
 
 go 1.14
 
