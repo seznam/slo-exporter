@@ -5,8 +5,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/pipeline"
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"time"
 )
 

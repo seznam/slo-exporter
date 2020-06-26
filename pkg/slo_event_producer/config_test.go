@@ -5,7 +5,7 @@ package slo_event_producer
 
 import (
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"testing"
 )
 

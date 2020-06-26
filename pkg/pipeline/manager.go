@@ -7,7 +7,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/config"
+	"github.com/seznam/slo-exporter/pkg/config"
 	"strings"
 	"time"
 )

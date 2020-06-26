@@ -3,7 +3,7 @@ package event_key_generator
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"testing"
 )
 

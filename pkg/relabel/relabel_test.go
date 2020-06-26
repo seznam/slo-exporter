@@ -4,7 +4,7 @@ import (
 	"github.com/prometheus/prometheus/pkg/relabel"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/event"
 	"gopkg.in/yaml.v2"
 	"testing"
 )

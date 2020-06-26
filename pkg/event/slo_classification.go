@@ -3,7 +3,7 @@ package event
 import (
 	"fmt"
 
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
 type SloClassification struct {
