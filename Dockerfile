@@ -1,4 +1,4 @@
-FROM docker.dev.dszn.cz/debian:stretch
+FROM debian:stable
 
 COPY slo_exporter  /slo_exporter/
 COPY Dockerfile /
@@ -26,10 +26,10 @@ LABEL maintainer="sklik.devops@firma.seznam.cz" \
       org.label-schema.build-ci-host-name="$BUILD_HOSTNAME" \
       org.label-schema.version=$VERSION \
       org.label-schema.name="slo-exporter" \
-      org.label-schema.description="Prometheus Gitlab Notifier" \
-      org.label-schema.usage="https://gitlab.seznam.net/sklik-devops/slo-exporter" \
-      org.label-schema.url="https://gitlab.seznam.net/sklik-devops/slo-exporter" \
-      org.label-schema.vcs-url="git@gitlab.seznam.net:sklik-devops/slo-exporter.git" \
+      org.label-schema.description="SLO exporter" \
+      org.label-schema.usage="https://github.com/seznam/slo-exporter" \
+      org.label-schema.url="https://github.com/seznam/slo-exporter" \
+      org.label-schema.vcs-url="git@github.com:seznam/slo-exporter.git" \
       org.label-schema.vcs-ref=$VCS_REF \
       org.label-schema.docker.dockerfile="/Dockerfile" \
       org.label-schema.docker.cmd="docker run <image> --help"
