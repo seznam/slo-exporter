@@ -1,0 +1,1 @@
+example-domain,example-app,critical,"^(GET|POST|HEAD|PUT|DELETE):.*"

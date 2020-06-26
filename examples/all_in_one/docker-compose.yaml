@@ -1,0 +1,70 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx
+    volumes:
+      - "./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "./nginx/static:/nginx/static:ro"
+      - "nginx-logs:/nginx/logs/"
+
+  slo-exporter:
+    image: seznam/slo-exporter:6.1.0
+    depends_on:
+      - nginx
+    ports:
+      - 8001:8001
+    working_dir: /slo-exporter
+    command:
+      - "--config-file=/slo-exporter/conf/slo_exporter.yaml"
+    volumes:
+      - ./slo-exporter/conf:/slo-exporter/conf/
+      - nginx-logs:/logs/
+
+  slo-event-generator:
+    image: nginx
+    entrypoint: /bin/bash
+    command: -c 'while true; do
+                  for i in `seq 20`; do curl -s http://nginx:8080/ >/dev/null 2>&1 ; done;
+                  for i in `seq $$(($$RANDOM % 3))`; do curl -s http://nginx:8080/err  >/dev/null 2>&1 ; done;
+                  curl -m 1 -s http://nginx:8080/drop >/dev/null 2>&1 >/dev/null || true;
+                  echo -n ".";
+                  sleep 5;
+                done'
+
+  prometheus:
+    image: prom/prometheus:latest
+    depends_on:
+      - slo-exporter
+    ports:
+      - 9090:9090
+    environment:
+      PROMETHEUS_CONFIG: |
+        {
+          "scrape_configs":[{
+            "job_name": "slo-exporter",
+            "scrape_interval": "2s",
+            "static_configs":[
+              {"targets":["slo-exporter:8001"]},
+              ],
+            }],
+           "rule_files": ["/prometheus/recording_rules/*yaml", "/prometheus/recording_rules/slo/*yaml"]
+        }
+    entrypoint: ["sh"]
+    command:
+      - "-c"
+      - 'echo $$PROMETHEUS_CONFIG > /etc/prometheus/prometheus.yml; prometheus --config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus/recording_rules:/prometheus/recording_rules
+
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+
+volumes:
+  nginx-logs:
