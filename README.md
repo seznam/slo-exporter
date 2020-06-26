@@ -1,9 +1,4 @@
 # SLO exporter
-
-[![pipeline status](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/pipeline.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
-[![coverage report](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/badges/master/coverage.svg)](https://gitlab.seznam.net/Sklik-DevOps/slo-exporter/commits/master)
-[![godoc badge](https://godoc.org/github.com/prometheus/prometheus?status.svg)](https://sklik-devops.gitlab.seznam.net/slo-exporter/godoc/pkg/gitlab.seznam.net/sklik-devops/slo-exporter/)
-
 [CHANGELOG](./CHANGELOG.md)
 
 Slo-exporter is a tool that allows you to compute standardized SLO metrics
