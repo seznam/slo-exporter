@@ -3,7 +3,7 @@ package prometheus_exporter
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/stringmap"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"strings"
 	"sync"
 )

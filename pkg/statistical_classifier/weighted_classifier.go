@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/event"
 	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/sampleuv"
 )

@@ -4,7 +4,7 @@ package dynamic_classifier
 //revive:enable:var-naming
 
 import (
-	"gitlab.seznam.net/sklik-devops/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/event"
 	"io"
 )
 
