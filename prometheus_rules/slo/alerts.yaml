@@ -37,8 +37,6 @@ groups:
 # The burn-rate threshold of 13.44 is such that given an average request rate,
 # the alert would fire on consuming 2 % of 28-day error budget over the last hour.
 #
-- name: slo-burn-rate-1h-alerts-low-traffic
-  rules:
 
 - name: slo-burn-rate-1h-alerts-critical
   rules:
