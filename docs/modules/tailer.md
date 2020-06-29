@@ -7,7 +7,7 @@
 | Output event   | `raw`       |
 
 This module is able to tail file and parse each line using regular expression with named groups.
-Those group names are used as metadata keys of the produces event and values are the matching strings. 
+Those group names are used as metadata keys of the produces event and values are the matching strings.
 
 It persists the last read position to file, so it can continue if restarted.
 
@@ -17,7 +17,7 @@ so you can calculate SLO for your HTTP servers etc.
 `moduleConfig`
 ```yaml
 # Path to file to be processed.
-tailedFile: "/tmp/szn-logy/access_log"
+tailedFile: "/logs/access_log"
 # If tailed file should be followed for new lines once all current lines are processed.
 follow: true
 # If tailed file should be reopened.

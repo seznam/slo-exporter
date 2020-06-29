@@ -28,5 +28,3 @@ Event normalization can be done using the `relabel` module, see [its documentati
 ### How to deal with malformed lines?
 Before !87. If you are seeing too many malformed lines then you should inspect [tailer package](pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
 After !87, slo-exporter main config supports to specify custom regular expression in field `.module.tailer.loglineParseRegexp`.
-
-- [Code coverage](https://sklik-devops.gitlab.seznam.net/slo-exporter/coverage.html)

@@ -79,7 +79,7 @@ Example of intended use case(s):
 - generating SLO events based on metric of type `counter`
 
 ```
-  - query: "job_duration_seconds_count{namespace=~'sklik-production', app='export-manager'}"
+  - query: "job_duration_seconds_count{namespace=~'production', app='export-manager'}"
     interval: 20s
     type: "counter_increase"
     dropLabels:
@@ -91,7 +91,7 @@ Supported result for this type of query: Matrix. [See Prometheus API documentati
 This query type is special case of the previous `counter_increase`. It uses the prometheus `histogram` metric
 which is composed by a set of counters which serves to observe distribution of some event observed value.
 Prometheus ingester then generates events with values of max and min possible value based on the `le`
-bucket distribution of the queried histogram. 
+bucket distribution of the queried histogram.
 
 ```
   - query: "request_duration_seconds_bucket{app='export-manager'}"
