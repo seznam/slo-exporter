@@ -24,80 +24,35 @@ groups:
 #
 # Calculation:
 # 1. It uses pre-calculated burn-rates over two time ranges
-#   1.1 It is multiplied by the rate coefficient
-#   1.2 It is multiplied by `slo:stable_version{enabled!="false"}` to select the current stable enabled slo version
-#   1.3 It is compared with a burn-rate threshold selected for the given time range
+#   1.1 It is multiplied by `slo:stable_version{enabled!="false"}` to select the current stable enabled slo version
+#   1.2 It is compared with a burn-rate threshold selected for the given time range
 # 2. Both conditions are joined with an `and` on specified labels
 #
 # Note:
 # 1. Every alert has a long window and a short window. The long window is the important one.
 #    The shorter window is supposed to prevent alert firing after an issue has been solved.
-# 1. Rate coefficient is used to adjust the burn-rate according to current rate of events.
-#    Both time windows use the coefficient for the rate in the long window.
-
-groups:
 
 # One hour alert
 #
 # The burn-rate threshold of 13.44 is such that given an average request rate,
 # the alert would fire on consuming 2 % of 28-day error budget over the last hour.
 #
-# There are two alerts' severities based on the traffic volume:
-# - if traffic is "very low" (e.g. <= 5 failed requests) then it is not critical and TICKET is sufficient
-# - otherwise the alert is critical and has to be solved immediately
 - name: slo-burn-rate-1h-alerts-low-traffic
   rules:
-
-  # This alert gets severity from current_severity_level_info which is critical during working hours, warning outsite of working hours
-  - alert: SloOneHourAlertLowTraffic
-    # There have been less then 5 failed requests in the last hour
-    expr: (
-        (
-          slo:burn_rate{slo_time_range="1h"}
-          * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h"}
-          * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
-          > 13.44
-        )
-        and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
-        (
-          slo:burn_rate{slo_time_range="5m"}
-          * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h"}
-          * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
-          > 13.44
-        )
-        and on(slo_class, slo_domain, slo_version, slo_type, namespace)
-        (
-          slo:events_over_time{slo_time_range="1h", result="fail"} <= 5
-        )
-      )
-    labels:
-      severity: warning
-      alert_type: high_burnrate
-    annotations:
-      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (last hour, low traffic)"
-      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last hour is {{ printf \"%.1f\" $value }}"
-      playbook: on-call/high-burn-rate.md
 
 - name: slo-burn-rate-1h-alerts-critical
   rules:
   - alert: SloOneHourAlert
-    # There have been more than 5 failed requests in the last hour
     expr: (
         slo:burn_rate{slo_time_range="1h"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 13.44
       )
       and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
       (
         slo:burn_rate{slo_time_range="5m"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 13.44
-      )
-      and on(slo_class, slo_domain, slo_version, slo_type, namespace)
-      (
-        slo:events_over_time{slo_time_range="1h", result="fail"} > 5
       )
     labels:
       severity: critical
@@ -111,65 +66,21 @@ groups:
   #
   # The burn-rate threshold of 5.6 is such that given an average request rate,
   # the alert would fire on consuming 5% of 28-day error budget over the last six hours.
-  #
-  # There are two alerts' severities based on the traffic volume:
-  # - if traffic is "very low" (e.g. less then 10 failed requests) then it is not critical and TICKET is sufficient
-  # - otherwise the alert is critical and has to be solved imediatelly
-
-- name: slo-burn-rate-6h-alerts-low-traffic
-  rules:
-
-  # This alert gets severity from current_severity_level_info which is critical during working hours, warning outsite of working hours
-  - alert: SloSixHourAlertLowTraffic
-    # There have been less then 10 failed requests in the past 6 hours
-    expr:
-        (
-            (
-              slo:burn_rate{slo_time_range="6h"}
-              * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
-              * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
-              > 5.6
-            )
-            and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
-            (
-              slo:burn_rate{slo_time_range="30m"}
-              * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
-              * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
-              > 5.6
-            )
-            and on(slo_class, slo_domain, slo_version, slo_type, namespace)
-            (
-              slo:events_over_time{slo_time_range="6h", result="fail"} <= 10
-            )
-        ) * on () group_left(severity) max(current_severity_level_info) by (severity)
-    labels:
-      alert_type: high_burnrate
-    annotations:
-      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (6 hours, low traffic)"
-      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last 6 hours is {{ printf \"%.1f\" $value }}"
-      playbook: on-call/high-burn-rate.md
 
 - name: slo-burn-rate-6h-alerts-critical
   rules:
   - alert: SloSixHourAlert
-    # There have been more more the 10 failed requests in the past 6 hours
     expr:
       (
         slo:burn_rate{slo_time_range="6h"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 5.6
       )
       and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
       (
         slo:burn_rate{slo_time_range="30m"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 5.6
-      )
-      and on(slo_class, slo_domain, slo_version, slo_type, namespace)
-      (
-        slo:events_over_time{slo_time_range="6h", result="fail"} > 10
       )
     labels:
       severity: critical
@@ -188,14 +99,12 @@ groups:
   - alert: SloOneDayAlert
     expr: (
         slo:burn_rate{slo_time_range="1d"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1d"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 2.8
       )
       and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
       (
         slo:burn_rate{slo_time_range="2h"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1d"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 2.8
       )
@@ -218,14 +127,12 @@ groups:
     expr:
       (
         slo:burn_rate{slo_time_range="3d"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="3d"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 1
       )
       and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
       (
         slo:burn_rate{slo_time_range="6h"}
-        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="3d"}
         * on(slo_version, slo_domain, namespace) group_left() slo:stable_version{enabled!="false"}
         > 1
       )

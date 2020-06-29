@@ -11,12 +11,11 @@ groups:
         expr: 1
         labels:
           slo_version: 6
-          namespace: production-k8s-namespace
+          namespace: "test"
           slo_domain: example-domain
           enabled: true
 
   # slo thresholds for individual domains, slo_classes and slo_types
-  # as name implies, value of each tresholds is % threshold
   - name: slo-thresholds
     interval: 5s
     rules:
@@ -26,7 +25,7 @@ groups:
         slo_class: critical
         slo_domain: example-domain
         slo_version: 6
-        namespace: production-k8s-namespace
+        namespace: "test"
         slo_type: availability
     # latency slo_types contains additional metadata
     # le - threshold (in seconds) used to determine individual SLO event's result
@@ -37,7 +36,7 @@ groups:
         slo_class: critical
         slo_domain: example-domain
         slo_version: 6
-        namespace: production-k8s-namespace
+        namespace: "test"
         slo_type: latency90
         percentile: 90
         le: 6.0
@@ -47,7 +46,7 @@ groups:
         slo_class: critical
         slo_domain: example-domain
         slo_version: 6
-        namespace: production-k8s-namespace
+        namespace: "test"
         slo_type: latency99
         percentile: 99
         le: 12.0
