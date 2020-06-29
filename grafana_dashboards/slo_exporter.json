@@ -105,17 +105,6 @@
   "graphTooltip": 1,
   "id": null,
   "iteration": 1592814420019,
-  "links": [
-    {
-      "icon": "doc",
-      "tags": [],
-      "targetBlank": true,
-      "title": "Kibana logs",
-      "tooltip": "",
-      "type": "link",
-      "url": "https://kibana/app/kibana#/discover?_g=(refreshInterval:(pause:!t,value:0),time:(from:now-4h,mode:quick,to:now))&_a=(columns:!(log),index:all-sklik-devops-search,interval:auto,query:(language:lucene,query:'app_name:%20slo-exporter%20AND%20namespace_name:%20sklik-devops-production'),sort:!('@timestamp',desc))"
-    }
-  ],
   "panels": [
     {
       "datasource": "${DS_TRICKSTER_(PROMETHEUS PROXY)}",
@@ -2627,7 +2616,7 @@
       "targets": [
         {
           "datasource": "${DS_LOKI}",
-          "expr": "{container_name=\"slo-exporter\", pod_name=~\"apiproxy-0|apiproxy-1|apiproxy-2|sorry-page-apiproxy-0|sorry-page-apiproxy-1|sorry-page-userproxy-0|sorry-page-userproxy-1|userproxy-0|userproxy-1|userproxy-2\", namespace=~\"sklik-production\", node_name=~\".*.*.*\"} |= \"\"",
+          "expr": "{container_name=\"slo-exporter\", node_name=~\".*.*.*\"} |= \"\"",
           "refId": "A"
         }
       ],

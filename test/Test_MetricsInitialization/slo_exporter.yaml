@@ -13,13 +13,6 @@ modules:
     loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)"'
     emptyGroupRE: '^-$'
 
-  prometheusIngester:
-    apiUrl: "https://thanos.sklik-scif-ko.dev.dszn.cz"
-    queryTimeout: 10s
-    queries:
-      - query: 'up{app_label="puzzler"}'
-        interval: 3s
-
   relabel:
     eventRelabelConfigs:
       - source_labels: ["statusCode"]

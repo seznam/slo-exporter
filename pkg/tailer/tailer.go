@@ -3,13 +3,14 @@ package tailer
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
-	"github.com/seznam/slo-exporter/pkg/event"
-	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"io"
 	"os"
 	"regexp"
 	"time"
+
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/spf13/viper"
 
 	logrusAdapter "github.com/go-kit/kit/log/logrus"
 	"github.com/grafana/loki/pkg/promtail/positions"
