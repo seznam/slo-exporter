@@ -1,0 +1,81 @@
+groups:
+
+- name: slo-events-over-time
+  interval: 5s
+  rules:
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 4w
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[4w])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 3d
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[3d])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 1d
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[1d])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 6h
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[6h])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 2h
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[2h])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 1h
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[1h])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 30m
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[30m])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+     - record: slo:events_over_time
+       labels:
+         slo_time_range: 5m
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total[5m])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+
+- name: slo-violation-ratio
+  interval: 5s
+  rules:
+    - record: slo:violation_ratio
+      expr:
+          sum(
+              slo:events_over_time{result="fail"}
+          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+          /
+          sum(
+              slo:events_over_time
+          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+    - record: slo:burn_rate
+      expr:
+          slo:violation_ratio
+          / on(slo_class, slo_domain, slo_version, slo_type, namespace) group_left()
+          (1 - slo:violation_ratio_threshold)
+
