@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] 2020-06-30
+## Changed
+- Dockerfile labels
+- Dockerfile src image
+
+# Added
+- SLO computation recording rules, alerts
+- slo-exporter grafana dashboard
+
 ## Fixed
 - PrometheusIngester: Fixed unit of the `slo_exporter_prometheus_ingester_query_duration_seconds_bucket` metric.
 
@@ -14,10 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING** Dropped the `normalizer` module in favour of the `relabel` and `eventKeyGenerator` modules.
   Those can be used to sanitize metadata values and compose the event key from any metadata keys.
 - **BREAKING** Dropped the `eventFilter` module in favour of the `relabel` module.
-- **BREAKING** sloEventProducer: dropped `honor_slo_result` configuration option, same behavior can be now achieved using failure conditions and metadata filters. 
+- **BREAKING** sloEventProducer: dropped `honor_slo_result` configuration option, same behavior can be now achieved using failure conditions and metadata filters.
 - **BREAKING** sloEventProducer: all operators renamed
 - Dynamic classifier no longer exposes status_code label to unclassified events metric, you have to explicitly specify it in the `unclassifiedEventMetadataKeys` configuration option.
-- **BREAKING** Tailer: no longer sets the event key, use the `eventKeyGenerator` module. 
+- **BREAKING** Tailer: no longer sets the event key, use the `eventKeyGenerator` module.
 - **BREAKING** Tailer: no longer sets the SLO classification of the event, use the `metadataClassifier` module.
 
 ## [5.6.0] 2020-06-10
