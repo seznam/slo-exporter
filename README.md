@@ -1,7 +1,6 @@
 # SLO exporter
-[CHANGELOG](./CHANGELOG.md)
 
-Slo-exporter is a tool that allows you to compute standardized SLO metrics
+Tool [slo-exporter](https://github.com/seznam/slo-exporter/blob/master/README.md) computes standardized Service Level Indicator (SLI) and Service Level Objectives (SLO) metrics
 based on events coming from various data sources. It follows principles from
 [the SRE Workbook](https://landing.google.com/sre/workbook).
 With already prepared [examples](examples/README.md), [Prometheus alert rules](prometheus_rules/README.md) and [Grafana dashboards](grafana_dashboards/README.md) you can easily
