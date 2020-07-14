@@ -22,4 +22,5 @@ slo_exporter
 /postgresql
 /prometheus
 /public
+/tags
 *.orig
