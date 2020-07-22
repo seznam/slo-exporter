@@ -10,7 +10,7 @@ groups:
       - record: slo:stable_version
         expr: 1
         labels:
-          slo_version: 6
+          slo_version: 1
           namespace: "test"
           slo_domain: example-domain
           enabled: true
@@ -20,11 +20,11 @@ groups:
     interval: 5s
     rules:
     - record: slo:violation_ratio_threshold
-      expr: 0.995
+      expr: 0.90
       labels:
         slo_class: critical
         slo_domain: example-domain
-        slo_version: 6
+        slo_version: 1
         namespace: "test"
         slo_type: availability
     # latency slo_types contains additional metadata
@@ -35,7 +35,7 @@ groups:
       labels:
         slo_class: critical
         slo_domain: example-domain
-        slo_version: 6
+        slo_version: 1
         namespace: "test"
         slo_type: latency90
         percentile: 90
@@ -45,7 +45,7 @@ groups:
       labels:
         slo_class: critical
         slo_domain: example-domain
-        slo_version: 6
+        slo_version: 1
         namespace: "test"
         slo_type: latency99
         percentile: 99

@@ -1,0 +1,39 @@
+rules:
+  - slo_matcher:
+      domain: example-domain
+    failure_conditions:
+      - operator: numberIsEqualOrHigherThan
+        key: statusCode
+        value: 500
+    additional_metadata:
+      slo_type: availability
+      slo_version: 1
+      namespace: test
+
+  - slo_matcher:
+      domain: example-domain
+      class: critical
+    failure_conditions:
+      - operator: numberIsHigherThan
+        key: requestDuration
+        value: 0.8
+    additional_metadata:
+      slo_version: 1
+      slo_type: latency90
+      percentile: 90
+      le: 0.8
+      namespace: test
+
+  - slo_matcher:
+      domain: example-domain
+      class: critical
+    failure_conditions:
+      - operator: numberIsHigherThan
+        key: requestDuration
+        value: 2
+    additional_metadata:
+      slo_version: 1
+      slo_type: latency99
+      percentile: 99
+      le: 2
+      namespace: test

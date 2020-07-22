@@ -2,10 +2,10 @@ rules:
   - slo_matcher:
       domain: test-domain
     failure_conditions:
-      - operator: numberEqualOrHigherThan
+      - operator: numberIsEqualOrHigherThan
         key: statusCode
         value: 500
-      - operator: matchesRegexp
+      - operator: isMatchingRegexp
         key: sloResult
         value: "[fF]ail(ure)?"
     additional_metadata:
@@ -16,9 +16,9 @@ rules:
       domain: test-domain
       class: critical
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: requestDuration
-        value: 1
+        value: 0.8
     additional_metadata:
       slo_version: 6
       slo_type: latency90

@@ -1,0 +1,48 @@
+webServerListenAddress: "0.0.0.0:8001"
+maximumGracefulShutdownDuration: "10s"
+afterPipelineShutdownDelay: "1s"
+
+pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+
+modules:
+
+  tailer:
+    tailedFile: "/logs/access_log"
+    follow: true
+    reopen: true
+    positionFile: ""
+    positionPersistenceInterval: "2s"
+    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) - \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)?\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" "(?P<userAgent>[^"]+)" rt=(?P<requestDuration>\d+(\.\d+)??) uct="[^"]+" uht="[^"]+" urt="[^"]+"'
+    emptyGroupRE: '^-$'
+
+  relabel:
+    eventRelabelConfigs:
+      # Drop events with unwanted status codes
+      - source_labels: ["statusCode"]
+        regex: "30[12]|40[045]|411|408|499"
+        action: drop
+
+  eventKeyGenerator:
+    filedSeparator: ":"
+    metadataKeys:
+      - httpMethod
+      - httpPath
+
+  dynamicClassifier:
+    regexpMatchesCsvFiles:
+      - "conf/classification.csv"
+
+  sloEventProducer:
+    rulesFiles:
+      - "conf/slo_rules.yaml"
+
+  prometheusExporter:
+    metricName: "slo_events_total"
+    maximumUniqueEventKeys: 1000
+    ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
+    labelNames:
+      result: "result"
+      sloDomain: "slo_domain"
+      sloClass: "slo_class"
+      sloApp: "slo_app"
+      eventKey: "event_key"

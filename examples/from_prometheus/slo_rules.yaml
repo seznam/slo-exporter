@@ -1,12 +1,12 @@
 rules:
   - metadata_matcher:
-      - operator: matchesRegexp
+      - operator: isMatchingRegexp
         key: statusCode
         value: ".+"
     slo_matcher:
       domain: test-app
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: statusCode
         value: 499
     additional_metadata:
@@ -14,13 +14,13 @@ rules:
       slo_version: 6
 
   - metadata_matcher:
-      - operator: matchesRegexp
+      - operator: isMatchingRegexp
         key: le
         value: ".+"
     slo_matcher:
       domain: test-domain
     failure_conditions:
-      - operator: numberHigherThan
+      - operator: numberIsHigherThan
         key: minValue
         value: 0.2
     additional_metadata:
