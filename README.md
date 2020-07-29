@@ -42,7 +42,7 @@ docker run -it seznam/slo-exporter:<version> --help
 
 
 #### Prebuilt binaries
-See the [the latest release page](https://github.com/seznam/slo-exporter/releases) and for the prebuilt binaries.
+See the [the latest release page](https://github.com/seznam/slo-exporter/releases) for the prebuilt binaries.
 
 
 ## Configuration and examples
