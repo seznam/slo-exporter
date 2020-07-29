@@ -1,4 +1,5 @@
 # SLO exporter
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/seznam/slo-exporter) ![CircleCI](https://img.shields.io/circleci/build/github/seznam/slo-exporter/master) ![Docker Pulls](https://img.shields.io/docker/pulls/seznam/slo-exporter)
 
 Tool [slo-exporter](https://github.com/seznam/slo-exporter/blob/master/README.md) computes standardized Service Level Indicator (SLI) and Service Level Objectives (SLO) metrics
 based on events coming from various data sources. It follows principles from
