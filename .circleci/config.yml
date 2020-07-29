@@ -1,22 +1,24 @@
+defaults: &defaults
+  docker:
+    - image: circleci/golang:1.14
+  resource_class: small
+
 version: 2
 jobs:
   lint:
-    docker:
-      - image: circleci/golang:1.14
+    <<: *defaults
     steps:
       - checkout
       - run: make lint
 
   test:
-    docker:
-      - image: circleci/golang:1.14
+    <<: *defaults
     steps:
       - checkout
       - run: make test-and-coverage
 
   build:
-    docker:
-      - image: circleci/golang:1.14
+    <<: *defaults
     steps:
       - checkout
       - run: make build SLO_EXPORTER_VERSION=${CIRCLE_TAG:-$CIRCLE_SHA1}
@@ -26,8 +28,7 @@ jobs:
             - build
 
   build_docker:
-    docker:
-      - image: circleci/golang:1.14
+    <<: *defaults
     steps:
       - checkout
       - setup_remote_docker:
@@ -38,8 +39,7 @@ jobs:
       - run: make docker-build
 
   build_docker_release:
-    docker:
-      - image: circleci/golang:1.14
+    <<: *defaults
     environment:
       DOCKERHUB_USERNAME=sklikdevops
     steps:
@@ -57,8 +57,7 @@ jobs:
             make docker-push
 
   github_release:
-    docker:
-      - image: circleci/golang:1.14
+    <<: *defaults
     steps:
       - checkout
       - attach_workspace:
