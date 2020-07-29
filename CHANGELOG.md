@@ -6,19 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [6.1.0] 2020-06-30
+## [v6.2.0] 2020-07-29
+## Added
+- CI pipeline
+  - build
+  - on release, publish docker image and github release with binaries
+
+## [v6.1.0] 2020-06-30
 ## Changed
 - Dockerfile labels
 - Dockerfile src image
 
-# Added
+## Added
 - SLO computation recording rules, alerts
 - slo-exporter grafana dashboard
 
 ## Fixed
 - PrometheusIngester: Fixed unit of the `slo_exporter_prometheus_ingester_query_duration_seconds_bucket` metric.
 
-## [6.0.0] 2020-06-12
+## [v6.0.0] 2020-06-12
 ### Changed
 - **BREAKING** Dropped the `normalizer` module in favour of the `relabel` and `eventKeyGenerator` modules.
   Those can be used to sanitize metadata values and compose the event key from any metadata keys.
@@ -29,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING** Tailer: no longer sets the event key, use the `eventKeyGenerator` module.
 - **BREAKING** Tailer: no longer sets the SLO classification of the event, use the `metadataClassifier` module.
 
-## [5.6.0] 2020-06-10
+## [v5.6.0] 2020-06-10
 ### Added
 - New module [`relabel`](/docs/modules/relabel.md) allowing to modify event metadata using Prometheus relabel config.
 - New flag `--check-config` to verify if configuration is ok.
@@ -42,38 +48,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - PrometheusIngester: fixed isolation of `histogram_increase` query type causing invalid computation of increase.
 
-## [5.5.0] 2020-05-28
+## [v5.5.0] 2020-05-28
 ### Added
 - sloEventProducer: notEqualTo, notMatchesRegexp, numberNotEqualTo operators
 
-## [5.4.1] 2020-05-27
+## [v5.4.1] 2020-05-27
 ### Fixed
 - PrometheusIngester: last defined query shadows the previous ones
 
-## [5.4.0] 2020-05-22
+## [v5.4.0] 2020-05-22
 ### Changed
 - DynamicClassifier: Log entire event on unsuccessful classification.
 
 ### Added
 - sloEventProducer: Expose metrics based on slo_rules configuration (`exposeRulesAsMetrics` slo_event_producer module option).
 
-## [5.3.0] 2020-05-05
+## [v5.3.0] 2020-05-05
 ### Added
 - New Prometheus-ingester's query configuration option 'resultAsQuantity'
 
-## [5.2.0] 2020-05-05
+## [v5.2.0] 2020-05-05
 ### Added
 - New module `metadataClassifier` to classify event based on it's metadata. See [the docs](docs/modules/metadata_classifier.md) for more info.
 
-## [5.1.1] 2020-05-04
+## [v5.1.1] 2020-05-04
 ### Changed
 - prometheus_exporter's LabelNames.sloApp default value now matches documented one (slo_app)
 
-## [5.1.0] 2020-05-4
+## [v5.1.0] 2020-05-4
 ### Added
 - sloEventProducer: Added new operators `equalTo`, `numberEqualTo`, `numberEqualOrHigherThan` and `numberEqualOrLessThan`.
 
-## [5.0.0] 2020-04-30
+## [v5.0.0] 2020-04-30
 ### Changed
 - **BREAKING** prometheusIngester: Renamed `increase` query type to `counter_increase`.
 - **BREAKING** sloEventProducer: Dropped unused configuration key `event_type` in rules file.
@@ -81,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Prometheus ingester: New query type `histogram_increase` to generate events with for each bucket.
 
-## [4.4.0] 2020-04-27
+## [v4.4.0] 2020-04-27
 ### Added
 - Prometheus ingester 'increase' query type
 - New module `eventKeyGenerator` to generate event key from its metadata. See the [docs](docs/modules/event_key_generator.md).
@@ -91,7 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prometheus ingester query types. (Existing named as 'simple')
 - Generalize eventKey access/usage for all ingesters by putting it to event.Metadata
 
-## [4.3.0] 2020-04-08
+## [v4.3.0] 2020-04-08
 ### Added
 - Possibility to dynamically set the log level using HTTP endpoint, [see the docs](./README.md#debugging).
 - StatisticalClassifier module now allows to set default weights.
@@ -99,36 +105,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed logging in reporting metrics from prometheus exporter module.
 
-## [4.2.1] 2020-04-07
+## [v4.2.1] 2020-04-07
 ### Fixed
 - Roll back mutex and blocking goroutine profiling in `pprof` beacause of [an issue in go 1.14.1](https://github.com/golang/go/issues/37967).
 
-## [4.2.0] 2020-04-07
+## [v4.2.0] 2020-04-07
 ### Added
 - New module `statisticalClassifier` to classify events based on previous events classification statistical distribution.
   Read more in [the module documentation](docs/modules/statistical_classifier.md).
 - Enabled mutex and blocking goroutine profiling in `pprof`.
 
-## [4.1.0] 2020-03-30
+## [v4.1.0] 2020-03-30
 ### Fixed
 - Fixed CPU usage burst caused by leaking timers.
 
 ### Added
 - Added Go debugging handlers to web interface on `/debug/pprof/`. For usage see [https://blog.golang.org/pprof](https://blog.golang.org/pprof).
 
-## [4.0.3] 2020-03-30
+## [v4.0.3] 2020-03-30
 ### Fixed
 - Removed redundant namespacing for dynamic classifier metric `events_processed_total`.
 
-## [4.0.2] 2020-03-29
+## [v4.0.2] 2020-03-29
 ### Fixed
 - Kubernetes manifests fixed to use `/liveness` probe endpoint.
 
-## [4.0.1] 2020-03-29
+## [v4.0.1] 2020-03-29
 ### Fixed
 - Kubernetes manifests fixed to match the breaking changes in 4.0.0.
 
-## [4.0.0] 2020-03-26
+## [v4.0.0] 2020-03-26
 ### Changed
 - **BREAKING** Pipeline structure is now defined using the `pipeline` configuration option.
     For more information see [the architecture documentation](README.md#architecture).
@@ -139,17 +145,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING** The timescale exporter was dropped.
 - **BREAKING** The `minimumGracefulShutdownDuration` configuration option was replaced with `afterPipelineShutdownDelay` to be more intuitive.
 
-## [3.2.0] - 2020-03-24
+## [v3.2.0] - 2020-03-24
 ### Refactored
 - HttpRequest.Headers, HttpRequest.Metadata is now filled only with data not matching conf.tailer.emptyGroupRE.
 - Drop frpcStatus as a dedicated attribute for HttpRequest.
 
-## [3.1.0] - 2020-03-20
+## [v3.1.0] - 2020-03-20
 
 ### Refactored
 - If eventKey matching group in tailer RE is nonempty, its value is propagated to HttpRequest.EventKey.
 
-## [3.0.0] - 2020-03-20
+## [v3.0.0] - 2020-03-20
 ### Fixed
 - Inconsistencies in aggregated SLO metrics exposed to Prometheus.
 - Normalizer now does not drop event if eventKey already set.
@@ -172,11 +178,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             value: ".*"
       ```
 
-## [2.4.0] - 2020-03-16
+## [v2.4.0] - 2020-03-16
 ### Added
 - Possibility to add additional metadata labels to `events_processed_total` metric of dynamic classifier using `unclassifiedEventMetadataKeys`.
 
-## [2.3.0] - 2020-03-16
+## [v2.3.0] - 2020-03-16
 ### Added
 - Slo_rules now support honor_slo_result.
 - All unknown named groups parsed by tailer are set as HTTP headers.
@@ -189,15 +195,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - gracefulShutdownTimeout replaced with maximumGracefulShutdownDuration.
   - afterGracefulShutdownDelay replaced with minimumGracefulShutdownDuration.
 
-## [2.2.0] - 2020-03-16
+## [v2.2.0] - 2020-03-16
 ### Added
  - app_build_info metric
 
-## [2.1.1] - 2020-03-13
+## [v2.1.1] - 2020-03-13
 ### Fixed
 - Fixed hanging shutdown when all modules ended without explicit termination request.
 
-## [2.1.0] - 2020-03-12
+## [v2.1.0] - 2020-03-12
 ### Changed
 - Tailer line matching regular expression is now part of configuration.
 - Tailer is able to initialize event with SloClassification, if provided within log line.
@@ -206,7 +212,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update dynamic classifier cache with data from already classified event.
 - E2e-tests' run\_tests.sh is now checking whether slo\_exporter is running, before test will proceed.
 
-## [2.0.0] - 2020-03-09
+## [v2.0.0] - 2020-03-09
 ### Added
  - Implemented prometheus ingester.
  - Optional gracefulShutdownTimeout configuration.
@@ -221,12 +227,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - StringMap.Without fixed logic and added tests.
  - StringMap.Merge do not return empty map when merged with nil.
 
-## [1.4.0] - 2020-02-28
+## [v1.4.0] - 2020-02-28
 
 ### Added
  - Implemented graceful shutdown for each pipeline processor.
 
-## [1.3.0] - 2020-02-28
+## [v1.3.0] - 2020-02-28
 
 ### Added
  - Process multiple domains from single data source.
@@ -234,14 +240,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
  - Typo in label failedToClassify.
 
-## [1.2.3] - 2020-02-27
+## [v1.2.3] - 2020-02-27
 
 ### Added
   - Normalize also `.ico` files as `:image`.
 
-## [1.2.2] - 2020-02-20
+## [v1.2.2] - 2020-02-20
 
 ### Config
   - Frontend API GraphQL endpoints without `operationName` are now classified as `no_slo`.
 
-## [1.2.1] - 2020-02-19
+## [v1.2.1] - 2020-02-19
