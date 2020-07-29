@@ -1,6 +1,8 @@
 # Prometheus SLO example
 
-This example shows simple configuration of slo-exporter using [`prometheus_ingester`](../../docs/modules/prometheus_ingester.md) as an ingester module in order to compute SLO of Prometheus itself.
+This example shows a simple configuration of slo-exporter using
+[`prometheus_ingester`](../../docs/modules/prometheus_ingester.md)
+as a source of data in order to compute SLO of Prometheus itself.
 
 #### How to run it
 In root of the repo

@@ -1,5 +1,4 @@
 webServerListenAddress: "0.0.0.0:8080"
-afterPipelineShutdownDelay: "5s"
 
 pipeline: ["prometheusIngester", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
 

@@ -12,7 +12,7 @@ rules:
         value: 500
     additional_metadata:
       slo_type: api_availability
-      slo_version: 6
+      slo_version: 1
 
   # HTTP requests latency rules
   - metadata_matcher:
