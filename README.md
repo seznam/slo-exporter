@@ -37,7 +37,7 @@ make
 #### Docker
 Prebuilt docker images can be found at [Docker Hub](https://hub.docker.com/repository/docker/seznam/slo-exporter).
 ```
-docker run -it seznam/slo-exporter:<verion> --help
+docker run -it seznam/slo-exporter:<version> --help
 ```
 
 
