@@ -1,0 +1,58 @@
+rules:
+
+  # HTTP requests availability rules
+  - metadata_matcher:
+      - key: event_type
+        operator: isEqualTo
+        value: http_request_result
+    failure_conditions:
+      # Requests to api are failed events if resulted with status code higher or equal to 500
+      - key: code
+        operator: numberIsEqualOrHigherThan
+        value: 500
+    additional_metadata:
+      slo_type: api_availability
+      slo_version: 6
+
+  # HTTP requests latency rules
+  - metadata_matcher:
+      - key: event_type
+        operator: isEqualTo
+        value: http_request_latency
+    slo_matcher:
+      class: critical
+    failure_conditions:
+      - operator: numberIsHigherThan
+        key: prometheusHistogramMinValue
+        value: 0.1
+    additional_metadata:
+      slo_type: api_latency
+      slo_version: 1
+
+  - metadata_matcher:
+      - key: event_type
+        operator: isEqualTo
+        value: http_request_latency
+    slo_matcher:
+      class: high_fast
+    failure_conditions:
+      - operator: numberIsHigherThan
+        key: prometheusHistogramMinValue
+        value: 0.2
+    additional_metadata:
+      slo_type: api_latency
+      slo_version: 1
+
+  - metadata_matcher:
+      - key: event_type
+        operator: isEqualTo
+        value: http_request_latency
+    slo_matcher:
+      class: high_slow
+    failure_conditions:
+      - operator: numberIsHigherThan
+        key: prometheusHistogramMinValue
+        value: 3
+    additional_metadata:
+      slo_type: api_latency
+      slo_version: 1

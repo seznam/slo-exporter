@@ -1,0 +1,48 @@
+webServerListenAddress: "0.0.0.0:8080"
+afterPipelineShutdownDelay: "5s"
+
+pipeline: ["prometheusIngester", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+
+modules:
+
+  prometheusIngester:
+    apiUrl: "http://demo.robustperception.io:9090"
+    queryTimeout: 30s
+    queries:
+      # Generate events from counter for every HTTP request with status code for availability SLO.
+      - type: counter_increase
+        query: 'prometheus_http_requests_total'
+        interval: 30s
+        additionalLabels:
+          event_type: http_request_result
+
+      # Generate events from histogram for every HTTP request for latency SLO.
+      - type: histogram_increase
+        query: 'prometheus_http_request_duration_seconds_bucket'
+        interval: 30s
+        additionalLabels:
+          event_type: http_request_latency
+
+  relabel:
+    eventRelabelConfigs:
+      # Drop all events on the `/debug` and `/new` handler since we do not want to define SLO on those.
+      - source_labels: ["handler"]
+        regex: "/(debug|new).*"
+        action: drop
+
+  eventKeyGenerator:
+    metadataKeys:
+      - handler
+
+  dynamicClassifier:
+    exactMatchesCsvFiles:
+      - "exact_events_classification.csv"
+    regexpMatchesCsvFiles:
+      - "regexp_events_classification.csv"
+
+  sloEventProducer:
+    rulesFiles:
+      - "slo_rules.yaml"
+
+  prometheusExporter:
+    maximumUniqueEventKeys: 100

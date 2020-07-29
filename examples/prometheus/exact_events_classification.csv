@@ -1,0 +1,15 @@
+ui,prometheus,critical,"/"
+ui,prometheus,critical,"/graph"
+ui,prometheus,critical,"/metrics"
+
+ui,prometheus,high_fast,"/flags"
+ui,prometheus,high_fast,"/static/*filepath"
+ui,prometheus,high_fast,"/version"
+ui,prometheus,high_fast,"/config"
+
+ui,prometheus,high_slow,"/federate"
+ui,prometheus,high_slow,"/targets"
+ui,prometheus,high_slow,"/service-discovery"
+ui,prometheus,high_slow,"/rules"
+ui,prometheus,high_slow,"/alerts"
+ui,prometheus,high_slow,"/consoles/*filepath"
