@@ -28,16 +28,22 @@ Slo-exporter then exposes Prometheus metric `slo_domain_slo_class:slo_events_tot
 This gives you number of successful or failed events which is all you need to calculate the error budget, burn rate etc.
 
 ## Installing
-##### Build
+#### Build
 In the root of the repository run
 ```bash
 make
 ```
 
-##### Docker
-TBA
-### Prebuilt binaries
-TBA
+#### Docker
+Prebuilt docker images can be found at [Docker Hub](https://hub.docker.com/repository/docker/seznam/slo-exporter).
+```
+docker run -it seznam/slo-exporter:<verion> --help
+```
+
+
+#### Prebuilt binaries
+See the [the latest release page](https://github.com/seznam/slo-exporter/releases) and for the prebuilt binaries.
+
 
 ## Configuration and examples
 Detailed configuration documentation you can find here [docs/configuration](docs/configuration.md).
