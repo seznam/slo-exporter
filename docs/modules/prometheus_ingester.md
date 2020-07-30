@@ -7,7 +7,8 @@
 | Module type    | `producer`              |
 | Output event   | `raw`                   |
 
-Prometheus ingester generatess events based on results of provided Prometheus queries.
+Prometheus ingester generates events based on results of provided Prometheus queries.
+For its usage example see [the prometheus example](../../examples/prometheus).
 
 `moduleConfig`
 ```yaml
@@ -49,7 +50,7 @@ event.Metadata["unixTimestamp"] - sample timestamp
 The rest of the Metadata map contains values of the returned metrics, while taking into account the `dropLabels` and `additionalLabels` configuration.
 
 Example of intended use case(s):
-- keeping track of ratio between two timeseries and generating slo events based on certain threshold.
+- keeping track of ratio between two time series and generating slo events based on a certain threshold.
 - generating slo events based on metric which record result of last batch job run, or its timestamp (e.g. `last_successful_run_timestamp`)
 
 ```
@@ -63,12 +64,12 @@ Supported result for this type of query: Matrix. [See Prometheus API documentati
 Please note that the query is to be provided exactly as it would be passed to increase function, thus the following requirements applies:
 - **no range selector is allowed (e.g. `[5m]`)**. Range selector is automatically added by prometheus_ingester - for the first query it equals to configured `query.interval`, for all other, it equals to rounded difference of current timestamp and timestamp of the last sample (this should roughly to equal to `query.interval` as well).
 
-- **no sum()**. The query should result to matrix - list of timeseries. Do not apply sum function on configured query for the same [reason why this is not a good idea to perform `increase(sum(...))`](https://www.robustperception.io/rate-then-sum-never-sum-then-rate).
+- **no sum()**. The query should result to matrix - list of time series. Do not apply sum function on the configured query for the same [reason why this is not a good idea to perform `increase(sum(...))`](https://www.robustperception.io/rate-then-sum-never-sum-then-rate).
 
 Mapping to resulting event(s):
 For every metric in the result:
 * If no previous sample for given metric is found, no event is generated and sample is just stored to local cache (please note that cache is not persisted upon restarts and is local to every individual instance of slo-exporter).
-* If previous sample of given metric is found, difference between new sample and previous sample is computed and a single new event is generated with the following mapping:
+* If previous sample of given metric is found, difference between new sample and previous sample is computed, and a single new event is generated with the following mapping:
 ```
 event.Metadata["unixTimestamp"] - sample timestamp
 event.Metadata["prometheusQueryResult"] - increase against the last seen value
