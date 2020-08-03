@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Changed
 - [#18](https://github.com/seznam/slo-exporter/pull/18) Tailer: Upgraded hpcloud/tail package to latest commit.
 
+## Added
+- [#19](https://github.com/seznam/slo-exporter/pull/19) Release also `latest` Docker image.
 
 ## [v6.2.0] 2020-07-29
 ## Added

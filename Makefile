@@ -1,8 +1,10 @@
 #!/usr/bin/make -f 
-DOCKER_IMAGE_REPO		?= seznam/slo-exporter
 GITHUB_NAMESPACE		?= seznam
 GITHUB_PROJECT			?= slo-exporter
 SLO_EXPORTER_VERSION	?= test
+DOCKER_IMAGE_REPO		?= seznam/slo-exporter
+DOCKER_IMAGE			?= $(DOCKER_IMAGE_REPO):$(SLO_EXPORTER_VERSION)
+LATEST_DOCKER_IMAGE		?= $(DOCKER_IMAGE_REPO):latest
 OS				= linux
 ARCH			= amd64
 BINARY_PATH		= build/$(OS)-$(ARCH)/slo_exporter
@@ -17,12 +19,14 @@ build:
 
 .PHONY: docker-build
 docker-build:
-	docker build -t $(DOCKER_IMAGE_REPO):$(SLO_EXPORTER_VERSION) .
-	docker run --rm $(DOCKER_IMAGE_REPO):$(SLO_EXPORTER_VERSION) --help
+	docker build -t $(DOCKER_IMAGE) .
+	docker run --rm $(DOCKER_IMAGE) --help
 
 .PHONY: docker-push
 docker-push:
-	docker push $(DOCKER_IMAGE_REPO):$(SLO_EXPORTER_VERSION)
+	docker push $(DOCKER_IMAGE)
+	docker tag $(DOCKER_IMAGE) $(LATEST_DOCKER_IMAGE)
+	docker push $(LATEST_DOCKER_IMAGE)
 
 .PHONY: github-release
 github-release:

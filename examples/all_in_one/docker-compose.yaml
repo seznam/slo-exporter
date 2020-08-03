@@ -9,7 +9,7 @@ services:
       - "nginx-logs:/nginx/logs/"
 
   slo-exporter:
-    image: seznam/slo-exporter:6.1.0
+    image: seznam/slo-exporter:latest
     depends_on:
       - nginx
     ports:
