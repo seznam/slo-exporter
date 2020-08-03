@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## Changed
+- [#18](https://github.com/seznam/slo-exporter/pull/18) Tailer: Upgraded hpcloud/tail package to latest commit.
+
 
 ## [v6.2.0] 2020-07-29
 ## Added
