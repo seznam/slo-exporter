@@ -15,8 +15,8 @@ builds:
       - amd64
       - 386
 
-signs:
-  - artifacts: all
+source:
+  enabled: true
 
 dockers:
   - goos: linux
