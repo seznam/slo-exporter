@@ -27,7 +27,7 @@ dockers:
       - seznam/slo-exporter:v{{ .Major }}
       - seznam/slo-exporter:latest
     build_flag_templates:
-      - --pull"
+      - --pull
       # Labels according to opencontainers label schema https://github.com/opencontainers/image-spec/blob/master/annotations.md
       - --label=org.opencontainers.image.created={{.Date}}
       - --label=org.opencontainers.image.revision={{.FullCommit}}
