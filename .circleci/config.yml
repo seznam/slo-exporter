@@ -41,7 +41,6 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run | curl -sL https://git.io/goreleaser | bash
       - run: make release
 
 workflows:
