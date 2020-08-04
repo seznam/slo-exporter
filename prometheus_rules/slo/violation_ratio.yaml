@@ -1,7 +1,7 @@
 groups:
 
 - name: slo-events-over-time
-  interval: 5s
+  interval: 1m
   rules:
      - record: slo:events_over_time
        labels:
@@ -62,7 +62,7 @@ groups:
 
 
 - name: slo-violation-ratio
-  interval: 5s
+  interval: 1m
   rules:
     - record: slo:violation_ratio
       expr:
