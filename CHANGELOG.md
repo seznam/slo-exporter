@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Changed
 - [#18](https://github.com/seznam/slo-exporter/pull/18) Tailer: Upgraded hpcloud/tail package to latest commit.
 
+## Added
+- [#20](https://github.com/seznam/slo-exporter/pull/20) CI: 
+     - Release additional Docker image tags:
+        - `latest` Latest released version.
+        - `vX` Latest released version for the major version.
+        - `vX.Y` Latest released version for the minor version.
+     - Prebuilt binaries for:
+        - `slo-exporter_darwin_386`
+        - `slo-exporter_darwin_amd64`
+        - `slo-exporter_linux_386`
+        - `slo-exporter_linux_amd64`
+        - `slo-exporter_windows_386`
+        - `slo-exporter_windows_amd64`
 
 ## [v6.2.0] 2020-07-29
 ## Added

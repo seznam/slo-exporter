@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/config"
 	"github.com/seznam/slo-exporter/pkg/dynamic_classifier"
 	"github.com/seznam/slo-exporter/pkg/event_key_generator"
@@ -17,6 +16,7 @@ import (
 	"github.com/seznam/slo-exporter/pkg/slo_event_producer"
 	"github.com/seznam/slo-exporter/pkg/statistical_classifier"
 	"github.com/seznam/slo-exporter/pkg/tailer"
+	"github.com/spf13/viper"
 	"runtime"
 
 	"log"
@@ -27,28 +27,27 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/prober"
+	"github.com/sirupsen/logrus"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	_ "net/http/pprof"
 )
 
 var (
-	// Set using ldflags during build.
-	buildVersion  = ""
-	buildRevision = ""
-	buildBranch   = ""
-	buildTag      = ""
+	// Set using goreleaser ldflags during build, see https://goreleaser.com/environment/#using-the-mainversion
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+	builtBy = "unknown"
 
 	appName                   = "slo_exporter"
 	prometheusRegistry        = prometheus.DefaultRegisterer
 	wrappedPrometheusRegistry = prometheus.WrapRegistererWithPrefix(appName+"_", prometheusRegistry)
 	appBuildInfo              = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "app_build_info",
-		Help: "Metadata metric with information about application build and version",
-		ConstLabels: prometheus.Labels{"app": "slo-exporter", "version": buildVersion, "revision": buildRevision,
-			"branch": buildBranch, "tag": buildTag, "standardized_metrics_version": "1.5.0"},
+		Name:        "app_build_info",
+		Help:        "Metadata metric with information about application build and version",
+		ConstLabels: prometheus.Labels{"app": "slo-exporter", "version": version, "revision": commit, "build_date": date, "built_by": builtBy},
 	})
 )
 

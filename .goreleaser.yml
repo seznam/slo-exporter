@@ -1,0 +1,42 @@
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - main: ./cmd/slo_exporter.go
+    binary: slo_exporter
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - 386
+
+signs:
+  - artifacts: all
+
+dockers:
+  - goos: linux
+    goarch: amd64
+    image_templates:
+      - seznam/slo-exporter:{{ .Tag }}
+      - seznam/slo-exporter:v{{ .Major }}.{{ .Minor }}
+      - seznam/slo-exporter:v{{ .Major }}
+      - seznam/slo-exporter:latest
+    build_flag_templates:
+      - --pull"
+      # Labels according to opencontainers label schema https://github.com/opencontainers/image-spec/blob/master/annotations.md
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.description=Tool to evaluate and generate standardizedSLO metrics from distinct data sources.
+      - --label=org.opencontainers.image.vendor=Seznam, a.s.
+      - --label=org.opencontainers.image.authors=sklik.devops@firma.seznam.cz
+      - --label=org.opencontainers.image.url={{.GitURL}}
+      - --label=org.opencontainers.image.documentation={{.GitURL}}
+      - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
