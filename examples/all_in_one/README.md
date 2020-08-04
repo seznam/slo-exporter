@@ -22,13 +22,13 @@ Description of the whole setup follows:
 
 ### How to run it
 ```
-docker-compose up
+docker-compose pull && docker-compose up
 ```
 
 To access Grafana and Prometheus:
 ```
 # http://localhost:9090 Prometheus
-# http://localhost:9000 Grafana
+# http://localhost:3000 Grafana
 #  User: admin
 #  Password: admin
 ```
