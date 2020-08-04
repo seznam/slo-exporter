@@ -202,7 +202,7 @@
     ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-20m",
     "to": "now"
   },
   "timepicker": {

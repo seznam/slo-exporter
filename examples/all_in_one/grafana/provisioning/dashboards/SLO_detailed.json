@@ -1130,16 +1130,16 @@
       {
           "allValue": null,
           "datasource": "Prometheus",
-          "definition": "query_result(slo:stable_version{enabled!=\"false\"})",
+          "definition": "label_values(slo:stable_version{enabled!=\"false\"}, slo_version)",
           "hide": 0,
           "includeAll": false,
           "label": null,
           "multi": false,
           "name": "slo_version",
           "options": [],
-          "query": "query_result(slo:stable_version{enabled!=\"false\"})",
+          "query": "label_values(slo:stable_version{enabled!=\"false\"}, slo_version)",
           "refresh": 2,
-          "regex": "/slo_version=\"([^\"]+)\"/",
+          "regex": "",
           "skipUrlSync": false,
           "sort": 0,
           "tagValuesQuery": "",
@@ -1287,7 +1287,7 @@
     ]
   },
   "time": {
-    "from": "now-10m",
+    "from": "now-20m",
     "to": "now"
   },
   "timepicker": {
