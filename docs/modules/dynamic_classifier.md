@@ -55,7 +55,7 @@ test-domain,test-app,test-class-all,"/api/.*"
 ```
 
 ##### CSV comments
-Both CSV files support comments. Comment has to start with the `#` character with no leading whitespaces.
+CSV configuration files support single line comments. Comment has to start with the `#` character with no leading whitespaces.
 Example:
 ```csv
 # Example of comment
