@@ -226,6 +226,10 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 			return err
 		}
 
+		if len(line) != 4 {
+			dc.logger.WithField("line", line).WithField("file", path).Errorf("invalid CSV row format")
+			continue
+		}
 		sloDomain := line[0]
 		sloApp := line[1]
 		sloClass := line[2]
