@@ -30,7 +30,7 @@ This way it can classify the events even if the application goes down if they we
 Also, this cache can be initialized with defined values on startup, so that we can correctly classify events even for application which does not provide us with the classification by themselves.
 
 
-`moduleConfig`
+#### `moduleConfig`
 ```yaml
 # Paths to CSV files containing exact match classification rules.
 exactMatchesCsvFiles: []
@@ -43,16 +43,23 @@ unclassifiedEventMetadataKeys:
   - "userAgent"
 ```
 
-Example of the CSV with exact classification:
+##### Example of the CSV with exact classification:
 ```csv
 test-domain,test-app,test-class,"GET:/testing-endpoint"
 ```
 
-Example of the CSV with regexp classification:
+##### Example of the CSV with regexp classification:
 ```csv
 test-domain,test-app,test-class,"/api/test/.*"
 test-domain,test-app,test-class-all,"/api/.*"
 ```
 
+##### CSV comments
+CSV configuration files support single line comments. Comment has to start with the `#` character with no leading whitespaces.
+Example:
+```csv
+# Example of comment
+test-domain,test-app,test-class,"/api/test/.*"
+```
 
 

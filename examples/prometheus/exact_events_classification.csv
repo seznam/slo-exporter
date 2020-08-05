@@ -1,12 +1,15 @@
+# Critical endpoints which should be fast and highly available.
 ui,prometheus,critical,"/"
 ui,prometheus,critical,"/graph"
 ui,prometheus,critical,"/metrics"
 
+# Less important endpoints with low latency expected.
 ui,prometheus,high_fast,"/flags"
 ui,prometheus,high_fast,"/static/*filepath"
 ui,prometheus,high_fast,"/version"
 ui,prometheus,high_fast,"/config"
 
+# Endpoints which should be highly available but latency can be higher depending on amount of rendered data.
 ui,prometheus,high_slow,"/federate"
 ui,prometheus,high_slow,"/targets"
 ui,prometheus,high_slow,"/service-discovery"

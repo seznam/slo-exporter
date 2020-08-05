@@ -1,1 +1,2 @@
+# Endpoints which should be highly available but latency can be higher depending on amount of requested data.
 api,prometheus,high_slow,"/api/.*"

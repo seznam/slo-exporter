@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"os"
@@ -214,6 +214,8 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 	}()
 
 	csvReader := csv.NewReader(file)
+	// Allow to use comments in the classification CSV files.
+	csvReader.Comment = '#'
 
 	for {
 		line, err := csvReader.Read()
@@ -224,6 +226,11 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 			return err
 		}
 
+		expectedCsvColumnsCount := 4
+		if len(line) != expectedCsvColumnsCount {
+			dc.logger.WithField("line", line).WithField("file", path).Errorf("unexpected number of columns in CSV file, expected %d, found %d.", expectedCsvColumnsCount, len(line))
+			continue
+		}
 		sloDomain := line[0]
 		sloApp := line[1]
 		sloClass := line[2]
