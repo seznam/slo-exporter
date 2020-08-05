@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"os"
@@ -214,6 +214,8 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 	}()
 
 	csvReader := csv.NewReader(file)
+	// Allow to use comments in the classification CSV files.
+	csvReader.Comment = '#'
 
 	for {
 		line, err := csvReader.Read()
