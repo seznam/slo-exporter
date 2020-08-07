@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v6.4.0] 2020-08-07
 ## Added
-- [#25](https://github.com/seznam/slo-exporter/pull/25) --version command-line flag
+- [#25](https://github.com/seznam/slo-exporter/pull/25) `--version` command-line flag showing only the build version
 
 ## [v6.3.0] 2020-08-05
 ## Added
