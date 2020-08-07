@@ -128,10 +128,23 @@ func main() {
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)
 
-	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
+	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").ExistingFile()
 	logLevel := kingpin.Flag("log-level", "Log level (error, warn, info, debug,trace).").Default("info").String()
 	checkConfig := kingpin.Flag("check-config", "Only check config file and exit with 0 if ok and other status code if not.").Default("false").Bool()
+	versionFlag := kingpin.Flag("version", "Display version.").Default("false").Bool()
 	kingpin.Parse()
+
+	// If version is requested, end here.
+	if *versionFlag {
+		fmt.Printf("slo_exporter version %s (from commit %s at %s by %s)\n", version, commit, date, builtBy)
+		return
+	}
+
+	if *configFilePath == "" {
+		fmt.Fprintln(os.Stderr, "error: required flag --config-file not provided, try --help")
+		os.Exit(1)
+	}
+
 	envLogLevel, ok := syscall.Getenv("SLO_EXPORTER_LOGLEVEL")
 	if ok {
 		logLevel = &envLogLevel
@@ -153,7 +166,7 @@ func main() {
 		logger.Fatalf("failed to initialize the pipeline: %v", err)
 	}
 
-	// If only  configuration check is required, end here.
+	// If configuration check is required, end here.
 	if *checkConfig {
 		logger.Info("Configuration is valid!")
 		return
