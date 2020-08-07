@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ## Fixed
-- [#26](https://github.com/seznam/slo-exporter/pull/26) Empty configuration is now evaluated as invalid
+- [#27](https://github.com/seznam/slo-exporter/pull/27) Empty configuration is now evaluated as invalid
 
 ## [v6.4.0] 2020-08-07
 ## Added
