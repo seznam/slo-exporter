@@ -28,6 +28,9 @@ func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logg
 		pipeline: []pipelineItem{},
 		logger:   logger,
 	}
+	if len(config.Pipeline) < 1 {
+		return nil, fmt.Errorf("failed to create the pipeline as no modules defined in the config")
+	}
 	// Initialize the pipeline and link it together.
 	for _, moduleName := range config.Pipeline {
 		newPipelineItem, err := manager.newPipelineItem(moduleName, config, moduleFactory)
