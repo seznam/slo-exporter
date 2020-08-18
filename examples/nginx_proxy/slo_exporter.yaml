@@ -7,7 +7,7 @@ pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "stati
 modules:
 
   tailer:
-    tailedFile: "examples/from_log/test.log"
+    tailedFile: "test.log"
     follow: true
     reopen: true
     positionFile: ""
@@ -50,7 +50,7 @@ modules:
 
   dynamicClassifier:
     regexpMatchesCsvFiles:
-      - "examples/from_log/classification.csv"
+      - "classification.csv"
     unclassifiedEventMetadataKeys:
       - "userAgent"
 
@@ -65,7 +65,7 @@ modules:
 
   sloEventProducer:
     rulesFiles:
-      - "examples/from_log/slo_rules.yaml"
+      - "slo_rules.yaml"
 
   prometheusExporter:
     metricName: "slo_events_total"
