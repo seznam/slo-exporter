@@ -8,7 +8,7 @@
 | Output event   | `raw`                   |
 
 Prometheus ingester generates events based on results of provided Prometheus queries.
-For its usage example see [the prometheus example](../../examples/prometheus).
+For its usage example see [the prometheus example](/examples/prometheus).
 
 `moduleConfig`
 ```yaml
