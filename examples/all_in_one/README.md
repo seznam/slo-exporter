@@ -1,9 +1,9 @@
 # All-in-one example
 
 ### Overview
-Use the provided [docker-compose](./docker-compose.yaml) to start the complete setup with 
-Prometheus instance loaded with [example SLO recording rules](../../prometheus_rules),
-and Grafana instance with loaded [SLO dashboards](../../grafana_dashboards).
+Use the provided [docker-compose](./docker-compose.yaml) to start the complete setup with
+Prometheus instance loaded with [example SLO recording rules](/prometheus_rules),
+and Grafana instance with loaded [SLO dashboards](/grafana_dashboards).
 
 Description of the whole setup follows:
 - **Nginx configured with the following paths:**
@@ -16,7 +16,7 @@ Description of the whole setup follows:
   - loaded with necessary recording-rules for SLO computation
 - **Grafana**
   - with Prometheus preconfigured as a datasource
-  - loaded with [SLO dashboards](../../grafana_dashboards/)
+  - loaded with [SLO dashboards](/grafana_dashboards/)
 - **Slo-event-generator**
   - an infinite loop accessing the Nginx instance to generate slo-events.
 

@@ -1,7 +1,7 @@
 # Prometheus SLO example
 
 This example shows a simple configuration of slo-exporter using
-[`prometheus_ingester`](../../docs/modules/prometheus_ingester.md)
+[`prometheus_ingester`](/docs/modules/prometheus_ingester.md)
 as a source of data in order to compute SLO of Prometheus itself.
 
 #### How to run it
@@ -21,7 +21,7 @@ Prometheus has few basic functionalities which should be covered by its SLOs.
 #### `api_availability`
 Uses Prometheus counter `prometheus_http_requests_total` which has label `handler` and `code`.
 An event is generated for every observed increase of this metric with the corresponding metadata using
-[`counter_increase` query type of `prometheus_ingester` module ](../../docs/modules/prometheus_ingester.md#type-counter_increase).
+[`counter_increase` query type of `prometheus_ingester` module ](/docs/modules/prometheus_ingester.md#type-counter_increase).
 Label `handler` holds information which endpoint has been called. That is used as an event key to classify its importance (SLO class).
 Label `code` contains resulting status code of the request. That is used to decide if the event was success (<500) or fail(>=500).
 
@@ -29,6 +29,6 @@ Label `code` contains resulting status code of the request. That is used to deci
 Uses Prometheus histogram `prometheus_http_request_duration_seconds_bucket` which tracks response latency distribution of all requests.
 It generates event for every request with the corresponding metadata and additional values from the `le` labels about
 upper and lower boundary of the bucket the event falls into using
-[the `prometheus_ingester` modules `histogram_increase` query type](../../docs/modules/prometheus_ingester.md#type-histogram_increase).
+[the `prometheus_ingester` modules `histogram_increase` query type](/docs/modules/prometheus_ingester.md#type-histogram_increase).
 Then the lower boundary, holding the minimum duration the request took, is compared with the latency threshold to decide is request was success or fail.
 The latency has different thresholds for distinct SLO classes, so the rules are separate for each of them.

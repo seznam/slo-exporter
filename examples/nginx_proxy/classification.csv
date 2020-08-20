@@ -1,2 +1,3 @@
 test-domain,test-app,high_fast,"^(GET|POST|HEAD|PUT|DELETE):/api/v1/.*$"
 test-domain,test-app,critical,"^(GET|POST|HEAD|PUT|DELETE):/api/v2/.*$"
+test-domain,test-app,critical,"^(GET|POST|HEAD|PUT|DELETE):/img2/.*$"
