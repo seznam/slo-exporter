@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/iancoleman/strcase"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/config"
+	"github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
@@ -59,14 +59,14 @@ func (m *Manager) StartPipeline() error {
 	if len(m.pipeline) == 0 {
 		return fmt.Errorf("failed to execute the empty pipeline (no pipeline modules defined in the config)")
 	}
-    var pipelineSchema []string
+	var pipelineSchema []string
 	for _, pipelineItem := range m.pipeline {
 		pipelineItem.module.Run()
 		pipelineSchema = append(pipelineSchema, pipelineItem.name)
 	}
 	m.logger.Info("pipeline schema: " + strings.Join(pipelineSchema, " -> "))
 	m.logger.Info("pipeline started")
-  return nil
+	return nil
 }
 
 func (m *Manager) StopPipeline(ctx context.Context) chan struct{} {
