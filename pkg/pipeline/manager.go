@@ -28,9 +28,6 @@ func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logg
 		pipeline: []pipelineItem{},
 		logger:   logger,
 	}
-	if len(config.Pipeline) < 1 {
-		return nil, fmt.Errorf("failed to create the pipeline as no modules defined in the config")
-	}
 	// Initialize the pipeline and link it together.
 	for _, moduleName := range config.Pipeline {
 		newPipelineItem, err := manager.newPipelineItem(moduleName, config, moduleFactory)
@@ -56,16 +53,20 @@ type Manager struct {
 	logger   logrus.FieldLogger
 }
 
-func (m *Manager) StartPipeline() {
+func (m *Manager) StartPipeline() error {
 	m.logger.Info("starting pipeline... ")
-	var pipelineSchema []string
+
+	if len(m.pipeline) == 0 {
+		return fmt.Errorf("failed to execute the empty pipeline (no pipeline modules defined in the config)")
+	}
+    var pipelineSchema []string
 	for _, pipelineItem := range m.pipeline {
 		pipelineItem.module.Run()
 		pipelineSchema = append(pipelineSchema, pipelineItem.name)
 	}
 	m.logger.Info("pipeline schema: " + strings.Join(pipelineSchema, " -> "))
 	m.logger.Info("pipeline started")
-
+  return nil
 }
 
 func (m *Manager) StopPipeline(ctx context.Context) chan struct{} {

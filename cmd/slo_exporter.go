@@ -199,8 +199,10 @@ func main() {
 	}
 	pipelineManager.RegisterWebInterface(router)
 
-	// Start the pipeline items `processing
-	pipelineManager.StartPipeline()
+	// Start the pipeline processing
+	if err := pipelineManager.StartPipeline(); err != nil {
+		logger.Fatalf("failed to start the pipeline: %v", err)
+	}
 
 	// listen for OS signals
 	sigChan := make(chan os.Signal, 3)
