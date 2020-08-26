@@ -4,11 +4,11 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/seznam/slo-exporter/pkg/config"
+	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"github.com/seznam/slo-exporter/pkg/config"
-	"github.com/seznam/slo-exporter/pkg/event"
 	"strings"
 	"testing"
 )
@@ -41,8 +41,16 @@ func (t *testModule) OutputChannel() chan *event.Raw {
 	return make(chan *event.Raw)
 }
 
+func newEmptyManager() (*Manager, error) {
+	manager, err := NewManager(testModuleFactory, &config.Config{Pipeline: []string{}}, logrus.New())
+	if err != nil {
+		return nil, err
+	}
+	return manager, nil
+}
+
 func newTestManager() (*Manager, error) {
-	manager, err := NewManager(testModuleFactory, &config.Config{Pipeline: []string{},}, logrus.New())
+	manager, err := newEmptyManager()
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +76,14 @@ test_module_test 0
 
 	err = testutil.GatherAndCompare(registry, strings.NewReader(expectedMetrics))
 	assert.NoError(t, err)
+}
+
+// Empty pipeline refuses to start
+func TestManager_StartEmptyPipeline(t *testing.T) {
+	manager, err := newEmptyManager()
+	assert.NoError(t, err)
+	err = manager.StartPipeline()
+	assert.Error(t, err)
 }
 
 func TestManager_StartPipeline(t *testing.T) {

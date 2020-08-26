@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v6.4.1] 2020-08-25
+## Fixed
+- [#27](https://github.com/seznam/slo-exporter/pull/27) Empty configuration is now evaluated as invalid
+
 ## [v6.4.0] 2020-08-07
 ## Added
 - [#25](https://github.com/seznam/slo-exporter/pull/25) `--version` command-line flag showing only the build version
@@ -22,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#18](https://github.com/seznam/slo-exporter/pull/18) Tailer: Upgraded hpcloud/tail package to latest commit.
 
 ## Added
-- [#20](https://github.com/seznam/slo-exporter/pull/20) CI: 
+- [#20](https://github.com/seznam/slo-exporter/pull/20) CI:
      - Release additional Docker image tags:
         - `latest` Latest released version.
         - `vX` Latest released version for the major version.
