@@ -60,7 +60,7 @@ Only produces new events from the specified data source.
 Reads input events, does some processing based in the module type and produces modified event.
   - [`eventKeyGenerator`](modules/event_key_generator.md)
   - [`metadataClassifier`](modules/metadata_classifier.md)
-  - [`relable`](modules/relabel.md)
+  - [`relabel`](modules/relabel.md)
   - [`dynamicClassifier`](modules/dynamic_classifier.md)
   - [`statisticalClassifier`](modules/statistical_classifier.md)
   - [`sloEventProducer`](modules/slo_event_producer.md)
