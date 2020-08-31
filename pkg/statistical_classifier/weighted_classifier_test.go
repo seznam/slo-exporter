@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestArchive(t *testing.T) {
@@ -27,20 +27,27 @@ func TestArchive(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.recentWeights = record
+
+	// test if history is empty
+	assert.Equal(t, 0, s.history.Len())
+
 	err = s.archive()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h := s.history.list.Front()
-	// test if history is empty
-	if !assert.NotNil(t, h) {
-		t.FailNow()
-	}
+	// test if history not empty
+	assert.NotEqual(t, 0, s.history.Len())
+
 	// test if 'recentWeights' contains empty classificationMapping
 	assert.EqualValues(t, classificationMapping{}, s.recentWeights)
+
 	// test if history contains 'archived record
-	assert.EqualValues(t, record, h.Value)
+	var archivedRecords []interface{}
+	for i := range s.history.Stream() {
+		archivedRecords = append(archivedRecords, i)
+	}
+	assert.Equal(t, []interface{}{record}, archivedRecords)
 }
 
 func TestRefresh(t *testing.T) {
@@ -73,7 +80,7 @@ func TestRefresh(t *testing.T) {
 	}
 
 	for _, v := range data {
-		s.history.add(v)
+		s.history.Add(v)
 	}
 
 	err = s.reweight()
