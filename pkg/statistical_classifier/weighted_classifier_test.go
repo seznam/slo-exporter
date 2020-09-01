@@ -1,212 +1,346 @@
-//revive:disable:var-naming
 package statistical_classifier
 
-//revive:enable:var-naming
-
 import (
-	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
-
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-func TestArchive(t *testing.T) {
-	record := classificationMapping{
-		"test-classifications": &classificationWeight{
-			classification: &event.SloClassification{
-				Domain: "test-domain",
-				App:    "test-app",
-				Class:  "test-class"},
-		},
-	}
-
-	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
-	if err != nil {
-		t.Fatal(err)
-	}
-	s.recentWeights = record
-
-	// test if history is empty
-	assert.Equal(t, 0, s.history.Len())
-
-	err = s.archive()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// test if history not empty
-	assert.NotEqual(t, 0, s.history.Len())
-
-	// test if 'recentWeights' contains empty classificationMapping
-	assert.EqualValues(t, classificationMapping{}, s.recentWeights)
-
-	// test if history contains 'archived record
-	var archivedRecords []interface{}
-	for i := range s.history.Stream() {
-		archivedRecords = append(archivedRecords, i)
-	}
-	assert.Equal(t, []interface{}{record}, archivedRecords)
-}
-
-func TestRefresh(t *testing.T) {
-	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
-	if err != nil {
-		t.Fatal(err)
-	}
-	classification1 := &event.SloClassification{Class: "1"}
-	classification2 := &event.SloClassification{Class: "2"}
-	classification3 := &event.SloClassification{Class: "3"}
-	expected := weightedClassificationSet{
-		enumeratedClassifications: []classificationWeight{
-			{weight: 2, classification: classification1},
-			{weight: 4, classification: classification2},
-			{weight: 6, classification: classification3},
-		},
-		classificationWeights: []float64{2, 4, 6},
-	}
-	data := []classificationMapping{
+func Test_classificationWeights_add(t *testing.T) {
+	tests := []struct {
+		name            string
+		increments      []classificationWeight
+		expectedWeights []classificationWeight
+	}{
 		{
-			classification1.String(): &classificationWeight{weight: 1, classification: classification1},
-			classification2.String(): &classificationWeight{weight: 2, classification: classification2},
-			classification3.String(): &classificationWeight{weight: 3, classification: classification3},
+			name:            "empty weights and no added",
+			increments:      []classificationWeight{},
+			expectedWeights: []classificationWeight{},
 		},
 		{
-			classification1.String(): &classificationWeight{weight: 1, classification: classification1},
-			classification2.String(): &classificationWeight{weight: 2, classification: classification2},
-			classification3.String(): &classificationWeight{weight: 3, classification: classification3},
+			name: "add only one zero",
+			increments: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+		},
+		{
+			name: "add two distinct",
+			increments: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+				{classification: event.SloClassification{Domain: "bar", App: "bar", Class: "bar"}, weight: 2},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+				{classification: event.SloClassification{Domain: "bar", App: "bar", Class: "bar"}, weight: 2},
+			},
 		},
 	}
-
-	for _, v := range data {
-		s.history.Add(v)
-	}
-
-	err = s.reweight()
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.ElementsMatch(t, expected.enumeratedClassifications, s.totalWeightsOverHistory.enumeratedClassifications)
-	assert.ElementsMatch(t, expected.classificationWeights, s.totalWeightsOverHistory.classificationWeights)
-}
-
-func TestClassForEvent(t *testing.T) {
-	expectedClassification := &event.SloClassification{
-		Domain: "test-domain",
-		App:    "test-app",
-		Class:  "test-class",
-	}
-	s, err := newWeightedClassifier(1, 1, logrus.New())
-	if err != nil {
-		t.Fatal(err)
-	}
-	s.totalWeightsOverHistory = &weightedClassificationSet{
-		enumeratedClassifications: []classificationWeight{
-			{weight: 3, classification: expectedClassification},
-			{weight: 0, classification: &event.SloClassification{}},
-			{weight: 0, classification: &event.SloClassification{}},
-		},
-		classificationWeights: []float64{3, 0, 0},
-	}
-
-	classification, err := s.guessClass()
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.EqualValues(t, expectedClassification, classification)
-}
-
-type guessedClass struct {
-	class  event.SloClassification
-	weight int
-	assert func(t assert.TestingT, e1 interface{}, e2 interface{}, msgAndArgs ...interface{}) bool
-	value  int
-}
-
-type guessTestCase []guessedClass
-
-func TestGuess(t *testing.T) {
-	testCases := []guessTestCase{
-		[]guessedClass{
-			{class: event.SloClassification{Class: "1"}, weight: 50, assert: assert.GreaterOrEqual, value: 20},
-			{class: event.SloClassification{Class: "2"}, weight: 50, assert: assert.GreaterOrEqual, value: 20},
-		},
-		[]guessedClass{
-			{class: event.SloClassification{Class: "1"}, weight: 50, assert: assert.GreaterOrEqual, value: 5},
-			{class: event.SloClassification{Class: "2"}, weight: 50, assert: assert.GreaterOrEqual, value: 5},
-			{class: event.SloClassification{Class: "3"}, weight: 50, assert: assert.GreaterOrEqual, value: 5},
-		},
-		[]guessedClass{
-			{class: event.SloClassification{Class: "1"}, weight: 0, assert: assert.Equal, value: 0},
-			{class: event.SloClassification{Class: "2"}, weight: 100, assert: assert.Equal, value: 100},
-		},
-		[]guessedClass{
-			{class: event.SloClassification{Class: "1"}, weight: 100, assert: assert.Equal, value: 100},
-			{class: event.SloClassification{Class: "2"}, weight: 0, assert: assert.Equal, value: 0},
-		},
-		[]guessedClass{
-			{class: event.SloClassification{Class: "1"}, weight: 0, assert: assert.Equal, value: 20},
-			{class: event.SloClassification{Class: "2"}, weight: 0, assert: assert.Equal, value: 20},
-		},
-		[]guessedClass{
-			{class: event.SloClassification{Class: "1"}, weight: 100, assert: assert.Equal, value: 100},
-		},
-	}
-
-	for _, testCase := range testCases {
-		var classificationCount int
-		classifier, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, toBeGuessed := range testCase {
-			classificationCount += toBeGuessed.weight
-			classifier.increaseWeight(toBeGuessed.class, float64(toBeGuessed.weight))
-		}
-		err = classifier.archive()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		result := map[event.SloClassification]int{}
-		for i := 0; i < classificationCount; i++ {
-			guessedClassification, err := classifier.guessClass()
-			if err != nil {
-				t.Fatal(err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newClassificationWeights()
+			for _, item := range tt.increments {
+				c.add(item.classification, item.weight)
 			}
-			result[*guessedClassification]++
-		}
-
-		for _, class := range testCase {
-			class.assert(t, result[class.class], class.value, "failed for input %+v", testCase)
-		}
-		break
+			assert.ElementsMatch(t, tt.expectedWeights, c.listClassificationWeights())
+		})
 	}
 }
 
-func TestDefaultWeightsGuess(t *testing.T) {
-	testedClassification := event.SloClassification{Class: "test", Domain: "test", App: "test"}
-	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.NewEntry(logrus.New()))
-	if err != nil {
-		t.Fatal(err)
+func Test_classificationWeights_inc(t *testing.T) {
+	tests := []struct {
+		name            string
+		increments      []classificationWeight
+		expectedWeights []classificationWeight
+	}{
+		{
+			name:            "empty weights and no added",
+			increments:      []classificationWeight{},
+			expectedWeights: []classificationWeight{},
+		},
+		{
+			name: "add only one zero",
+			increments: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+		},
+		{
+			name: "add new one",
+			increments: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+			},
+		},
+		{
+			name: "add two distinct",
+			increments: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+				{classification: event.SloClassification{Domain: "bar", App: "bar", Class: "bar"}, weight: 2},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+				{classification: event.SloClassification{Domain: "bar", App: "bar", Class: "bar"}, weight: 2},
+			},
+		},
 	}
-	s.setDefaultWeights(newWeightedClassificationSetFromClassifications(&classificationMapping{
-		"test": &classificationWeight{
-			weight:         1,
-			classification: &testedClassification,
-		}}))
-	guessedClassification, err := s.guessClass()
-	assert.NoError(t, err)
-	assert.Equal(t, testedClassification, *guessedClassification)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newClassificationWeights()
+			for _, item := range tt.increments {
+				c.inc(item.classification, item.weight)
+			}
+			assert.ElementsMatch(t, tt.expectedWeights, c.listClassificationWeights())
+		})
+	}
 }
 
-func TestEmptyGuess(t *testing.T) {
-	s, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
-	if err != nil {
-		t.Fatal(err)
+func Test_classificationWeights_index(t *testing.T) {
+	tests := []struct {
+		name           string
+		weights        []classificationWeight
+		index          int
+		expectedWeight classificationWeight
+		expectError    bool
+	}{
+		{
+			name:        "error on empty",
+			weights:     []classificationWeight{},
+			index:       0,
+			expectError: true,
+		},
+		{
+			name: "error on index out of range",
+			weights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+			index:       10,
+			expectError: true,
+		},
+		{
+			name: "verify alphabetical order",
+			weights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "b", App: "b", Class: "b"}, weight: 0},
+				{classification: event.SloClassification{Domain: "a", App: "a", Class: "a"}, weight: 0},
+			},
+			index:          0,
+			expectedWeight: classificationWeight{classification: event.SloClassification{Domain: "a", App: "a", Class: "a"}, weight: 0},
+		},
 	}
-	s.totalWeightsOverHistory = newWeightedClassificationSet()
-	_, err = s.guessClass()
-	assert.Error(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newClassificationWeights()
+			for _, item := range tt.weights {
+				c.inc(item.classification, item.weight)
+			}
+			weight, err := c.index(tt.index)
+			if err != nil && !tt.expectError {
+				t.Fatalf("resulted in unexpected error: %v", err)
+			}
+			assert.Equal(t, tt.expectedWeight, weight)
+		})
+	}
+}
+
+func Test_classificationWeights_len(t *testing.T) {
+	tests := []struct {
+		name        string
+		weights     []classificationWeight
+		expectedLen int
+	}{
+		{
+			name:        "empty has zero len",
+			weights:     []classificationWeight{},
+			expectedLen: 0,
+		},
+		{
+			name: "len of 1",
+			weights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+			expectedLen: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newClassificationWeights()
+			for _, item := range tt.weights {
+				c.inc(item.classification, item.weight)
+			}
+			assert.Equal(t, tt.expectedLen, c.len())
+		})
+	}
+}
+
+func Test_classificationWeights_listClassifictionWeights(t *testing.T) {
+	tests := []struct {
+		name            string
+		addedWeights    []classificationWeight
+		expectedWeights []classificationWeight
+	}{
+		{
+			name:            "test empty",
+			addedWeights:    []classificationWeight{},
+			expectedWeights: []classificationWeight{},
+		},
+		{
+			name: "matches one added",
+			addedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 0},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newClassificationWeights()
+			for _, item := range tt.addedWeights {
+				c.inc(item.classification, item.weight)
+			}
+			assert.ElementsMatch(t, tt.expectedWeights, c.listClassificationWeights())
+		})
+	}
+}
+
+func Test_classificationWeights_merge(t *testing.T) {
+	tests := []struct {
+		name            string
+		originalWeights []classificationWeight
+		otherWeights    []classificationWeight
+		expectedWeights []classificationWeight
+	}{
+		{
+			name:            "merge empty and ampty",
+			originalWeights: []classificationWeight{},
+			otherWeights:    []classificationWeight{},
+			expectedWeights: []classificationWeight{},
+		},
+		{
+			name: "merge full and empty",
+			originalWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+			},
+			otherWeights: []classificationWeight{},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+			},
+		},
+		{
+			name:            "merge empty and full",
+			originalWeights: []classificationWeight{},
+			otherWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+			},
+		},
+		{
+			name: "merge both full with distinct classifications",
+			originalWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+			},
+			otherWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "bar", App: "bar", Class: "bar"}, weight: 2},
+			},
+			expectedWeights: []classificationWeight{
+				{classification: event.SloClassification{Domain: "foo", App: "foo", Class: "foo"}, weight: 1},
+				{classification: event.SloClassification{Domain: "bar", App: "bar", Class: "bar"}, weight: 2},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			original := newClassificationWeights()
+			for _, item := range tt.originalWeights {
+				original.inc(item.classification, item.weight)
+			}
+			other := newClassificationWeights()
+			for _, item := range tt.otherWeights {
+				other.inc(item.classification, item.weight)
+			}
+			original.merge(other)
+			assert.ElementsMatch(t, tt.expectedWeights, original.listClassificationWeights())
+		})
+	}
+}
+
+func Test_classificationWeights_sortedKeys(t *testing.T) {
+	classificationA := event.SloClassification{Domain: "a", App: "a", Class: "a"}
+	classificationB := event.SloClassification{Domain: "b", App: "b", Class: "b"}
+	tests := []struct {
+		name         string
+		addedWeights []classificationWeight
+		expectedKeys []string
+	}{
+		{
+			name:         "test empty",
+			addedWeights: []classificationWeight{},
+			expectedKeys: []string{},
+		},
+		{
+			name: "test sorted",
+			addedWeights: []classificationWeight{
+				{classification: classificationB, weight: 0},
+				{classification: classificationA, weight: 0},
+			},
+			expectedKeys: []string{
+				classificationA.String(),
+				classificationB.String(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newClassificationWeights()
+			for _, item := range tt.addedWeights {
+				c.inc(item.classification, item.weight)
+			}
+			assert.Equal(t, tt.expectedKeys, c.sortedKeys())
+		})
+	}
+}
+
+func Test_classificationWeights_sortedWeights(t *testing.T) {
+	classificationWeightA := classificationWeight{classification: event.SloClassification{Domain: "a", App: "a", Class: "a"}, weight: 8}
+	classificationWeightB := classificationWeight{classification: event.SloClassification{Domain: "b", App: "b", Class: "b"}, weight: 3}
+	tests := []struct {
+		name            string
+		addedWeights    []classificationWeight
+		expectedWeights []float64
+	}{
+		{
+			name:            "test empty",
+			addedWeights:    []classificationWeight{},
+			expectedWeights: []float64{},
+		},
+		{
+			name: "test sorted",
+			addedWeights: []classificationWeight{
+				classificationWeightB,
+				classificationWeightA,
+			},
+			expectedWeights: []float64{
+				classificationWeightA.weight,
+				classificationWeightB.weight,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newClassificationWeights()
+			for _, item := range tt.addedWeights {
+				c.inc(item.classification, item.weight)
+			}
+			assert.Equal(t, tt.expectedWeights, c.sortedWeights())
+		})
+	}
 }

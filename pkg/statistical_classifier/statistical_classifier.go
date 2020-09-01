@@ -6,13 +6,16 @@ package statistical_classifier
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/seznam/slo-exporter/pkg/storage"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/rand"
+	"gonum.org/v1/gonum/stat/sampleuv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -35,6 +38,14 @@ var (
 		},
 		[]string{"type"},
 	)
+
+	classificationWeightsMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "classification_weight",
+			Help: "Current weight for given classification.",
+		},
+		[]string{"slo_domain", "slo_class"},
+	)
 )
 
 type weightClassification struct {
@@ -55,7 +66,7 @@ type classifierConfig struct {
 
 // StatisticalClassifier is classifier based on cache and regexp matches
 type StatisticalClassifier struct {
-	classifier    *weightedClassifier
+	archiver      *storage.PeriodicalAggregatingArchiver
 	observer      pipeline.EventProcessingDurationObserver
 	logger        logrus.FieldLogger
 	inputChannel  chan *event.Raw
@@ -83,36 +94,48 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*Statist
 	return New(config, logger)
 }
 
-func defaultWeightsSetFromConfig(conf classifierConfig) *weightedClassificationSet {
+func defaultWeightsSetFromConfig(conf classifierConfig) classificationWeights {
+	defaultWeights := newClassificationWeights()
 	if len(conf.DefaultWeights) < 1 {
-		return nil
+		return defaultWeights
 	}
-	var defaultWeights []classificationWeight
 	for _, initialWeight := range conf.DefaultWeights {
-		newWeight := classificationWeight{
-			classification: &event.SloClassification{
-				Domain: initialWeight.Classification.SloDomain,
-				Class:  initialWeight.Classification.SloClass,
-				App:    guessedLabelPlaceholder,
-			},
-			weight: initialWeight.Weight,
-		}
-		defaultWeights = append(defaultWeights, newWeight)
+		defaultWeights.inc(event.SloClassification{
+			Domain: initialWeight.Classification.SloDomain,
+			Class:  initialWeight.Classification.SloClass,
+			App:    guessedLabelPlaceholder,
+		}, initialWeight.Weight)
 	}
-	defaultWeightSet := newWeightedClassificationSet()
-	defaultWeightSet.setWeights(defaultWeights)
-	return defaultWeightSet
+	return defaultWeights
+}
+
+func aggregateClassificationStatistics(items []interface{}) (interface{}, error) {
+	newAggregatedWeights := newClassificationWeights()
+	for _, item := range items {
+		weights, ok := item.(classificationWeights)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast '%+v' to 'classificationMapping'", item)
+		}
+		newAggregatedWeights.merge(weights)
+	}
+	for _, item := range newAggregatedWeights.listClassificationWeights() {
+		classificationWeightsMetric.WithLabelValues(item.classification.Domain, item.classification.Class).Set(item.weight)
+	}
+	return newAggregatedWeights, nil
 }
 
 // New returns new instance of StatisticalClassifier
 func New(conf classifierConfig, logger logrus.FieldLogger) (*StatisticalClassifier, error) {
-	newClassifier, err := newWeightedClassifier(conf.HistoryWindowSize, conf.HistoryWeightUpdateInterval, logger)
-	if err != nil {
-		return nil, err
-	}
-	newClassifier.setDefaultWeights(defaultWeightsSetFromConfig(conf))
+	newArchiver := storage.NewPeriodicalAggregatingArchiver(
+		logger.WithField("submodule", "PeriodicalAggregatingArchiver"),
+		storage.NewInMemoryCappedContainer(int(conf.HistoryWindowSize/conf.HistoryWeightUpdateInterval)),
+		newClassificationWeights(),
+		aggregateClassificationStatistics,
+		storage.NewTicker(conf.HistoryWeightUpdateInterval),
+	)
+	newArchiver.SetCurrent(defaultWeightsSetFromConfig(conf))
 	return &StatisticalClassifier{
-		classifier:    newClassifier,
+		archiver:      newArchiver,
 		logger:        logger,
 		inputChannel:  make(chan *event.Raw),
 		outputChannel: make(chan *event.Raw),
@@ -141,7 +164,7 @@ func (sc *StatisticalClassifier) Done() bool {
 }
 
 func (sc *StatisticalClassifier) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
-	toRegister := []prometheus.Collector{eventsTotal, errorsTotal, classificationWeightsMetric}
+	toRegister := []prometheus.Collector{eventsTotal, errorsTotal}
 	for _, metric := range toRegister {
 		if err := wrappedRegistry.Register(metric); err != nil {
 			return err
@@ -163,10 +186,48 @@ func (sc *StatisticalClassifier) sanitizeGuessedClassification(classification *e
 	return newClassification
 }
 
+func (sc *StatisticalClassifier) currentWeights() (*classificationWeights, error) {
+	currentWeights, ok := sc.archiver.Current().(classificationWeights)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast '%+v' to 'classificationWeights'", sc.archiver.Current())
+	}
+	return &currentWeights, nil
+}
+
+func (sc *StatisticalClassifier) increaseWeight(classification event.SloClassification, value float64) error {
+	weights, err := sc.currentWeights()
+	if err != nil {
+		return err
+	}
+	weights.inc(classification, value)
+	sc.archiver.SetCurrent(weights)
+	return nil
+}
+
+func (sc *StatisticalClassifier) guessClass() (*event.SloClassification, error) {
+	currentWeights, err := sc.currentWeights()
+	if err != nil {
+		return nil, err
+	}
+	if currentWeights.len() < 1 {
+		return nil, fmt.Errorf("not enough data to guess")
+	}
+	w := sampleuv.NewWeighted(currentWeights.sortedWeights(), rand.New(rand.NewSource(uint64(int64(time.Now().UnixNano())))))
+	i, ok := w.Take()
+	if !ok {
+		return nil, fmt.Errorf("not enough data to guess")
+	}
+	classificationWeight, err := currentWeights.index(i)
+	if err != nil {
+		return nil, fmt.Errorf("not enough data to guess")
+	}
+	return &classificationWeight.classification, nil
+}
+
 // Classify classifies event. Classification is guessed based on frequency of observed classifications over history window.
 func (sc *StatisticalClassifier) Classify(event *event.Raw) error {
 	if !event.IsClassified() {
-		classification, err := sc.classifier.guessClass()
+		classification, err := sc.guessClass()
 		if err != nil {
 			eventsTotal.WithLabelValues("unclassified").Inc()
 			return err
@@ -174,7 +235,9 @@ func (sc *StatisticalClassifier) Classify(event *event.Raw) error {
 		event.UpdateSLOClassification(classification)
 		eventsTotal.WithLabelValues("classified").Inc()
 	} else {
-		sc.classifier.increaseWeight(sc.sanitizeGuessedClassification(event.GetSloClassification()), 1)
+		if err := sc.increaseWeight(sc.sanitizeGuessedClassification(event.GetSloClassification()), 1); err != nil {
+			return err
+		}
 		eventsTotal.WithLabelValues("increased-weight").Inc()
 	}
 	return nil
@@ -190,7 +253,7 @@ func (sc *StatisticalClassifier) Run() {
 			sc.done = true
 		}()
 
-		sc.classifier.Run(ctx)
+		sc.archiver.Run(ctx)
 		for newEvent := range sc.inputChannel {
 			start := time.Now()
 			if err := sc.Classify(newEvent); err != nil {
