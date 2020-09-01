@@ -6,6 +6,7 @@ package statistical_classifier
 import (
 	"context"
 	"fmt"
+	"github.com/seznam/slo-exporter/pkg/storage"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -100,7 +101,7 @@ func (w *weightedClassificationSet) weights() []float64 {
 }
 
 type weightedClassifier struct {
-	history                 *history
+	history                 storage.CappedContainer
 	totalWeightsOverHistory *weightedClassificationSet
 	defaultWeights          *weightedClassificationSet
 	recentWeights           classificationMapping
@@ -115,7 +116,7 @@ func newWeightedClassifier(windowSize, historyUpdateInterval time.Duration, logg
 	}
 	historyItemsLimit := windowSize / historyUpdateInterval
 	return &weightedClassifier{
-		history:                 newHistory(int(historyItemsLimit)),
+		history:                 storage.NewInMemoryCappedContainer(int(historyItemsLimit)),
 		totalWeightsOverHistory: newWeightedClassificationSet(),
 		recentWeights:           classificationMapping{},
 		lock:                    sync.RWMutex{},
@@ -137,7 +138,7 @@ func (s *weightedClassifier) setDefaultWeights(defaultWeights *weightedClassific
 func (s *weightedClassifier) archive() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.history.add(s.recentWeights)
+	s.history.Add(s.recentWeights)
 	s.recentWeights = classificationMapping{}
 	if err := s.reweight(); err != nil {
 		return fmt.Errorf("failed to reweight classifier from historical data: %w", err)
@@ -148,7 +149,7 @@ func (s *weightedClassifier) archive() error {
 // reweight recalculates the weights over whole history.
 func (s *weightedClassifier) reweight() error {
 	totalClassificationsWeights := classificationMapping{}
-	for item := range s.history.streamList() {
+	for item := range s.history.Stream() {
 		itemClassificationsWeights, ok := item.(classificationMapping)
 		if !ok {
 			return fmt.Errorf("failed to cast '%+v' to 'classificationMapping'", item)
