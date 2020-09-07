@@ -27,5 +27,5 @@ Does not read any events but produces them. These modules serve as sources of th
 ##### `ingester`
 Reads events but does not produce any. These modules serves for reporting the SLO metrics to some external systems.
 
-#####`processor`
+##### `processor`
 Combination of `producer` and `ingester`. It reads an event and produces new or modified one.
