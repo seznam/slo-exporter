@@ -48,7 +48,7 @@ services:
               {"targets":["slo-exporter:8001"]},
               ],
             }],
-           "rule_files": ["/prometheus/recording_rules/*yaml", "/prometheus/recording_rules/slo/*yaml"]
+           "rule_files": ["/prometheus/recording_rules/*yaml", "/prometheus/recording_rules/slo/*yaml", "/prometheus/recording_rules/alerts/*yaml"]
         }
     entrypoint: ["sh"]
     command:

@@ -1,0 +1,21 @@
+groups:
+- name: slo-exporter-slo-error-budget-alerts
+  rules:
+
+  - alert: ErrorBudgetExhausted
+    expr:
+            slo:stable_version{enabled!="false"}
+            * on(slo_version, slo_domain, namespace) group_right()
+            slo:violation_ratio{slo_time_range="4w"}
+            / on (slo_class,slo_domain,slo_version,slo_type,namespace) group_left ()
+            (
+              slo:violation_ratio_threshold - 1
+            )
+            +1 <= 0
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      title: 'Error budget is exhausted.'
+      description: '{{$labels.slo_type | title}} error budget for SLO domain "{{$labels.slo_domain}}" was exhausted.'
+      playbook: howto/SLO-workflow.md

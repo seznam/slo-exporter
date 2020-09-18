@@ -1,0 +1,25 @@
+groups:
+- name: slo-violation-ratio-and-burn-rate
+  interval: 1m
+  rules:
+    # Produce zero instead of NaN.
+    - record: slo:violation_ratio
+      expr:
+        0 == sum(
+            slo:events_over_time
+        ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+          or on (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+        (
+          sum(
+              slo:events_over_time{result="fail"}
+          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+          /
+          sum(
+              slo:events_over_time
+          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+        )
+    - record: slo:burn_rate
+      expr:
+          slo:violation_ratio
+          / on(slo_class, slo_domain, slo_version, slo_type, namespace) group_left()
+          (1 - slo:violation_ratio_threshold)
