@@ -1,0 +1,74 @@
+admin:
+  access_log_path: /tmp/admin_access.log
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9000
+
+node:
+  cluster: service_greeter
+  id: test-id
+
+static_resources:
+  listeners:
+  - name: listener_0
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 10000 }
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          stat_prefix: ingress_http
+          codec_type: AUTO
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/" }
+                route:
+                  # host_rewrite: www.bbc.com
+                  cluster: outbound-cluster
+          http_filters:
+          - name: envoy.router
+          access_log:
+          - name: envoy.http_grpc_access_log
+            config:
+              common_config:
+                grpc_service:
+                  envoy_grpc:
+                    cluster_name: accesslog_cluster
+                log_name: accesslog
+              additional_request_headers_to_log: ['X-NIC', 'SOMEOHTER-HEADER']
+
+  clusters:
+  - name: accesslog_cluster
+    connect_timeout: 6s
+    hosts:
+    - socket_address:
+        # address: slo-exporter
+        address: 127.0.0.1
+        port_value: 18090
+    http2_protocol_options: {}
+
+  - name: outbound-cluster
+    connect_timeout: 2s
+    type: LOGICAL_DNS
+    dns_lookup_family: V4_ONLY
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: outbound-cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: nginx
+                port_value: 8080
+    #            port_vale: 443
+    # transport_socket:
+    #   name: envoy.transport_sockets.tls
+    #   typed_config:
+    #     "@type": type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext
+

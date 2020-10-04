@@ -2,18 +2,22 @@ webServerListenAddress: "0.0.0.0:8001"
 maximumGracefulShutdownDuration: "10s"
 afterPipelineShutdownDelay: "1s"
 
-pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+# pipeline: ["tailer", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline: ["accessLogService", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
 
 modules:
 
-  tailer:
-    tailedFile: "/logs/access_log"
-    follow: true
-    reopen: true
-    positionFile: ""
-    positionPersistenceInterval: "2s"
-    loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) - \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)?\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" "(?P<userAgent>[^"]+)" rt=(?P<requestDuration>\d+(\.\d+)??) uct="[^"]+" uht="[^"]+" urt="[^"]+"'
-    emptyGroupRE: '^-$'
+  accessLogService:
+    port: 18090
+
+  # tailer:
+  # tatailedFile: "./logs/access_log"
+  # tafollow: true
+  # tareopen: true
+  # tapositionFile: ""
+  # tapositionPersistenceInterval: "2s"
+  # taloglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) - \S+ \[(?P<time>.*?)\] "\s*(?P<httpMethod>GET|POST|HEAD|UPDATE|DELETE|PUT|CONNECT|OPTIONS|TRACE|PATCH)\s+(?P<httpPath>[^\s]+)\s+(?P<protocolVersion>[^\s]+)?\s*" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" "(?P<userAgent>[^"]+)" rt=(?P<requestDuration>\d+(\.\d+)??) uct="[^"]+" uht="[^"]+" urt="[^"]+"'
+  # taemptyGroupRE: '^-$'
 
   relabel:
     eventRelabelConfigs:
