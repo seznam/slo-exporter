@@ -33,7 +33,4 @@ To access Grafana and Prometheus:
 #  Password: admin
 ```
 
-Note that grafana dashboard and prometheus alerts starts to work
-fully up to 3 minutes after starting the docker-compose. It is
-because of the prometheus recording rules evaluation interval.
-
+Please note that it may take up to 5 minutes until Grafana dashboards will show any data. This is caused by evaluation interval of the included Prometheus recording rules.
