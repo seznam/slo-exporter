@@ -3,7 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "Prometheus",
+        "datasource": "-- Grafana --",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 2921,
-  "iteration": 1604580107545,
+  "iteration": 1604579075571,
   "links": [
     {
       "icon": "external link",
@@ -42,7 +42,7 @@
   ],
   "panels": [
     {
-      "datasource": "Prometheus",
+      "datasource": null,
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -71,7 +71,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
+      "datasource": null,
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -193,7 +193,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
+      "datasource": null,
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -236,7 +236,7 @@
       "points": false,
       "renderer": "flot",
       "repeatDirection": "v",
-      "repeatIteration": 1604580107545,
+      "repeatIteration": 1604579075571,
       "repeatPanelId": 24,
       "scopedVars": {
         "slo_type": {
@@ -316,7 +316,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
+      "datasource": null,
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -359,7 +359,7 @@
       "points": false,
       "renderer": "flot",
       "repeatDirection": "v",
-      "repeatIteration": 1604580107545,
+      "repeatIteration": 1604579075571,
       "repeatPanelId": 24,
       "scopedVars": {
         "slo_type": {
@@ -446,7 +446,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "Prometheus",
+        "datasource": "Trickster (Prometheus proxy)",
         "definition": "label_values(slo:violation_ratio_threshold{}, slo_version)",
         "error": null,
         "hide": 0,
@@ -469,7 +469,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "Prometheus",
+        "datasource": "Trickster (Prometheus proxy)",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
         "error": null,
         "hide": 0,
@@ -492,7 +492,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "Prometheus",
+        "datasource": "Trickster (Prometheus proxy)",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_class)",
         "error": null,
         "hide": 0,
@@ -515,7 +515,7 @@
       {
         "allValue": ".*",
         "current": {},
-        "datasource": "Prometheus",
+        "datasource": "Trickster (Prometheus proxy)",
         "definition": "label_values(slo:burn_rate{slo_version=\"$slo_version\"}, slo_time_range)",
         "error": null,
         "hide": 0,
@@ -538,7 +538,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "Prometheus",
+        "datasource": "Trickster (Prometheus proxy)",
         "definition": "label_values( slo:events_rate_coefficient{slo_version=\"$slo_version\"}, slo_time_range)",
         "error": null,
         "hide": 0,
@@ -561,7 +561,7 @@
       {
         "allValue": ".*",
         "current": {},
-        "datasource": "Prometheus",
+        "datasource": "Trickster (Prometheus proxy)",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_type)",
         "error": null,
         "hide": 0,
@@ -584,7 +584,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "Prometheus",
+        "datasource": "Trickster (Prometheus proxy)",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, namespace)",
         "error": null,
         "hide": 0,
