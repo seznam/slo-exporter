@@ -1,0 +1,20 @@
+groups:
+  - name: slo-data-corrections-alert
+    interval: 3m
+    rules:
+
+      # This is generic alert which fires when there is not needed SLO data correction metric.
+      # To make it work, please make sure you data correction rule exposes always 0 when it is not active.
+      - alert: "Expired SLO data correction"
+        expr: 'avg_over_time(slo:correction_window[10m]) == 0'
+        for: 10m
+        labels:
+          sre: true
+          severity: info
+          team: sre
+        annotations:
+          title: "Some SLO data correction is no longer used"
+          description: "SLO data correction for incident {{$labels.incident}} is no longer used. You can erase it."
+          playbook: "howto/slo-data-correction.md"
+
+

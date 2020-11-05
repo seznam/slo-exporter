@@ -1,0 +1,31 @@
+groups:
+- name: slo-missing-data
+  rules:
+
+  # Missing slo:burn_rate for enabled SLO domain which had non-zero events in the past 5 minutes
+  - alert: MissingSloBurnRateDomain
+    expr: |
+        (
+          sum(
+            slo:stable_version{enabled!="false"}
+          ) by (slo_version, slo_domain, namespace, team)
+          unless on (slo_domain, slo_version, namespace)
+          (
+            slo:burn_rate{slo_time_range='5m'}
+            * on(slo_version, slo_domain, namespace) group_left(team)
+            slo:stable_version{enabled!="false"}
+          )
+        )
+        and on(slo_version, slo_domain, namespace)
+        sum(
+          slo:events_over_time{slo_time_range="5m"}
+        ) without (result, slo_type) > 0
+    for: 5m
+    labels:
+      severity: critical
+      alert_type: slo:missing_data
+      sre: true
+    annotations:
+      title: 'Missing burn rate data for {{ $labels.slo_domain }}.'
+      description: 'Burn rate probably failed to evaluate for {{ $labels.slo_domain }}.'
+      playbook: "on-call/slo-missing-data.md"

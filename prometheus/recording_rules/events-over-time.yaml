@@ -1,7 +1,6 @@
 groups:
-
-- name: slo-events-over-time
-  interval: 1m
+- name: slo-events-over-time--interval-3m
+  interval: 3m
   rules:
      - record: slo:events_over_time
        labels:
@@ -38,6 +37,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[2h])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+- name: slo-events-over-time--interval-1m
+  interval: 1m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 1h
@@ -59,23 +62,3 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[5m])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
-
-
-- name: slo-violation-ratio
-  interval: 1m
-  rules:
-    - record: slo:violation_ratio
-      expr:
-          sum(
-              slo:events_over_time{result="fail"}
-          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
-          /
-          sum(
-              slo:events_over_time
-          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
-    - record: slo:burn_rate
-      expr:
-          slo:violation_ratio
-          / on(slo_class, slo_domain, slo_version, slo_type, namespace) group_left()
-          (1 - slo:violation_ratio_threshold)
-

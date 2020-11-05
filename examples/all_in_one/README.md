@@ -32,3 +32,5 @@ To access Grafana and Prometheus:
 #  User: admin
 #  Password: admin
 ```
+
+Please note that it may take up to 5 minutes until Grafana dashboards will show any data. This is caused by evaluation interval of the included Prometheus recording rules.

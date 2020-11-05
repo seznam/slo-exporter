@@ -1,0 +1,25 @@
+groups:
+- name: slo-missing-all-data
+  rules:
+
+  # This is a generic alert which fires when there are no SLO data present
+  # and thanos-rule is having trouble evaluating rules.
+  # This typically means that gaps in SLO data are occurring.
+  - alert: MissingAllSloData
+    expr: |
+      (1 - avg_over_time(
+          (clamp_max(sum(absent(slo:events_over_time
+          * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}))
+          AND sum(increase(prometheus_rule_evaluation_failures_total[5m]) > 0),0)
+          OR clamp_max(sum(slo:events_over_time
+          * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}),1))[1h:])
+      ) == 1
+    for: 10m
+    labels:
+      severity: warning
+      sre: true
+      alert_type: slo:missing_data
+    annotations:
+      title: 'Missing SLO data.'
+      description: 'No SLO events are occurring and thanos-rule has trouble evaluating rules.'
+      playbook: "on-call/slo-missing-data.md"
