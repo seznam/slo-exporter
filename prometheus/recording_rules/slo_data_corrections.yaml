@@ -1,0 +1,7 @@
+
+# SLO data correction playbook: playbooks/blob/master/howto/slo-data-correction.md
+
+groups:
+  - name: slo-data-corrections
+    interval: 3m
+    rules:

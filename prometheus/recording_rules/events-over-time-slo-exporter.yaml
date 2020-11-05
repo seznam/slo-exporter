@@ -1,0 +1,579 @@
+groups:
+- name: slo-exporter-slo-events-over-time-availability-uptime--interval-3m
+  interval: 3m
+  rules:
+     # 4w
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[4w:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 4w
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (28*24*60*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="4w"}
+       labels:
+        result: fail
+     # 3d
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[3d:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 3d
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (3*24*60*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="3d"}
+       labels:
+        result: fail
+     # 1d
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1d:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 1d
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*24*60*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1d"}
+       labels:
+        result: fail
+     # 6h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[6h:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 6h
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*6*60*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="6h"}
+       labels:
+        result: fail
+     # 2h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[2h:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 2h
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*2*60*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="2h"}
+       labels:
+        result: fail
+
+- name: slo-exporter-slo-events-over-time-availability-uptime--interval-1m
+  interval: 1m
+  rules:
+     # 1h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1h:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 1h
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*1*60*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1h"}
+       labels:
+        result: fail
+     # 30m
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[30m:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 30m
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*1*30*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="30m"}
+       labels:
+        result: fail
+     # 5m
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[5m:20s]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 5m
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*1*5*(60/harvester_scrape_interval_seconds))
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="5m"}
+       labels:
+        result: fail
+
+# alternative computation for slo_class: uptime
+# SRE is supposed to determine which variant to use within ticket
+# infrastructure/-/issues/5198
+- name: slo-exporter-slo-events-over-time-availability-uptime-alt--interval-3m
+  interval: 3m
+  rules:
+     # 4w
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[4w:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 4w
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (28*24*60)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="4w"}
+       labels:
+        result: fail
+     # 3d
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[3d:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 3d
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (3*24*60)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="3d"}
+       labels:
+        result: fail
+     # 1d
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1d:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 1d
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*24*60)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="1d"}
+       labels:
+        result: fail
+     # 6h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[6h:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 6h
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*6*60)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="6h"}
+       labels:
+        result: fail
+     # 2h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[2h:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 2h
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*2*60)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="2h"}
+       labels:
+        result: fail
+
+- name: slo-exporter-slo-events-over-time-availability-uptime-alt--interval-1m
+  interval: 1m
+  rules:
+     # 1h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1h:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 1h
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*1*60)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="1h"}
+       labels:
+        result: fail
+     # 30m
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[30m:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 30m
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*1*30)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="30m"}
+       labels:
+        result: fail
+     # 5m
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              count_over_time(
+                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[5m:1m]
+              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
+            )
+       labels:
+        slo_time_range: 5m
+        slo_type: availability
+        slo_version: 6
+        slo_class: uptime-alt
+        result: success
+     - record: slo:events_over_time
+       expr:
+            (1*1*5)
+            - on() group_right()
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="5m"}
+       labels:
+        result: fail
+
+- name: slo-exporter-slo-events-over-time-availability-queries--interval-3m
+  interval: 3m
+  rules:
+     # 4w
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[4w])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[4w])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 4w
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[4w])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 4w
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+     # 3d
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[3d])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[3d])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 3d
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[3d])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 3d
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+     # 1d
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[1d])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[1d])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 1d
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[1d])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 1d
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+     # 6h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[6h])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[6h])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 6h
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[6h])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 6h
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+     # 2h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[2h])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[2h])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 2h
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[2h])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 2h
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+
+- name: slo-exporter-slo-events-over-time-availability-queries--interval-1m
+  interval: 1m
+  rules:
+     # 1h
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[1h])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[1h])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 1h
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[1h])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 1h
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+     # 30m
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[30m])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[30m])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 30m
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[30m])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 30m
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+     # 5m
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_duration_seconds_count{app_label=~'slo-exporter.+'}[5m])) by (app_label, namespace)
+              -
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[5m])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        slo_time_range: 5m
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries
+        result: success
+     - record: slo:events_over_time
+       expr:
+            label_replace(
+              sum(increase(slo_exporter_prometheus_ingester_query_fails_total{app_label=~'slo-exporter.+'}[5m])) by (app_label, namespace)
+            , 'slo_domain', '$1', 'app_label', '^(slo-exporter.+)$'
+            )
+       labels:
+        result: fail
+        slo_time_range: 5m
+        slo_type: availability
+        slo_version: 6
+        slo_class: queries

@@ -5,7 +5,7 @@ groups:
   - alert: ErrorBudgetExhausted
     expr:
             slo:stable_version{enabled!="false"}
-            * on(slo_version, slo_domain, namespace) group_right()
+            * on(slo_version, slo_domain, namespace) group_right(team)
             slo:violation_ratio{slo_time_range="4w"}
             / on (slo_class,slo_domain,slo_version,slo_type,namespace) group_left ()
             (
@@ -15,6 +15,8 @@ groups:
     for: 10m
     labels:
       severity: warning
+      sre: true
+      alert_type: slo:error_budget_exhausted
     annotations:
       title: 'Error budget is exhausted.'
       description: '{{$labels.slo_type | title}} error budget for SLO domain "{{$labels.slo_domain}}" was exhausted.'

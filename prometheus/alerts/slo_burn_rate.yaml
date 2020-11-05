@@ -1,0 +1,263 @@
+# SLO burn-rate alerts implementing Multiwindow, Multi-Burn-Rate Alerts (https://landing.google.com/sre/workbook/chapters/alerting-on-slos/)
+#
+#
+# Calculation:
+# 1. It uses pre-calculated burn-rates over two time ranges
+#   1.1 It is multiplied by the rate coefficient
+#   1.2 It is multiplied by `slo:stable_version{enabled!="false"}` to select the current stable enabled slo version
+#   1.3 It is compared with a burn-rate threshold selected for the given time range
+# 2. Both conditions are joined with an `and` on specified labels
+#
+# Note:
+# 1. Every alert has a long window and a short window. The long window is the important one.
+#    The shorter window is supposed to prevent alert firing after an issue has been solved.
+# 1. Rate coefficient is used to adjust the burn-rate according to the current rate of events.
+#    The aim is to effectively decrease/increase SLO burn rate alert threshold depending on how current rate of events compares to a long-term rate average.
+#    Within a single alert, we intentionally use the events rate coefficient associated with the alert's longer time window.
+
+groups:
+
+# One hour alert
+#
+# The burn-rate threshold of 13.44 is such that given an average request rate,
+# the alert would fire on consuming 2 % of 28-day error budget over the last hour.
+#
+# There are two alerts' severities based on the traffic volume:
+# - if traffic is "very low" (e.g. <= 5 failed requests) then it is not critical and TICKET is sufficient
+# - otherwise the alert is critical and has to be solved immediately
+- name: slo-burn-rate-1h-alerts-low-traffic
+  rules:
+
+  # This alert gets severity from current_severity_level_info which is critical during working hours, warning outsite of working hours
+  - alert: SloOneHourAlertLowTraffic
+    # There have been less then 5 failed requests in the last hour
+    expr: (
+        (
+          slo:burn_rate{slo_time_range="1h"}
+          * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h", slo_domain!="userportal-exports"}
+          * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+          > 13.44
+        )
+        and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
+        (
+          slo:burn_rate{slo_time_range="5m"}
+          * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h", slo_domain!="userportal-exports"}
+          * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+          > 13.44
+        )
+        and on(slo_class, slo_domain, slo_version, slo_type, namespace)
+        (
+          slo:events_over_time{slo_time_range="1h", result="fail"} <= 5
+        )
+      )
+    labels:
+      sre: true
+      severity: warning
+      alert_type: slo:high_burnrate
+    annotations:
+      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (last hour, low traffic)"
+      dashboard: https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version={{ $labels.slo_version }}&var-slo_domain={{ $labels.slo_domain }}&var-slo_class={{ $labels.slo_class }}&var-slo_time_range={{ $labels.slo_time_range }}&var-slo_type={{ $labels.slo_type }}&var-namespace={{ $labels.namespace }}&var-offset=All&from=now-{{ $labels.slo_time_range }}&to=now
+      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last hour is {{ printf \"%.1f\" $value }}"
+      playbook: on-call/high-burn-rate.md
+
+
+- name: slo-burn-rate-1h-exports-alerts-critical
+  rules:
+  - alert: SloOneHourAlert
+    # There have been more then 5 failed requests in the last hour
+    expr: (
+        slo:burn_rate{slo_time_range="1h", slo_domain="userportal-exports"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 20.16
+      )
+      and on(percentile, slo_class, slo_domain, slo_type, slo_version)
+      (
+        slo:burn_rate{slo_time_range="5m", slo_domain="userportal-exports"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h", slo_domain="userportal-exports"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 20.16
+      )
+      and on(slo_class, slo_domain, slo_version, slo_type, namespace)
+      (
+        slo:errors_count_over_time_range{slo_time_range="1h"} > 5
+      )
+    labels:
+      severity: critical
+      sre: true
+      alert_type: slo:high_burnrate
+    annotations:
+      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (last hour)"
+      dashboard: https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version={{ $labels.slo_version }}&var-slo_domain={{ $labels.slo_domain }}&var-slo_class={{ $labels.slo_class }}&var-slo_time_range={{ $labels.slo_time_range }}&var-slo_type={{ $labels.slo_type }}&var-namespace={{ $labels.namespace }}&var-offset=All&from=now-{{ $labels.slo_time_range }}&to=now
+      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last hour is {{ printf \"%.1f\" $value }}"
+      playbook: on-call/high-burn-rate.md
+
+
+- name: slo-burn-rate-1h-alerts-critical
+  rules:
+  - alert: SloOneHourAlert
+    # There have been more than 5 failed requests in the last hour
+    expr: (
+        slo:burn_rate{slo_time_range="1h"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h", slo_domain!="userportal-exports"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 13.44
+      )
+      and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
+      (
+        slo:burn_rate{slo_time_range="5m"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1h", slo_domain!="userportal-exports"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 13.44
+      )
+      and on(slo_class, slo_domain, slo_version, slo_type, namespace)
+      (
+        slo:events_over_time{slo_time_range="1h", result="fail"} > 5
+      )
+    labels:
+      severity: critical
+      sre: true
+      alert_type: slo:high_burnrate
+    annotations:
+      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (last hour)"
+      dashboard: https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version={{ $labels.slo_version }}&var-slo_domain={{ $labels.slo_domain }}&var-slo_class={{ $labels.slo_class }}&var-slo_time_range={{ $labels.slo_time_range }}&var-slo_type={{ $labels.slo_type }}&var-namespace={{ $labels.namespace }}&var-offset=All&from=now-{{ $labels.slo_time_range }}&to=now
+      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last hour is {{ printf \"%.1f\" $value }}"
+      playbook: on-call/high-burn-rate.md
+
+  # Six hour alert
+  #
+  # The burn-rate threshold of 5.6 is such that given an average request rate,
+  # the alert would fire on consuming 5% of 28-day error budget over the last six hours.
+  #
+  # There are two alerts' severities based on the traffic volume:
+  # - if traffic is "very low" (e.g. less then 10 failed requests) then it is not critical and TICKET is sufficient
+  # - otherwise the alert is critical and has to be solved imediatelly
+
+- name: slo-burn-rate-6h-alerts-low-traffic
+  rules:
+
+  # This alert gets severity from current_severity_level_info which is critical during working hours, warning outsite of working hours
+  - alert: SloSixHourAlertLowTraffic
+    # There have been less then 10 failed requests in the past 6 hours
+    expr:
+        (
+            (
+              slo:burn_rate{slo_time_range="6h"}
+              * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
+              * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+              > 5.6
+            )
+            and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
+            (
+              slo:burn_rate{slo_time_range="30m"}
+              * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
+              * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+              > 5.6
+            )
+            and on(slo_class, slo_domain, slo_version, slo_type, namespace)
+            (
+              slo:events_over_time{slo_time_range="6h", result="fail"} <= 10
+            )
+        ) * on () group_left(severity) max(current_severity_level_info) by (severity)
+    labels:
+      sre: true
+      alert_type: slo:high_burnrate
+    annotations:
+      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (6 hours, low traffic)"
+      dashboard: https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version={{ $labels.slo_version }}&var-slo_domain={{ $labels.slo_domain }}&var-slo_class={{ $labels.slo_class }}&var-slo_time_range={{ $labels.slo_time_range }}&var-slo_type={{ $labels.slo_type }}&var-namespace={{ $labels.namespace }}&var-offset=All&from=now-{{ $labels.slo_time_range }}&to=now
+      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last 6 hours is {{ printf \"%.1f\" $value }}"
+      playbook: on-call/high-burn-rate.md
+
+- name: slo-burn-rate-6h-alerts-critical
+  rules:
+  - alert: SloSixHourAlert
+    # There have been more more the 10 failed requests in the past 6 hours
+    expr:
+      (
+        slo:burn_rate{slo_time_range="6h"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 5.6
+      )
+      and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
+      (
+        slo:burn_rate{slo_time_range="30m"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="6h"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 5.6
+      )
+      and on(slo_class, slo_domain, slo_version, slo_type, namespace)
+      (
+        slo:events_over_time{slo_time_range="6h", result="fail"} > 10
+      )
+    labels:
+      severity: critical
+      sre: true
+      alert_type: slo:high_burnrate
+    annotations:
+      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (6 hours)"
+      dashboard: https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version={{ $labels.slo_version }}&var-slo_domain={{ $labels.slo_domain }}&var-slo_class={{ $labels.slo_class }}&var-slo_time_range={{ $labels.slo_time_range }}&var-slo_type={{ $labels.slo_type }}&var-namespace={{ $labels.namespace }}&var-offset=All&from=now-{{ $labels.slo_time_range }}&to=now
+      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last 6 hours is {{ printf \"%.1f\" $value }}"
+      playbook: on-call/high-burn-rate.md
+
+  # One day alert
+  #
+  # The burn-rate threshold of 2.8 is such that given an average request rate,
+  # the alert would fire on consuming 10% of 28-day error budget over the last day.
+- name: slo-burn-rate-1d-alerts
+  rules:
+  - alert: SloOneDayAlert
+    expr: (
+        slo:burn_rate{slo_time_range="1d"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1d"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 2.8
+      )
+      and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
+      (
+        slo:burn_rate{slo_time_range="2h"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="1d"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 2.8
+      )
+    labels:
+      severity: warning
+      sre: true
+      alert_type: slo:high_burnrate
+    annotations:
+      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (24 hours)"
+      dashboard: https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version={{ $labels.slo_version }}&var-slo_domain={{ $labels.slo_domain }}&var-slo_class={{ $labels.slo_class }}&var-slo_time_range={{ $labels.slo_time_range }}&var-slo_type={{ $labels.slo_type }}&var-namespace={{ $labels.namespace }}&var-offset=All&from=now-{{ $labels.slo_time_range }}&to=now
+      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last 24 hours is {{ printf \"%.1f\" $value }}."
+      playbook: on-call/high-burn-rate.md
+
+  # Three day alert
+  #
+  # The burn-rate threshold of 1 is such that given an average request rate,
+  # the alert would fire on consuming more error budget in the last three days
+  # than is allocated for 3 days. (10.7% of the 28-day error budget)
+- name: slo-burn-rate-3d-alerts
+  rules:
+  - alert: SloThreeDaysAlert
+    expr:
+      (
+        slo:burn_rate{slo_time_range="3d"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="3d"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 1
+      )
+      and on(percentile, slo_class, slo_domain, slo_type, slo_version, namespace)
+      (
+        slo:burn_rate{slo_time_range="6h"}
+        * on(slo_domain, slo_class, slo_version, slo_type, namespace) group_left() slo:events_rate_coefficient{slo_time_range="3d"}
+        * on(slo_version, slo_domain, namespace) group_left(team) slo:stable_version{enabled!="false"}
+        > 1
+      )
+    labels:
+      severity: warning
+      sre: true
+      alert_type: slo:high_burnrate
+    annotations:
+      title: "High {{ $labels.slo_type }} burn-rate in SLO domain {{ $labels.slo_domain }} (3 days)"
+      dashboard: https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version={{ $labels.slo_version }}&var-slo_domain={{ $labels.slo_domain }}&var-slo_class={{ $labels.slo_class }}&var-slo_time_range={{ $labels.slo_time_range }}&var-slo_type={{ $labels.slo_type }}&var-namespace={{ $labels.namespace }}&var-offset=All&from=now-{{ $labels.slo_time_range }}&to=now
+      description: "Effective {{ $labels.slo_type }} burn-rate of {{ $labels.slo_domain }}/{{ $labels.slo_class }} in the last 3 days is {{ printf \"%.1f\" $value }}"
+      playbook: on-call/high-burn-rate.md
