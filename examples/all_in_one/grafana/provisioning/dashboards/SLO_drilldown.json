@@ -1,35 +1,9 @@
 {
-  "__requires": [
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "7.0.4"
-    },
-    {
-      "type": "panel",
-      "id": "graph",
-      "name": "Graph",
-      "version": ""
-    },
-    {
-      "type": "datasource",
-      "id": "prometheus",
-      "name": "Prometheus",
-      "version": "1.0.0"
-    },
-    {
-      "type": "panel",
-      "id": "table-old",
-      "name": "Table (old)",
-      "version": ""
-    }
-  ],
   "annotations": {
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": "Prometheus",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -40,23 +14,72 @@
   },
   "editable": true,
   "gnetId": null,
-  "graphTooltip": 0,
-  "id": null,
-  "iteration": 1593713520364,
+  "graphTooltip": 1,
+  "id": 3223,
+  "iteration": 1604391368795,
   "links": [],
   "panels": [
     {
-      "collapsed": false,
-      "datasource": "Prometheus",
+      "collapsed": true,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 0
       },
+      "id": 22,
+      "panels": [
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 1
+          },
+          "id": 20,
+          "options": {
+            "content": "Drilldown dashboard allows to you to find out what application and event_key was cause of the SLO error budget decrease.\n\nHow to use it:\n\n### 1. Select variables based on your are of interest\n \n *Note: Selecting long SLO time range brings unecessary load for the monitoring stack. Depending on the amount of ingested data, it is even possible that the drilldown tables (per app, per app and event_key) won't be loaded due to time out.*\n \n ***General rule of thumb is that you should select the same SLO time range as was in the SLO burn-rate alert you are respoing for***\n\n\n### 2. On the first graph, select the time range in which the error budget decrease occured.\n\n*Note: the second graph of error budget is included with a time offset (equal to chosen SLO time range) so that you can see if the current change of error budget wasn't by any chance caused by some larger amount of failed/successful events aging out from history.* \n\n### 3. Profit from the SLO drilldown. :)",
+            "mode": "markdown"
+          },
+          "pluginVersion": "7.3.0",
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "",
+          "transparent": true,
+          "type": "text"
+        }
+      ],
+      "title": "README",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
       "id": 8,
       "panels": [],
-      "title": "Error Budget",
+      "repeat": "offset",
+      "scopedVars": {
+        "offset": {
+          "selected": false,
+          "text": "0s",
+          "value": "0s"
+        }
+      },
+      "title": "Error budget (offset: $offset)",
       "type": "row"
     },
     {
@@ -77,17 +100,18 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 2
       },
       "hiddenSeries": false,
+      "hideTimeOverride": false,
       "id": 2,
       "legend": {
-        "alignAsTable": true,
+        "alignAsTable": false,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
-        "rightSide": true,
+        "rightSide": false,
         "show": true,
         "total": false,
         "values": false
@@ -97,39 +121,42 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.0",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
       "repeat": null,
+      "repeatDirection": "v",
+      "scopedVars": {
+        "offset": {
+          "selected": false,
+          "text": "0s",
+          "value": "0s"
+        }
+      },
       "seriesOverrides": [
         {
-          "alias": "/traffic locality/",
-          "color": "rgba(44, 42, 42, 0.24)",
-          "fill": 6,
-          "yaxis": 2,
-          "zindex": 0
-        },
-        {
-          "alias": "traffic locality nagano",
-          "transform": "negative-Y"
-        },
-        {
-          "alias": "/disabled locality/",
-          "color": "rgb(124, 124, 124)",
-          "fill": 7,
-          "zindex": -3
-        },
-        {
           "alias": "/error budget/",
+          "color": "#5794F2",
+          "linewidth": 3,
           "zindex": 3
         },
         {
-          "alias": "/error budget.*offset/",
-          "dashes": true,
-          "spaceLength": 1
+          "alias": "/fail|success events in 5m/",
+          "fill": 1,
+          "yaxis": 2,
+          "zindex": -3
+        },
+        {
+          "alias": "/fail.+/",
+          "color": "#F2495C"
+        },
+        {
+          "alias": "/success.+/",
+          "color": "#37872D"
         }
       ],
       "spaceLength": 10,
@@ -137,21 +164,29 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "slo:violation_ratio{slo_time_range=\"$slo_time_range\", slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", namespace=\"$namespace\"} \n/ on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n(slo:violation_ratio_threshold - 1)\n+1",
+          "expr": "slo:violation_ratio{slo_time_range=\"$slo_time_range\", slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", namespace=\"$namespace\"}\n/ on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n(slo:violation_ratio_threshold - 1)\n+1",
           "format": "time_series",
           "hide": false,
-          "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "error budget {{slo_domain}} {{slo_type}} {{slo_class}} {{slo_type}}",
+          "legendFormat": "error budget: {{slo_domain}} {{slo_class}} {{slo_type}}",
           "refId": "A"
+        },
+        {
+          "expr": "sum(increase(slo_domain_slo_class:slo_events_total{slo_domain=~\"$slo_domain\", slo_class=~\"$slo_class\", slo_version=\"$slo_version\", slo_type=~\"$slo_type\", namespace=~\"$namespace\", instance=~\"$instance\"}[5m])) by (result)",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ result }} events in 5m (instances: $instance)",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
-      "title": "$slo_type error budget ($slo_time_range)",
+      "timeShift": "$offset",
+      "title": "$slo_type error budget ($slo_time_range, offset $offset)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -175,11 +210,178 @@
           "show": true
         },
         {
-          "format": "short",
+          "format": "none",
           "label": null,
           "logBase": 1,
-          "max": "50",
-          "min": "-50",
+          "max": null,
+          "min": "0",
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 23,
+      "panels": [],
+      "repeatIteration": 1604391368795,
+      "repeatPanelId": 8,
+      "scopedVars": {
+        "offset": {
+          "selected": false,
+          "text": "1h",
+          "value": "1h"
+        }
+      },
+      "title": "Error budget (offset: $offset)",
+      "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "hiddenSeries": false,
+      "hideTimeOverride": false,
+      "id": 24,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.0",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "repeat": null,
+      "repeatDirection": "v",
+      "repeatIteration": 1604391368795,
+      "repeatPanelId": 2,
+      "repeatedByRow": true,
+      "scopedVars": {
+        "offset": {
+          "selected": false,
+          "text": "1h",
+          "value": "1h"
+        }
+      },
+      "seriesOverrides": [
+        {
+          "alias": "/error budget/",
+          "color": "#5794F2",
+          "linewidth": 3,
+          "zindex": 3
+        },
+        {
+          "alias": "/fail|success events in 5m/",
+          "fill": 1,
+          "yaxis": 2,
+          "zindex": -3
+        },
+        {
+          "alias": "/fail.+/",
+          "color": "#F2495C"
+        },
+        {
+          "alias": "/success.+/",
+          "color": "#37872D"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "slo:violation_ratio{slo_time_range=\"$slo_time_range\", slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", namespace=\"$namespace\"}\n/ on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n(slo:violation_ratio_threshold - 1)\n+1",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "error budget: {{slo_domain}} {{slo_class}} {{slo_type}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(slo_domain_slo_class:slo_events_total{slo_domain=~\"$slo_domain\", slo_class=~\"$slo_class\", slo_version=\"$slo_version\", slo_type=~\"$slo_type\", namespace=~\"$namespace\", instance=~\"$instance\"}[5m])) by (result)",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ result }} events in 5m (instances: $instance)",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": "$offset",
+      "title": "$slo_type error budget ($slo_time_range, offset $offset)",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": 1,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "none",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
           "show": true
         }
       ],
@@ -190,20 +392,22 @@
     },
     {
       "collapsed": true,
-      "datasource": "Prometheus",
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 19
       },
-      "id": 16,
+      "id": 10,
       "panels": [
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
+          "columns": [
+            {
+              "text": "Current",
+              "value": "current"
+            }
+          ],
           "datasource": "Prometheus",
           "fieldConfig": {
             "defaults": {
@@ -211,295 +415,292 @@
             },
             "overrides": []
           },
-          "fill": 0,
-          "fillGradient": 0,
+          "fontSize": "100%",
           "gridPos": {
-            "h": 8,
-            "w": 24,
+            "h": 9,
+            "w": 12,
             "x": 0,
-            "y": 10
+            "y": 20
           },
-          "hiddenSeries": false,
-          "id": 14,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
+          "id": 15,
           "links": [],
-          "nullPointMode": "null",
-          "options": {
-            "dataLinks": []
+          "pageSize": null,
+          "showHeader": true,
+          "sort": {
+            "col": 1,
+            "desc": false
           },
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": null,
-          "seriesOverrides": [
+          "styles": [
             {
-              "alias": "/traffic locality/",
-              "color": "rgba(44, 42, 42, 0.24)",
-              "fill": 6,
-              "yaxis": 2,
-              "zindex": 0
+              "alias": "",
+              "align": "auto",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "dateFormat": "YYYY-MM-DD HH:mm:ss",
+              "decimals": 2,
+              "mappingType": 1,
+              "pattern": "Current",
+              "thresholds": [],
+              "type": "number",
+              "unit": "percentunit"
             },
             {
-              "alias": "traffic locality nagano",
-              "transform": "negative-Y"
-            },
-            {
-              "alias": "/disabled locality/",
-              "color": "rgb(124, 124, 124)",
-              "fill": 7,
-              "zindex": -3
-            },
-            {
-              "alias": "/error budget/",
-              "zindex": 3
-            },
-            {
-              "alias": "/error budget.*offset/",
-              "dashes": true,
-              "spaceLength": 1
+              "alias": "",
+              "align": "auto",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "dateFormat": "YYYY-MM-DD HH:mm:ss",
+              "decimals": 2,
+              "mappingType": 1,
+              "pattern": "Metric",
+              "sanitize": true,
+              "thresholds": [],
+              "type": "string",
+              "unit": "short"
             }
           ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
-              "expr": "slo:violation_ratio{slo_time_range=\"$slo_time_range\", slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", namespace=\"$namespace\"} offset $slo_time_range\n/ on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n(slo:violation_ratio_threshold - 1)\n+1",
-              "format": "time_series",
-              "hide": false,
+              "expr": "(\n   (\n     ( # violation ratio at the beginning of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n     # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the beginning of the time range\n   ) * -1\n   -\n   (\n       ( # violation ratio valid at the end of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n       # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the end of the displayed time range\n   ) * -1\n)\n",
+              "instant": true,
               "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "error budget {{slo_domain}} {{slo_type}} {{slo_class}} {{slo_type}}",
+              "legendFormat": "{{ slo_app }}",
               "refId": "A"
             }
           ],
-          "thresholds": [],
           "timeFrom": null,
-          "timeRegions": [],
           "timeShift": null,
-          "title": "$slo_type error budget ($slo_time_range, offset $slo_time_range)",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
+          "title": "By app",
+          "transform": "timeseries_aggregations",
+          "type": "table-old"
+        },
+        {
+          "columns": [
             {
-              "format": "percentunit",
-              "label": null,
-              "logBase": 1,
-              "max": 1,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": "50",
-              "min": "-50",
-              "show": true
+              "text": "Current",
+              "value": "current"
             }
           ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        }
-      ],
-      "title": "Error budget (w offset)",
-      "type": "row"
-    },
-    {
-      "collapsed": false,
-      "datasource": "Prometheus",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 10
-      },
-      "id": 10,
-      "panels": [],
-      "title": "Error budget burned on selected time window (by app)",
-      "type": "row"
-    },
-    {
-      "columns": [
-        {
-          "text": "Current",
-          "value": "current"
-        }
-      ],
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fontSize": "100%",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 11
-      },
-      "id": 4,
-      "pageSize": null,
-      "showHeader": true,
-      "sort": {
-        "col": 0,
-        "desc": true
-      },
-      "styles": [
-        {
-          "alias": "",
-          "align": "left",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fontSize": "100%",
+          "gridPos": {
+            "h": 9,
+            "w": 12,
+            "x": 12,
+            "y": 20
+          },
+          "id": 6,
+          "pageSize": null,
+          "showHeader": true,
+          "sort": {
+            "col": 1,
+            "desc": false
+          },
+          "styles": [
+            {
+              "alias": "",
+              "align": "left",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "decimals": 3,
+              "pattern": "/.*/",
+              "thresholds": [],
+              "type": "number",
+              "unit": "percentunit"
+            }
           ],
-          "decimals": 3,
-          "pattern": "/.*/",
-          "thresholds": [],
-          "type": "number",
-          "unit": "percentunit"
+          "targets": [
+            {
+              "expr": "(\n   (\n     ( # violation ratio at the beginning of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app_event_key:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, event_key)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n     # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the beginning of the time range\n   ) * -1\n   -\n   (\n       ( # violation ratio valid at the end of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app_event_key:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, event_key)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n       # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the end of the displayed time range\n   ) * -1\n)\n",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{ slo_app }}:{{ event_key }}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "By app, event_key",
+          "transform": "timeseries_aggregations",
+          "type": "table-old"
         }
       ],
-      "targets": [
-        {
-          "expr": "(\n   (\n     ( # violation ratio at the beginning of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n     # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the beginning of the time range\n   ) * -1\n   -\n   (\n       ( # violation ratio valid at the end of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n       # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the end of the displayed time range\n   ) * -1\n)\n",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "{{ slo_app }}",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
-      "transform": "timeseries_aggregations",
-      "type": "table-old"
-    },
-    {
-      "collapsed": false,
-      "datasource": "Prometheus",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 19
-      },
-      "id": 12,
-      "panels": [],
-      "title": "Error budget burned on selected time window (by app:event_key)",
+      "title": "Error budget burned on selected time window - by app; by app, event_key",
       "type": "row"
     },
     {
-      "columns": [
-        {
-          "text": "Current",
-          "value": "current"
-        }
-      ],
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fontSize": "100%",
+      "collapsed": true,
+      "datasource": null,
       "gridPos": {
-        "h": 8,
+        "h": 1,
         "w": 24,
         "x": 0,
         "y": 20
       },
-      "id": 6,
-      "pageSize": null,
-      "showHeader": true,
-      "sort": {
-        "col": 1,
-        "desc": false
-      },
-      "styles": [
+      "id": 12,
+      "panels": [
         {
-          "alias": "",
-          "align": "left",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
+          "columns": [
+            {
+              "text": "Current",
+              "value": "current"
+            }
           ],
-          "decimals": 3,
-          "pattern": "/.*/",
-          "thresholds": [],
-          "type": "number",
-          "unit": "percentunit"
-        }
-      ],
-      "targets": [
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fontSize": "100%",
+          "gridPos": {
+            "h": 9,
+            "w": 12,
+            "x": 0,
+            "y": 30
+          },
+          "id": 4,
+          "pageSize": null,
+          "showHeader": true,
+          "sort": {
+            "col": 1,
+            "desc": false
+          },
+          "styles": [
+            {
+              "alias": "",
+              "align": "left",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "decimals": 3,
+              "pattern": "/.*/",
+              "thresholds": [],
+              "type": "number",
+              "unit": "percentunit"
+            }
+          ],
+          "targets": [
+            {
+              "expr": "(\n   (\n     ( # violation ratio at the beginning of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\", instance=~\"$instance\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, instance)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n     # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the beginning of the time range\n   ) * -1\n   -\n   (\n       ( # violation ratio valid at the end of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\", instance=~\"$instance\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, instance)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n       # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the end of the displayed time range\n   ) * -1\n)\n",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{ instance }}:{{ slo_app }}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "By app, instance",
+          "transform": "timeseries_aggregations",
+          "type": "table-old"
+        },
         {
-          "expr": "(\n   (\n     ( # violation ratio at the beginning of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app_event_key:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, event_key)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n     # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the beginning of the time range\n   ) * -1\n   -\n   (\n       ( # violation ratio valid at the end of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app_event_key:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, event_key)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n       # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the end of the displayed time range\n   ) * -1\n)\n",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "{{ slo_app }}:{{ event_key }}",
-          "refId": "A"
+          "columns": [
+            {
+              "text": "Current",
+              "value": "current"
+            }
+          ],
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fontSize": "100%",
+          "gridPos": {
+            "h": 9,
+            "w": 12,
+            "x": 12,
+            "y": 30
+          },
+          "id": 17,
+          "pageSize": null,
+          "showHeader": true,
+          "sort": {
+            "col": 1,
+            "desc": false
+          },
+          "styles": [
+            {
+              "alias": "",
+              "align": "left",
+              "colorMode": null,
+              "colors": [
+                "rgba(245, 54, 54, 0.9)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(50, 172, 45, 0.97)"
+              ],
+              "decimals": 3,
+              "pattern": "/.*/",
+              "thresholds": [],
+              "type": "number",
+              "unit": "percentunit"
+            }
+          ],
+          "targets": [
+            {
+              "expr": "(\n   (\n     ( # violation ratio at the beginning of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app_event_key:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, event_key, instance)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range] offset ${__range_s}s)\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n     # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the beginning of the time range\n   ) * -1\n   -\n   (\n       ( # violation ratio valid at the end of the dashboard chosen time range\n       clamp_min(\n           sum(\n             increase(slo_domain_slo_class_slo_app_event_key:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\", result=\"fail\", instance=~\"$instance\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_app, event_key, instance)\n           / on(slo_domain, slo_version, slo_class) group_left()\n           sum(\n             increase(slo_domain_slo_class:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}[$slo_time_range])\n           ) by (slo_class, slo_domain, slo_version, slo_type, namespace)\n       , 0)\n     )\n     / on (slo_domain, slo_class, slo_version, slo_type) group_left ()\n     (slo:violation_ratio_threshold - 1)\n       # this gets us % (e.g. -0.05 for 5 percent) of error budget burnt by each individual app at the end of the displayed time range\n   ) * -1\n)\n",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{instance}}:{{ slo_app }}:{{ event_key }}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "By app, event_key, instance",
+          "transform": "timeseries_aggregations",
+          "type": "table-old"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
-      "transform": "timeseries_aggregations",
-      "type": "table-old"
+      "title": "Error budget burned on selected time window (instances: $instance) - by app; by app, event_key",
+      "type": "row"
     }
   ],
-  "refresh": "5s",
-  "schemaVersion": 25,
+  "refresh": false,
+  "schemaVersion": 26,
   "style": "dark",
-  "tags": [
-    "SLO, SRE"
-  ],
+  "tags": [],
   "templating": {
     "list": [
       {
         "allValue": null,
         "current": {},
         "datasource": "Prometheus",
-        "definition": "label_values(slo:stable_version{enabled!=\"false\"}, slo_version)",
+        "definition": "label_values(slo:violation_ratio_threshold{}, slo_version)",
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "slo_version",
         "options": [],
-        "query": "label_values(slo:stable_version{enabled!=\"false\"}, slo_version)",
+        "query": "label_values(slo:violation_ratio_threshold{}, slo_version)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -515,6 +716,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
@@ -537,6 +739,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_class)",
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
@@ -559,6 +762,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:burn_rate{slo_version=\"$slo_version\"}, slo_time_range)",
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
@@ -581,6 +785,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_type)",
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
@@ -603,6 +808,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\"}, namespace)",
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
@@ -610,6 +816,52 @@
         "name": "namespace",
         "options": [],
         "query": "label_values(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\"}, namespace)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "Prometheus",
+        "definition": "query_result(absent({x=\"$slo_time_range\"}) or absent({x=\"0s\"}))",
+        "error": null,
+        "hide": 2,
+        "includeAll": true,
+        "label": null,
+        "multi": true,
+        "name": "offset",
+        "options": [],
+        "query": "query_result(absent({x=\"$slo_time_range\"}) or absent({x=\"0s\"}))",
+        "refresh": 2,
+        "regex": "/.*x=\"([^\"]+)\".*/",
+        "skipUrlSync": false,
+        "sort": 3,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": "Prometheus",
+        "definition": "label_values(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}, instance)",
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": null,
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": "label_values(slo_domain_slo_class_slo_app:slo_events_total{slo_type=\"$slo_type\", slo_domain=\"$slo_domain\", slo_class=\"$slo_class\", namespace=\"$namespace\"}, instance)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -651,7 +903,7 @@
     ]
   },
   "timezone": "",
-  "title": "SLO drilldown",
-  "uid": "n0JAZFGGk",
-  "version": 1
+  "title": "SLO Drilldown",
+  "uid": "rPOkReFMz",
+  "version": 8
 }
