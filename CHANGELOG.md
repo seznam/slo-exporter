@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Changed
 - [#28](https://github.com/seznam/slo-exporter/pull/28) Abstracted statistical classifier history to generic interface in new storage package.
 
+## Fixed
+- [#33](https://github.com/seznam/slo-exporter/pull/33) prometheus-ingester now always expose query_fails_total
+
 ## [v6.4.1] 2020-08-25
 ## Fixed
 - [#27](https://github.com/seznam/slo-exporter/pull/27) Empty configuration is now evaluated as invalid
