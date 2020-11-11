@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ## Changed
 - [#28](https://github.com/seznam/slo-exporter/pull/28) Abstracted statistical classifier history to generic interface in new storage package.
+- [#34](https://github.com/seznam/slo-exporter/pull/34) Prometheus recording rules: Unified computation for SLO classes uptime, uptime-alt (slo-expoter's SLO)
+- [#34](https://github.com/seznam/slo-exporter/pull/34) Prometheus alerts: missing data alert now explicitly matches only enabled SLO domains
 
 ## Fixed
 - [#33](https://github.com/seznam/slo-exporter/pull/33) prometheus-ingester now always expose query_fails_total

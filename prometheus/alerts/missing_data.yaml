@@ -7,13 +7,13 @@ groups:
     expr: |
         (
           sum(
-            slo:stable_version{enabled!="false"}
+            slo:stable_version{enabled="true"}
           ) by (slo_version, slo_domain, namespace, team)
           unless on (slo_domain, slo_version, namespace)
           (
             slo:burn_rate{slo_time_range='5m'}
             * on(slo_version, slo_domain, namespace) group_left(team)
-            slo:stable_version{enabled!="false"}
+            slo:stable_version{enabled="true"}
           )
         )
         and on(slo_version, slo_domain, namespace)

@@ -7,185 +7,6 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[4w:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 4w
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (28*24*60*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="4w"}
-       labels:
-        result: fail
-     # 3d
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[3d:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 3d
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (3*24*60*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="3d"}
-       labels:
-        result: fail
-     # 1d
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1d:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 1d
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (1*24*60*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1d"}
-       labels:
-        result: fail
-     # 6h
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[6h:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 6h
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (1*6*60*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="6h"}
-       labels:
-        result: fail
-     # 2h
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[2h:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 2h
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (1*2*60*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="2h"}
-       labels:
-        result: fail
-
-- name: slo-exporter-slo-events-over-time-availability-uptime--interval-1m
-  interval: 1m
-  rules:
-     # 1h
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1h:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 1h
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (1*1*60*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1h"}
-       labels:
-        result: fail
-     # 30m
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[30m:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 30m
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (1*1*30*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="30m"}
-       labels:
-        result: fail
-     # 5m
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[5m:20s]
-              ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
-            )
-       labels:
-        slo_time_range: 5m
-        slo_type: availability
-        slo_version: 6
-        slo_class: uptime
-        result: success
-     - record: slo:events_over_time
-       expr:
-            (1*1*5*(60/harvester_scrape_interval_seconds))
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="5m"}
-       labels:
-        result: fail
-
-# alternative computation for slo_class: uptime
-# SRE is supposed to determine which variant to use within ticket
-# infrastructure/-/issues/5198
-- name: slo-exporter-slo-events-over-time-availability-uptime-alt--interval-3m
-  interval: 3m
-  rules:
-     # 4w
-     - record: slo:events_over_time
-       expr:
-            label_replace(
-              count_over_time(
                 sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[4w:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
@@ -193,13 +14,13 @@ groups:
         slo_time_range: 4w
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (28*24*60)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="4w"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="4w"}
        labels:
         result: fail
      # 3d
@@ -214,13 +35,13 @@ groups:
         slo_time_range: 3d
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (3*24*60)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="3d"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="3d"}
        labels:
         result: fail
      # 1d
@@ -235,13 +56,13 @@ groups:
         slo_time_range: 1d
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (1*24*60)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="1d"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1d"}
        labels:
         result: fail
      # 6h
@@ -256,13 +77,13 @@ groups:
         slo_time_range: 6h
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (1*6*60)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="6h"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="6h"}
        labels:
         result: fail
      # 2h
@@ -277,17 +98,17 @@ groups:
         slo_time_range: 2h
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (1*2*60)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="2h"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="2h"}
        labels:
         result: fail
 
-- name: slo-exporter-slo-events-over-time-availability-uptime-alt--interval-1m
+- name: slo-exporter-slo-events-over-time-availability-uptime--interval-1m
   interval: 1m
   rules:
      # 1h
@@ -302,13 +123,13 @@ groups:
         slo_time_range: 1h
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (1*1*60)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="1h"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1h"}
        labels:
         result: fail
      # 30m
@@ -323,13 +144,13 @@ groups:
         slo_time_range: 30m
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (1*1*30)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="30m"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="30m"}
        labels:
         result: fail
      # 5m
@@ -344,13 +165,13 @@ groups:
         slo_time_range: 5m
         slo_type: availability
         slo_version: 6
-        slo_class: uptime-alt
+        slo_class: uptime
         result: success
      - record: slo:events_over_time
        expr:
             (1*1*5)
             - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime-alt", slo_time_range="5m"}
+            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="5m"}
        labels:
         result: fail
 
