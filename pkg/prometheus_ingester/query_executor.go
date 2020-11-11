@@ -83,6 +83,9 @@ func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 	defer ticker.Stop()
 	defer wg.Done()
 
+	// make sure that this metric is exposed even when no errors have been experienced
+	prometheusQueryFail.WithLabelValues(string(q.Query.Type)).Add(0)
+
 	for {
 		select {
 		// Wait for the tick
