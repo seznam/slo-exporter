@@ -5,13 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v6.5.0] 2020-11-11
 ## Changed
 - [#28](https://github.com/seznam/slo-exporter/pull/28) Abstracted statistical classifier history to generic interface in new storage package.
 - [#34](https://github.com/seznam/slo-exporter/pull/34) Prometheus recording rules: Unified computation for SLO classes uptime, uptime-alt (slo-expoter's SLO)
 - [#34](https://github.com/seznam/slo-exporter/pull/34) Prometheus alerts: missing data alert now explicitly matches only enabled SLO domains
+- [#32](https://github.com/seznam/slo-exporter/pull/32) Prometheus alerts, recording rules: now fully reflects our internal setup
+- [#31](https://github.com/seznam/slo-exporter/pull/31) Grafana dashboard: SLO Drilldown shows current increase of events on background of error budget change
 
 ## Fixed
 - [#33](https://github.com/seznam/slo-exporter/pull/33) prometheus-ingester now always expose query_fails_total
+
+## Added
+- [#32](https://github.com/seznam/slo-exporter/pull/32) Grafana dashboard: SLO Effective Burn-rate
 
 ## [v6.4.1] 2020-08-25
 ## Fixed
