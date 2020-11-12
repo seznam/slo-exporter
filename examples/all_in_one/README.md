@@ -2,7 +2,7 @@
 
 ### Overview
 Use the provided [docker-compose](./docker-compose.yaml) to start the complete setup with
-Prometheus instance loaded with [example SLO recording rules](/prometheus_rules),
+Prometheus instance loaded with [example SLO recording rules and alerts](/prometheus),
 and Grafana instance with loaded [SLO dashboards](/grafana_dashboards).
 
 Description of the whole setup follows:
