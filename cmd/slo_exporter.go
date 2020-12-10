@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/seznam/slo-exporter/pkg/access_log_server"
 	"github.com/seznam/slo-exporter/pkg/config"
 	"github.com/seznam/slo-exporter/pkg/dynamic_classifier"
 	"github.com/seznam/slo-exporter/pkg/event_key_generator"
@@ -63,6 +64,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return tailer.NewFromViper(conf, logger)
 	case "prometheusIngester":
 		return prometheus_ingester.NewFromViper(conf, logger)
+	case "accessLogServer":
+		return access_log_server.NewFromViper(conf, logger)
 	case "relabel":
 		return relabel.NewFromViper(conf, logger)
 	case "eventKeyGenerator":

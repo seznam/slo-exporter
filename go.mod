@@ -3,6 +3,7 @@ module github.com/seznam/slo-exporter
 go 1.14
 
 require (
+	github.com/envoyproxy/go-control-plane v0.9.8
 	github.com/go-kit/kit v0.10.0
 	github.com/go-test/deep v1.0.6
 	github.com/gorilla/mux v1.7.4
@@ -23,6 +24,7 @@ require (
 	golang.org/x/sys v0.0.0-20200828194041-157a740278f4 // indirect
 	golang.org/x/tools v0.0.0-20200828161849-5deb26317202 // indirect
 	gonum.org/v1/gonum v0.7.0
+	google.golang.org/grpc v1.27.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.3.0
 )
