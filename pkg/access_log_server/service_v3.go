@@ -21,6 +21,7 @@ type AccessLogServiceV3 struct {
 
 func exportCommonPropertiesV3(p *envoy_data_accesslog_v3.AccessLogCommon) stringmap.StringMap {
 	res := stringmap.StringMap{}
+
 	res["DownstreamDirectRemoteAddress"] = p.DownstreamDirectRemoteAddress.String()
 	res["DownstreamLocalAddress"] = p.DownstreamLocalAddress.String()
 	res["DownstreamRemoteAddress"] = p.DownstreamRemoteAddress.String()
@@ -28,13 +29,13 @@ func exportCommonPropertiesV3(p *envoy_data_accesslog_v3.AccessLogCommon) string
 	res["ResponseFlags"] = p.ResponseFlags.String()
 	res["RouteName"] = p.RouteName
 	res["StartTime"] = p.StartTime.String()
-	res["TimeToFirstDownstreamTxByte"] = p.TimeToFirstDownstreamTxByte.String()
-	res["TimeToFirstUpstreamRxByte"] = p.TimeToFirstUpstreamRxByte.String()
-	res["TimeToFirstUpstreamTxByte"] = p.TimeToFirstUpstreamTxByte.String()
-	res["TimeToLastDownstreamTxByte"] = p.TimeToLastDownstreamTxByte.String()
-	res["TimeToLastRxByte"] = p.TimeToLastRxByte.String()
-	res["TimeToLastUpstreamRxByte"] = p.TimeToLastUpstreamRxByte.String()
-	res["TimeToLastUpstreamTxByte"] = p.TimeToLastUpstreamTxByte.String()
+	res["TimeToFirstDownstreamTxByte"] = pbDurationDeterministicString(p.TimeToFirstDownstreamTxByte)
+	res["TimeToFirstUpstreamRxByte"] = pbDurationDeterministicString(p.TimeToFirstUpstreamRxByte)
+	res["TimeToFirstUpstreamTxByte"] = pbDurationDeterministicString(p.TimeToFirstUpstreamTxByte)
+	res["TimeToLastDownstreamTxByte"] = pbDurationDeterministicString(p.TimeToLastDownstreamTxByte)
+	res["TimeToLastRxByte"] = pbDurationDeterministicString(p.TimeToLastRxByte)
+	res["TimeToLastUpstreamRxByte"] = pbDurationDeterministicString(p.TimeToLastUpstreamRxByte)
+	res["TimeToLastUpstreamTxByte"] = pbDurationDeterministicString(p.TimeToLastUpstreamTxByte)
 	res["TlsProperties"] = p.TlsProperties.String()
 	res["UpstreamCluster"] = p.UpstreamCluster
 	res["UpstreamLocalAddress"] = p.UpstreamLocalAddress.String()
@@ -46,68 +47,97 @@ func exportCommonPropertiesV3(p *envoy_data_accesslog_v3.AccessLogCommon) string
 	return res
 }
 
+func exportRequestPropertiesV3(request *envoy_data_accesslog_v3.HTTPRequestProperties) stringmap.StringMap {
+	result := stringmap.StringMap{}
+
+	result["Authority"] = request.Authority
+	result["ForwardedFor"] = request.ForwardedFor
+	result["OriginalPath"] = request.OriginalPath
+	result["Path"] = request.Path
+	result["Port"] = request.Port.String()
+	result["Referer"] = request.Referer
+	result["RequestHeaders"] = stringmap.StringMap(request.RequestHeaders).String()
+	result["RequestBodyBytes"] = strconv.FormatUint(request.RequestBodyBytes, 10)
+	result["RequestHeadersBytes"] = strconv.FormatUint(request.RequestHeadersBytes, 10)
+	result["RequestId"] = request.RequestId
+	result["RequestMethod"] = request.RequestMethod.String()
+	result["Scheme"] = request.Scheme
+	result["UserAgent"] = request.UserAgent
+
+	return result
+}
+
+func exportResponsePropertiesV3(response *envoy_data_accesslog_v3.HTTPResponseProperties) stringmap.StringMap {
+	result := stringmap.StringMap{}
+
+	result["ResponseBodyBytes"] = strconv.FormatUint(response.ResponseBodyBytes, 10)
+	result["ResponseCodeDetails"] = response.ResponseCodeDetails
+	result["ResponseCode"] = response.ResponseCode.String()
+	result["ResponseHeadersBytes"] = strconv.FormatUint(response.ResponseHeadersBytes, 10)
+	result["ResponseHeaders"] = stringmap.StringMap(response.ResponseHeaders).String()
+	result["ResponseTrailers"] = stringmap.StringMap(response.ResponseTrailers).String()
+
+	return result
+}
+
+func exportHttpLogEntryV3(logEntry *envoy_data_accesslog_v3.HTTPAccessLogEntry) stringmap.StringMap {
+
+	result := stringmap.StringMap{
+		"__log_entry_json": logEntry.String(),
+	}
+	// AccessLogCommon
+	result = result.Merge(exportCommonPropertiesV3(logEntry.CommonProperties))
+
+	// ProtocolVersion
+	result["ProtocolVersion"] = logEntry.ProtocolVersion.String()
+
+	// Request properties
+	result = result.Merge(exportRequestPropertiesV3(logEntry.Request))
+
+	// Response properties
+	result = result.Merge(exportResponsePropertiesV3(logEntry.Response))
+
+	return result
+}
+
+func exportTcpLogEntryV3(logEntry *envoy_data_accesslog_v3.TCPAccessLogEntry) stringmap.StringMap {
+
+	result := stringmap.StringMap{
+		"__log_entry_json": logEntry.String(),
+	}
+	// AccessLogCommon
+	result = result.Merge(exportCommonPropertiesV3(logEntry.CommonProperties))
+
+	// ConnectionProperties
+	result["ReceivedBytes"] = strconv.FormatUint(logEntry.ConnectionProperties.ReceivedBytes, 10)
+	result["SentBytes"] = strconv.FormatUint(logEntry.ConnectionProperties.SentBytes, 10)
+
+	return result
+}
+
 func exportLogEntriesV3(msg *envoy_service_accesslog_v3.StreamAccessLogsMessage) []stringmap.StringMap {
 	res := []stringmap.StringMap{}
 
 	if logs := msg.GetHttpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
-			exportedLogEntry := stringmap.StringMap{}
-			// AccessLogCommon
-			exportedLogEntry.Merge(exportCommonPropertiesV3(l.CommonProperties))
 
-			// ProtocolVersion
-			exportedLogEntry["ProtocolVersion"] = l.ProtocolVersion.String()
-
-			// Request
-			exportedLogEntry["Authority"] = l.Request.Authority
-			exportedLogEntry["ForwardedFor"] = l.Request.ForwardedFor
-			exportedLogEntry["OriginalPath"] = l.Request.OriginalPath
-			exportedLogEntry["Path"] = l.Request.Path
-			exportedLogEntry["Port"] = l.Request.Port.String()
-			exportedLogEntry["Referer"] = l.Request.Referer
-			exportedLogEntry["RequestHeaders"] = stringmap.StringMap(l.Request.RequestHeaders).String()
-			exportedLogEntry["RequestBodyBytes"] = strconv.FormatUint(l.Request.RequestBodyBytes, 10)
-			exportedLogEntry["RequestHeadersBytes"] = strconv.FormatUint(l.Request.RequestHeadersBytes, 10)
-			exportedLogEntry["RequestId"] = l.Request.RequestId
-			exportedLogEntry["RequestMethod"] = l.Request.RequestMethod.String()
-			exportedLogEntry["Scheme"] = l.Request.Scheme
-			exportedLogEntry["UserAgent"] = l.Request.UserAgent
-
-			// Response
-			exportedLogEntry["ResponseBodyBytes"] = strconv.FormatUint(l.Response.ResponseBodyBytes, 10)
-			exportedLogEntry["ResponseCodeDetails"] = l.Response.ResponseCodeDetails
-			exportedLogEntry["ResponseCode"] = l.Response.ResponseCode.String()
-			exportedLogEntry["ResponseHeadersBytes"] = strconv.FormatUint(l.Response.ResponseHeadersBytes, 10)
-			exportedLogEntry["ResponseHeaders"] = stringmap.StringMap(l.Response.ResponseHeaders).String()
-			exportedLogEntry["ResponseTrailers"] = stringmap.StringMap(l.Response.ResponseTrailers).String()
-
-			res = append(res, exportedLogEntry)
+			res = append(res, exportHttpLogEntryV3(l))
 
 			logEntriesTotal.WithLabelValues("HTTP", "v3").Inc()
-
 		}
 	} else if logs := msg.GetTcpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
-			exportedLogEntry := stringmap.StringMap{}
-			// AccessLogCommon
-			exportedLogEntry.Merge(exportCommonPropertiesV3(l.CommonProperties))
 
-			// ConnectionProperties
-			exportedLogEntry["ReceivedBytes"] = strconv.FormatUint(l.ConnectionProperties.ReceivedBytes, 64)
-			exportedLogEntry["SentBytes"] = strconv.FormatUint(l.ConnectionProperties.SentBytes, 64)
-
-			res = append(res, exportedLogEntry)
+			res = append(res, exportTcpLogEntryV3(l))
 
 			logEntriesTotal.WithLabelValues("TCP", "v3").Inc()
-
 		}
-
 	} else {
 		// Unknown access log type
 		errorsTotal.WithLabelValues("UnknownLogType").Inc()
+		// TODO log
 	}
 	return res
-
 }
 
 func (service_v3 *AccessLogServiceV3) StreamAccessLogs(stream envoy_service_accesslog_v3.AccessLogService_StreamAccessLogsServer) error {

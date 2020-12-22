@@ -20,7 +20,9 @@ type AccessLogServiceV2 struct {
 }
 
 func exportCommonPropertiesV2(p *envoy_data_accesslog_v2.AccessLogCommon) stringmap.StringMap {
-	res := stringmap.StringMap{}
+	res := stringmap.StringMap{
+		"__identifier__json": p.String(),
+	}
 	res["DownstreamDirectRemoteAddress"] = p.DownstreamDirectRemoteAddress.String()
 	res["DownstreamLocalAddress"] = p.DownstreamLocalAddress.String()
 	res["DownstreamRemoteAddress"] = p.DownstreamRemoteAddress.String()
@@ -51,7 +53,9 @@ func exportLogEntriesV2(msg *envoy_service_accesslog_v2.StreamAccessLogsMessage)
 
 	if logs := msg.GetHttpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
-			exportedLogEntry := stringmap.StringMap{}
+			exportedLogEntry := stringmap.StringMap{
+				"__log_entry_json": l.String(),
+			}
 			// AccessLogCommon
 			exportedLogEntry.Merge(exportCommonPropertiesV2(l.CommonProperties))
 
@@ -88,7 +92,9 @@ func exportLogEntriesV2(msg *envoy_service_accesslog_v2.StreamAccessLogsMessage)
 		}
 	} else if logs := msg.GetTcpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
-			exportedLogEntry := stringmap.StringMap{}
+			exportedLogEntry := stringmap.StringMap{
+				"__log_entry_json": l.String(),
+			}
 			// AccessLogCommon
 			exportedLogEntry.Merge(exportCommonPropertiesV2(l.CommonProperties))
 

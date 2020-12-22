@@ -6,6 +6,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.9.8
 	github.com/go-kit/kit v0.10.0
 	github.com/go-test/deep v1.0.6
+	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/mux v1.7.4
 	github.com/grafana/loki v1.5.0
 	github.com/hashicorp/go-multierror v1.1.0
@@ -14,6 +15,7 @@ require (
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mgechev/revive v1.0.2 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0
 	github.com/prometheus/common v0.10.0
 	github.com/prometheus/prometheus v1.8.2-0.20200213233353-b90be6f32a33
