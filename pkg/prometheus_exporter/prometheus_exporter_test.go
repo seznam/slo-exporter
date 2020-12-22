@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 )
@@ -107,10 +107,10 @@ func Test_PrometheusSloEventExporter_checkEventKeyCardinality(t *testing.T) {
 		return
 	}
 	for i := 0; i < 5; i++ {
-		if exporter.isCardinalityExceeded(string(i)) && i+1 <= conf.MaximumUniqueEventKeys {
+		if exporter.isCardinalityExceeded(fmt.Sprint(i)) && i+1 <= conf.MaximumUniqueEventKeys {
 			t.Errorf("Event key '%d' masked while it the total count '%d' is under given limit '%d'", i, len(exporter.eventKeyCache), conf.MaximumUniqueEventKeys)
 		}
-		if !exporter.isCardinalityExceeded(string(i)) && i+1 > conf.MaximumUniqueEventKeys {
+		if !exporter.isCardinalityExceeded(fmt.Sprint(i)) && i+1 > conf.MaximumUniqueEventKeys {
 			t.Errorf("Event key '%d' should have been masked as the total count '%d' is above given limit '%d'", i, len(exporter.eventKeyCache), conf.MaximumUniqueEventKeys)
 		}
 
