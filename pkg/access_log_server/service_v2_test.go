@@ -3,9 +3,9 @@ package access_log_server
 import (
 	"testing"
 
-	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_data_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/data/accesslog/v3"
-	envoy_service_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_data_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/data/accesslog/v2"
+	envoy_service_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v2"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -15,13 +15,13 @@ import (
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
-func Test_exportCommonPropertiesV3(t *testing.T) {
+func Test_exportCommonPropertiesv2(t *testing.T) {
 	tests := []struct {
-		input envoy_data_accesslog_v3.AccessLogCommon
+		input envoy_data_accesslog_v2.AccessLogCommon
 		res   stringmap.StringMap
 	}{
 		{
-			input: envoy_data_accesslog_v3.AccessLogCommon{},
+			input: envoy_data_accesslog_v2.AccessLogCommon{},
 			res: stringmap.StringMap{
 				"DownstreamDirectRemoteAddress":  "<nil>",
 				"DownstreamLocalAddress":         "<nil>",
@@ -46,17 +46,17 @@ func Test_exportCommonPropertiesV3(t *testing.T) {
 			},
 		},
 		{
-			input: envoy_data_accesslog_v3.AccessLogCommon{
+			input: envoy_data_accesslog_v2.AccessLogCommon{
 				SampleRate: 1,
-				DownstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+				DownstreamRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 					Address:       "127.0.0.1",
-					PortSpecifier: &v3.SocketAddress_PortValue{46058},
+					PortSpecifier: &v2.SocketAddress_PortValue{46058},
 				}}},
-				DownstreamLocalAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+				DownstreamLocalAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 					Address:       "127.0.0.1",
-					PortSpecifier: &v3.SocketAddress_PortValue{8080},
+					PortSpecifier: &v2.SocketAddress_PortValue{8080},
 				}}},
-				TlsProperties: &envoy_data_accesslog_v3.TLSProperties{
+				TlsProperties: &envoy_data_accesslog_v2.TLSProperties{
 					TlsVersion:     4, // TLSv1_3
 					TlsCipherSuite: &wrappers.UInt32Value{Value: 4865},
 				},
@@ -85,24 +85,24 @@ func Test_exportCommonPropertiesV3(t *testing.T) {
 				TimeToLastDownstreamTxByte: &duration.Duration{
 					Nanos: 490791800,
 				},
-				UpstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+				UpstreamRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 					Address:       "77.75.75.172",
-					PortSpecifier: &v3.SocketAddress_PortValue{443},
+					PortSpecifier: &v2.SocketAddress_PortValue{443},
 				}}},
-				UpstreamLocalAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+				UpstreamLocalAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 					Address:       "10.0.116.130",
-					PortSpecifier: &v3.SocketAddress_PortValue{48734},
+					PortSpecifier: &v2.SocketAddress_PortValue{48734},
 				}}},
 				UpstreamCluster: "service_seznam_cz",
-				ResponseFlags: &envoy_data_accesslog_v3.ResponseFlags{
-					ResponseFromCacheFilter: true,
+				ResponseFlags: &envoy_data_accesslog_v2.ResponseFlags{
+					RateLimited: true,
 				},
 				Metadata:                       nil,
 				UpstreamTransportFailureReason: "foo",
 				RouteName:                      "foo",
-				DownstreamDirectRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+				DownstreamDirectRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 					Address:       "127.0.0.1",
-					PortSpecifier: &v3.SocketAddress_PortValue{44848},
+					PortSpecifier: &v2.SocketAddress_PortValue{44848},
 				}}},
 				FilterStateObjects: nil,
 			},
@@ -111,7 +111,7 @@ func Test_exportCommonPropertiesV3(t *testing.T) {
 				"DownstreamLocalAddress":         "socket_address:{address:\"127.0.0.1\" port_value:8080}",
 				"DownstreamRemoteAddress":        "socket_address:{address:\"127.0.0.1\" port_value:46058}",
 				"Metadata":                       "<nil>",
-				"ResponseFlags":                  "response_from_cache_filter:true",
+				"ResponseFlags":                  "RateLimited:true",
 				"RouteName":                      "foo",
 				"SampleRate":                     "1e+00",
 				"StartTime":                      "seconds:1608647248 nanos:741408000",
@@ -131,20 +131,20 @@ func Test_exportCommonPropertiesV3(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		output := exportCommonPropertiesV3(&tt.input)
+		output := exportCommonPropertiesv2(&tt.input)
 		for k, v := range tt.res {
 			assert.Equal(t, v, output[k])
 		}
 	}
 }
 
-func Test_exportRequestPropertiesV3(t *testing.T) {
+func Test_exportRequestPropertiesv2(t *testing.T) {
 	tests := []struct {
-		input  envoy_data_accesslog_v3.HTTPRequestProperties
+		input  envoy_data_accesslog_v2.HTTPRequestProperties
 		result stringmap.StringMap
 	}{
 		{
-			input: envoy_data_accesslog_v3.HTTPRequestProperties{},
+			input: envoy_data_accesslog_v2.HTTPRequestProperties{},
 			result: stringmap.StringMap{
 				"RequestMethod":       "METHOD_UNSPECIFIED",
 				"Scheme":              "",
@@ -162,7 +162,7 @@ func Test_exportRequestPropertiesV3(t *testing.T) {
 			},
 		},
 		{
-			input: envoy_data_accesslog_v3.HTTPRequestProperties{
+			input: envoy_data_accesslog_v2.HTTPRequestProperties{
 				RequestMethod:       1, // GET
 				Scheme:              "https",
 				Authority:           "www.seznam.cz",
@@ -196,17 +196,17 @@ func Test_exportRequestPropertiesV3(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.result, exportRequestPropertiesV3(&test.input))
+		assert.Equal(t, test.result, exportRequestPropertiesv2(&test.input))
 	}
 }
 
-func Test_exportResponsePropertiesV3(t *testing.T) {
+func Test_exportResponsePropertiesv2(t *testing.T) {
 	tests := []struct {
-		input  envoy_data_accesslog_v3.HTTPResponseProperties
+		input  envoy_data_accesslog_v2.HTTPResponseProperties
 		result stringmap.StringMap
 	}{
 		{
-			input: envoy_data_accesslog_v3.HTTPResponseProperties{},
+			input: envoy_data_accesslog_v2.HTTPResponseProperties{},
 			result: stringmap.StringMap{
 				"ResponseCode":         "<nil>",
 				"ResponseHeadersBytes": "0",
@@ -216,7 +216,7 @@ func Test_exportResponsePropertiesV3(t *testing.T) {
 				"ResponseCodeDetails":  "",
 			}},
 		{
-			input: envoy_data_accesslog_v3.HTTPResponseProperties{
+			input: envoy_data_accesslog_v2.HTTPResponseProperties{
 				ResponseCode:         &wrappers.UInt32Value{Value: 200},
 				ResponseHeadersBytes: 166,
 				ResponseBodyBytes:    74400,
@@ -236,31 +236,31 @@ func Test_exportResponsePropertiesV3(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.result, exportResponsePropertiesV3(&test.input))
+		assert.Equal(t, test.result, exportResponsePropertiesv2(&test.input))
 	}
 }
 
-func Test_exportHttpLogEntryV3(t *testing.T) {
+func Test_exportHttpLogEntryv2(t *testing.T) {
 	tests := []struct {
 		expected stringmap.StringMap
-		logEntry *envoy_data_accesslog_v3.HTTPAccessLogEntry
+		logEntry *envoy_data_accesslog_v2.HTTPAccessLogEntry
 	}{
 		{
-			logEntry: &envoy_data_accesslog_v3.HTTPAccessLogEntry{
-				CommonProperties: &envoy_data_accesslog_v3.AccessLogCommon{
+			logEntry: &envoy_data_accesslog_v2.HTTPAccessLogEntry{
+				CommonProperties: &envoy_data_accesslog_v2.AccessLogCommon{
 					SampleRate: 1,
-					UpstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+					UpstreamRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 						Address:       "77.75.75.172",
-						PortSpecifier: &v3.SocketAddress_PortValue{443},
+						PortSpecifier: &v2.SocketAddress_PortValue{443},
 					}}},
 				},
 				ProtocolVersion: 2,
-				Request: &envoy_data_accesslog_v3.HTTPRequestProperties{
+				Request: &envoy_data_accesslog_v2.HTTPRequestProperties{
 					Scheme:    "http",
 					Authority: "www.seznam.cz",
 					Path:      "/",
 				},
-				Response: &envoy_data_accesslog_v3.HTTPResponseProperties{
+				Response: &envoy_data_accesslog_v2.HTTPResponseProperties{
 					ResponseCode: &wrappers.UInt32Value{Value: 200},
 				},
 			},
@@ -310,25 +310,25 @@ func Test_exportHttpLogEntryV3(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.expected, exportHttpLogEntryV3(test.logEntry))
+		assert.Equal(t, test.expected, exportHttpLogEntryv2(test.logEntry))
 	}
 }
 
-func Test_exportTcpLogEntryV3(t *testing.T) {
+func Test_exportTcpLogEntryv2(t *testing.T) {
 	tests := []struct {
 		expected stringmap.StringMap
-		logEntry *envoy_data_accesslog_v3.TCPAccessLogEntry
+		logEntry *envoy_data_accesslog_v2.TCPAccessLogEntry
 	}{
 		{
-			logEntry: &envoy_data_accesslog_v3.TCPAccessLogEntry{
-				CommonProperties: &envoy_data_accesslog_v3.AccessLogCommon{
+			logEntry: &envoy_data_accesslog_v2.TCPAccessLogEntry{
+				CommonProperties: &envoy_data_accesslog_v2.AccessLogCommon{
 					SampleRate: 1,
-					UpstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+					UpstreamRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 						Address:       "77.75.75.172",
-						PortSpecifier: &v3.SocketAddress_PortValue{443},
+						PortSpecifier: &v2.SocketAddress_PortValue{443},
 					}}},
 				},
-				ConnectionProperties: &envoy_data_accesslog_v3.ConnectionProperties{
+				ConnectionProperties: &envoy_data_accesslog_v2.ConnectionProperties{
 					ReceivedBytes: uint64(100),
 					SentBytes:     uint64(100),
 				},
@@ -361,49 +361,49 @@ func Test_exportTcpLogEntryV3(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.expected, exportTcpLogEntryV3(test.logEntry))
+		assert.Equal(t, test.expected, exportTcpLogEntryv2(test.logEntry))
 	}
 }
 
 // Test whether raw json of the received msg is includede in the generated event's metadata
-func Test_HttpLogRawJsonIncludedV3(t *testing.T) {
-	tests := []envoy_service_accesslog_v3.StreamAccessLogsMessage{
+func Test_HttpLogRawJsonIncludedV2(t *testing.T) {
+	tests := []envoy_service_accesslog_v2.StreamAccessLogsMessage{
 
 		{
-			Identifier: &envoy_service_accesslog_v3.StreamAccessLogsMessage_Identifier{
+			Identifier: &envoy_service_accesslog_v2.StreamAccessLogsMessage_Identifier{
 				Node:    nil,
 				LogName: "access_log",
 			},
-			LogEntries: &envoy_service_accesslog_v3.StreamAccessLogsMessage_HttpLogs{
-				HttpLogs: &envoy_service_accesslog_v3.StreamAccessLogsMessage_HTTPAccessLogEntries{},
+			LogEntries: &envoy_service_accesslog_v2.StreamAccessLogsMessage_HttpLogs{
+				HttpLogs: &envoy_service_accesslog_v2.StreamAccessLogsMessage_HTTPAccessLogEntries{},
 			},
 		},
 		{
-			Identifier: &envoy_service_accesslog_v3.StreamAccessLogsMessage_Identifier{
+			Identifier: &envoy_service_accesslog_v2.StreamAccessLogsMessage_Identifier{
 				Node:    nil,
 				LogName: "access_log",
 			},
-			LogEntries: &envoy_service_accesslog_v3.StreamAccessLogsMessage_HttpLogs{
-				HttpLogs: &envoy_service_accesslog_v3.StreamAccessLogsMessage_HTTPAccessLogEntries{
-					LogEntry: []*envoy_data_accesslog_v3.HTTPAccessLogEntry{
+			LogEntries: &envoy_service_accesslog_v2.StreamAccessLogsMessage_HttpLogs{
+				HttpLogs: &envoy_service_accesslog_v2.StreamAccessLogsMessage_HTTPAccessLogEntries{
+					LogEntry: []*envoy_data_accesslog_v2.HTTPAccessLogEntry{
 						{
-							CommonProperties: &envoy_data_accesslog_v3.AccessLogCommon{
-								DownstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+							CommonProperties: &envoy_data_accesslog_v2.AccessLogCommon{
+								DownstreamRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 									Protocol:      0,
 									Address:       "127.0.0.1",
-									PortSpecifier: &v3.SocketAddress_PortValue{46058},
+									PortSpecifier: &v2.SocketAddress_PortValue{46058},
 									ResolverName:  "",
 									Ipv4Compat:    false,
 								}}},
-								UpstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
+								UpstreamRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 									Protocol:      0,
 									Address:       "77.75.75.172",
-									PortSpecifier: &v3.SocketAddress_PortValue{443},
+									PortSpecifier: &v2.SocketAddress_PortValue{443},
 									ResolverName:  "",
 									Ipv4Compat:    false,
 								}}},
 							},
-							Request: &envoy_data_accesslog_v3.HTTPRequestProperties{
+							Request: &envoy_data_accesslog_v2.HTTPRequestProperties{
 								Scheme:              "http",
 								Authority:           "www.seznam.cz",
 								Path:                "/",
@@ -411,7 +411,7 @@ func Test_HttpLogRawJsonIncludedV3(t *testing.T) {
 								RequestHeadersBytes: 932,
 								RequestHeaders:      nil,
 							},
-							Response: &envoy_data_accesslog_v3.HTTPResponseProperties{
+							Response: &envoy_data_accesslog_v2.HTTPResponseProperties{
 								ResponseCode:         &wrappers.UInt32Value{Value: 200},
 								ResponseHeadersBytes: 166,
 								ResponseBodyBytes:    74400,
@@ -424,7 +424,7 @@ func Test_HttpLogRawJsonIncludedV3(t *testing.T) {
 	}
 
 	for _, testMsg := range tests {
-		res := exportLogEntriesV3(&testMsg)
+		res := exportLogEntriesv2(&testMsg)
 		for i, _ := range testMsg.GetHttpLogs().LogEntry {
 			assert.Equal(t, testMsg.GetHttpLogs().LogEntry[i].String(), res[i]["__log_entry_json"])
 		}

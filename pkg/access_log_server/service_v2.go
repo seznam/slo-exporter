@@ -19,10 +19,9 @@ type AccessLogServiceV2 struct {
 	envoy_service_accesslog_v2.UnimplementedAccessLogServiceServer
 }
 
-func exportCommonPropertiesV2(p *envoy_data_accesslog_v2.AccessLogCommon) stringmap.StringMap {
-	res := stringmap.StringMap{
-		"__identifier__json": p.String(),
-	}
+func exportCommonPropertiesv2(p *envoy_data_accesslog_v2.AccessLogCommon) stringmap.StringMap {
+	res := stringmap.StringMap{}
+
 	res["DownstreamDirectRemoteAddress"] = p.DownstreamDirectRemoteAddress.String()
 	res["DownstreamLocalAddress"] = p.DownstreamLocalAddress.String()
 	res["DownstreamRemoteAddress"] = p.DownstreamRemoteAddress.String()
@@ -30,13 +29,13 @@ func exportCommonPropertiesV2(p *envoy_data_accesslog_v2.AccessLogCommon) string
 	res["ResponseFlags"] = p.ResponseFlags.String()
 	res["RouteName"] = p.RouteName
 	res["StartTime"] = p.StartTime.String()
-	res["TimeToFirstDownstreamTxByte"] = p.TimeToFirstDownstreamTxByte.String()
-	res["TimeToFirstUpstreamRxByte"] = p.TimeToFirstUpstreamRxByte.String()
-	res["TimeToFirstUpstreamTxByte"] = p.TimeToFirstUpstreamTxByte.String()
-	res["TimeToLastDownstreamTxByte"] = p.TimeToLastDownstreamTxByte.String()
-	res["TimeToLastRxByte"] = p.TimeToLastRxByte.String()
-	res["TimeToLastUpstreamRxByte"] = p.TimeToLastUpstreamRxByte.String()
-	res["TimeToLastUpstreamTxByte"] = p.TimeToLastUpstreamTxByte.String()
+	res["TimeToFirstDownstreamTxByte"] = pbDurationDeterministicString(p.TimeToFirstDownstreamTxByte)
+	res["TimeToFirstUpstreamRxByte"] = pbDurationDeterministicString(p.TimeToFirstUpstreamRxByte)
+	res["TimeToFirstUpstreamTxByte"] = pbDurationDeterministicString(p.TimeToFirstUpstreamTxByte)
+	res["TimeToLastDownstreamTxByte"] = pbDurationDeterministicString(p.TimeToLastDownstreamTxByte)
+	res["TimeToLastRxByte"] = pbDurationDeterministicString(p.TimeToLastRxByte)
+	res["TimeToLastUpstreamRxByte"] = pbDurationDeterministicString(p.TimeToLastUpstreamRxByte)
+	res["TimeToLastUpstreamTxByte"] = pbDurationDeterministicString(p.TimeToLastUpstreamTxByte)
 	res["TlsProperties"] = p.TlsProperties.String()
 	res["UpstreamCluster"] = p.UpstreamCluster
 	res["UpstreamLocalAddress"] = p.UpstreamLocalAddress.String()
@@ -48,72 +47,97 @@ func exportCommonPropertiesV2(p *envoy_data_accesslog_v2.AccessLogCommon) string
 	return res
 }
 
-func exportLogEntriesV2(msg *envoy_service_accesslog_v2.StreamAccessLogsMessage) []stringmap.StringMap {
+func exportRequestPropertiesv2(request *envoy_data_accesslog_v2.HTTPRequestProperties) stringmap.StringMap {
+	result := stringmap.StringMap{}
+
+	result["Authority"] = request.Authority
+	result["ForwardedFor"] = request.ForwardedFor
+	result["OriginalPath"] = request.OriginalPath
+	result["Path"] = request.Path
+	result["Port"] = request.Port.String()
+	result["Referer"] = request.Referer
+	result["RequestHeaders"] = stringmap.StringMap(request.RequestHeaders).String()
+	result["RequestBodyBytes"] = strconv.FormatUint(request.RequestBodyBytes, 10)
+	result["RequestHeadersBytes"] = strconv.FormatUint(request.RequestHeadersBytes, 10)
+	result["RequestId"] = request.RequestId
+	result["RequestMethod"] = request.RequestMethod.String()
+	result["Scheme"] = request.Scheme
+	result["UserAgent"] = request.UserAgent
+
+	return result
+}
+
+func exportResponsePropertiesv2(response *envoy_data_accesslog_v2.HTTPResponseProperties) stringmap.StringMap {
+	result := stringmap.StringMap{}
+
+	result["ResponseBodyBytes"] = strconv.FormatUint(response.ResponseBodyBytes, 10)
+	result["ResponseCodeDetails"] = response.ResponseCodeDetails
+	result["ResponseCode"] = response.ResponseCode.String()
+	result["ResponseHeadersBytes"] = strconv.FormatUint(response.ResponseHeadersBytes, 10)
+	result["ResponseHeaders"] = stringmap.StringMap(response.ResponseHeaders).String()
+	result["ResponseTrailers"] = stringmap.StringMap(response.ResponseTrailers).String()
+
+	return result
+}
+
+func exportHttpLogEntryv2(logEntry *envoy_data_accesslog_v2.HTTPAccessLogEntry) stringmap.StringMap {
+
+	result := stringmap.StringMap{
+		"__log_entry_json": logEntry.String(),
+	}
+	// AccessLogCommon
+	result = result.Merge(exportCommonPropertiesv2(logEntry.CommonProperties))
+
+	// ProtocolVersion
+	result["ProtocolVersion"] = logEntry.ProtocolVersion.String()
+
+	// Request properties
+	result = result.Merge(exportRequestPropertiesv2(logEntry.Request))
+
+	// Response properties
+	result = result.Merge(exportResponsePropertiesv2(logEntry.Response))
+
+	return result
+}
+
+func exportTcpLogEntryv2(logEntry *envoy_data_accesslog_v2.TCPAccessLogEntry) stringmap.StringMap {
+
+	result := stringmap.StringMap{
+		"__log_entry_json": logEntry.String(),
+	}
+	// AccessLogCommon
+	result = result.Merge(exportCommonPropertiesv2(logEntry.CommonProperties))
+
+	// ConnectionProperties
+	result["ReceivedBytes"] = strconv.FormatUint(logEntry.ConnectionProperties.ReceivedBytes, 10)
+	result["SentBytes"] = strconv.FormatUint(logEntry.ConnectionProperties.SentBytes, 10)
+
+	return result
+}
+
+func exportLogEntriesv2(msg *envoy_service_accesslog_v2.StreamAccessLogsMessage) []stringmap.StringMap {
 	res := []stringmap.StringMap{}
 
 	if logs := msg.GetHttpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
-			exportedLogEntry := stringmap.StringMap{
-				"__log_entry_json": l.String(),
-			}
-			// AccessLogCommon
-			exportedLogEntry.Merge(exportCommonPropertiesV2(l.CommonProperties))
 
-			// ProtocolVersion
-			exportedLogEntry["ProtocolVersion"] = l.ProtocolVersion.String()
-
-			// Request
-			exportedLogEntry["Authority"] = l.Request.Authority
-			exportedLogEntry["ForwardedFor"] = l.Request.ForwardedFor
-			exportedLogEntry["OriginalPath"] = l.Request.OriginalPath
-			exportedLogEntry["Path"] = l.Request.Path
-			exportedLogEntry["Port"] = l.Request.Port.String()
-			exportedLogEntry["Referer"] = l.Request.Referer
-			exportedLogEntry["RequestHeaders"] = stringmap.StringMap(l.Request.RequestHeaders).String()
-			exportedLogEntry["RequestBodyBytes"] = strconv.FormatUint(l.Request.RequestBodyBytes, 10)
-			exportedLogEntry["RequestHeadersBytes"] = strconv.FormatUint(l.Request.RequestHeadersBytes, 10)
-			exportedLogEntry["RequestId"] = l.Request.RequestId
-			exportedLogEntry["RequestMethod"] = l.Request.RequestMethod.String()
-			exportedLogEntry["Scheme"] = l.Request.Scheme
-			exportedLogEntry["UserAgent"] = l.Request.UserAgent
-
-			// Response
-			exportedLogEntry["ResponseBodyBytes"] = strconv.FormatUint(l.Response.ResponseBodyBytes, 10)
-			exportedLogEntry["ResponseCodeDetails"] = l.Response.ResponseCodeDetails
-			exportedLogEntry["ResponseCode"] = l.Response.ResponseCode.String()
-			exportedLogEntry["ResponseHeadersBytes"] = strconv.FormatUint(l.Response.ResponseHeadersBytes, 10)
-			exportedLogEntry["ResponseHeaders"] = stringmap.StringMap(l.Response.ResponseHeaders).String()
-			exportedLogEntry["ResponseTrailers"] = stringmap.StringMap(l.Response.ResponseTrailers).String()
-
-			res = append(res, exportedLogEntry)
+			res = append(res, exportHttpLogEntryv2(l))
 
 			logEntriesTotal.WithLabelValues("HTTP", "v2").Inc()
-
 		}
 	} else if logs := msg.GetTcpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
-			exportedLogEntry := stringmap.StringMap{
-				"__log_entry_json": l.String(),
-			}
-			// AccessLogCommon
-			exportedLogEntry.Merge(exportCommonPropertiesV2(l.CommonProperties))
 
-			// ConnectionProperties
-			exportedLogEntry["ReceivedBytes"] = strconv.FormatUint(l.ConnectionProperties.ReceivedBytes, 64)
-			exportedLogEntry["SentBytes"] = strconv.FormatUint(l.ConnectionProperties.SentBytes, 64)
-
-			res = append(res, exportedLogEntry)
+			res = append(res, exportTcpLogEntryv2(l))
 
 			logEntriesTotal.WithLabelValues("TCP", "v2").Inc()
-
 		}
-
 	} else {
 		// Unknown access log type
 		errorsTotal.WithLabelValues("UnknownLogType").Inc()
+		// TODO log
 	}
 	return res
-
 }
 
 func (service_v2 *AccessLogServiceV2) StreamAccessLogs(stream envoy_service_accesslog_v2.AccessLogService_StreamAccessLogsServer) error {
@@ -128,11 +152,12 @@ func (service_v2 *AccessLogServiceV2) StreamAccessLogs(stream envoy_service_acce
 			return err
 		}
 
-		for _, singleLogEntryMetadata := range exportLogEntriesV2(msg) {
+		for _, singleLogEntryMetadata := range exportLogEntriesv2(msg) {
 			e := &event.Raw{
 				Metadata: singleLogEntryMetadata,
 				Quantity: 1,
 			}
+			service_v2.logger.Info(e)
 			service_v2.outChan <- e
 		}
 
