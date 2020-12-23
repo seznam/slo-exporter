@@ -356,7 +356,7 @@ func Test_exportTcpLogEntryV3(t *testing.T) {
 				"UpstreamLocalAddress":           "<nil>",
 				"UpstreamRemoteAddress":          "socket_address:{address:\"77.75.75.172\" port_value:443}",
 				"UpstreamTransportFailureReason": "",
-				"__log_entry_json":               "common_properties:{sample_rate:1 upstream_remote_address:{socket_address:{address:\"77.75.75.172\" port_value:443}}} connection_properties:{received_bytes:100 sent_bytes:100}",
+				"__log_entry_json":               "common_properties:{sample_rate:1 upstream_remote_address:{socket_address:{address:\"77.75.75.172\"  port_value:443}}} connection_properties:{received_bytes:100 sent_bytes:100}",
 			}},
 	}
 

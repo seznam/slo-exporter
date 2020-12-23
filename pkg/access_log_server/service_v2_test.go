@@ -15,7 +15,7 @@ import (
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
-func Test_exportCommonPropertiesv2(t *testing.T) {
+func Test_exportCommonPropertiesV2(t *testing.T) {
 	tests := []struct {
 		input envoy_data_accesslog_v2.AccessLogCommon
 		res   stringmap.StringMap
@@ -111,7 +111,7 @@ func Test_exportCommonPropertiesv2(t *testing.T) {
 				"DownstreamLocalAddress":         "socket_address:{address:\"127.0.0.1\" port_value:8080}",
 				"DownstreamRemoteAddress":        "socket_address:{address:\"127.0.0.1\" port_value:46058}",
 				"Metadata":                       "<nil>",
-				"ResponseFlags":                  "RateLimited:true",
+				"ResponseFlags":                  "rate_limited:true",
 				"RouteName":                      "foo",
 				"SampleRate":                     "1e+00",
 				"StartTime":                      "seconds:1608647248 nanos:741408000",
@@ -138,7 +138,7 @@ func Test_exportCommonPropertiesv2(t *testing.T) {
 	}
 }
 
-func Test_exportRequestPropertiesv2(t *testing.T) {
+func Test_exportRequestPropertiesV2(t *testing.T) {
 	tests := []struct {
 		input  envoy_data_accesslog_v2.HTTPRequestProperties
 		result stringmap.StringMap
@@ -200,7 +200,7 @@ func Test_exportRequestPropertiesv2(t *testing.T) {
 	}
 }
 
-func Test_exportResponsePropertiesv2(t *testing.T) {
+func Test_exportResponsePropertiesV2(t *testing.T) {
 	tests := []struct {
 		input  envoy_data_accesslog_v2.HTTPResponseProperties
 		result stringmap.StringMap
@@ -240,7 +240,7 @@ func Test_exportResponsePropertiesv2(t *testing.T) {
 	}
 }
 
-func Test_exportHttpLogEntryv2(t *testing.T) {
+func Test_exportHttpLogEntryV2(t *testing.T) {
 	tests := []struct {
 		expected stringmap.StringMap
 		logEntry *envoy_data_accesslog_v2.HTTPAccessLogEntry
@@ -314,7 +314,7 @@ func Test_exportHttpLogEntryv2(t *testing.T) {
 	}
 }
 
-func Test_exportTcpLogEntryv2(t *testing.T) {
+func Test_exportTcpLogEntryV2(t *testing.T) {
 	tests := []struct {
 		expected stringmap.StringMap
 		logEntry *envoy_data_accesslog_v2.TCPAccessLogEntry
@@ -326,6 +326,7 @@ func Test_exportTcpLogEntryv2(t *testing.T) {
 					UpstreamRemoteAddress: &v2.Address{Address: &v2.Address_SocketAddress{SocketAddress: &v2.SocketAddress{
 						Address:       "77.75.75.172",
 						PortSpecifier: &v2.SocketAddress_PortValue{443},
+						Ipv4Compat:    false,
 					}}},
 				},
 				ConnectionProperties: &envoy_data_accesslog_v2.ConnectionProperties{
