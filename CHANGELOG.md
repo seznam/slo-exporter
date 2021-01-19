@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Changed
+- [#40](https://github.com/seznam/slo-exporter/pull/40) Upgrade to Go 1.15
+
 ## [v6.5.0] 2020-11-11
 ## Changed
 - [#28](https://github.com/seznam/slo-exporter/pull/28) Abstracted statistical classifier history to generic interface in new storage package.
