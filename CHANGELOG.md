@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+- [#39](https://github.com/seznam/slo-exporter/pull/39) Prometheus-exporter: Additional SLO event metadata does not get overwritten.
+
 ## Changed
 - [#40](https://github.com/seznam/slo-exporter/pull/40) Upgrade to Go 1.15
 
