@@ -1,10 +1,11 @@
 package stringmap
 
 import (
-	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/pkg/labels"
 	"sort"
 	"strings"
+
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/pkg/labels"
 )
 
 func NewFromMetric(labels model.Metric) StringMap {
@@ -178,4 +179,3 @@ func (m StringMap) AsPrometheusLabels() labels.Labels {
 	}
 	return newLabels
 }
-

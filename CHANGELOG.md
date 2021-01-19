@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Added
+- [#37](https://github.com/seznam/slo-exporter/pull/37) New ingester module [`envoyAccessLogServer`](docs/modules/envoy_access_log_server.md) to receive remote [access logs from an Envoy proxy over the gRPC](https://www.envoyproxy.io/docs/envoy/latest/api-v3/data/accesslog/v3/accesslog.proto).
+
 ## Fixed
 - [#39](https://github.com/seznam/slo-exporter/pull/39) Prometheus-exporter: Additional SLO event metadata does not get overwritten.
 

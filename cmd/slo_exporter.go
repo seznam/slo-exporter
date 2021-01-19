@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/config"
 	"github.com/seznam/slo-exporter/pkg/dynamic_classifier"
+	"github.com/seznam/slo-exporter/pkg/envoy_access_log_server"
 	"github.com/seznam/slo-exporter/pkg/event_key_generator"
 	"github.com/seznam/slo-exporter/pkg/metadata_classifier"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
@@ -63,6 +64,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return tailer.NewFromViper(conf, logger)
 	case "prometheusIngester":
 		return prometheus_ingester.NewFromViper(conf, logger)
+	case "envoyAccessLogServer":
+		return envoy_access_log_server.NewFromViper(conf, logger)
 	case "relabel":
 		return relabel.NewFromViper(conf, logger)
 	case "eventKeyGenerator":

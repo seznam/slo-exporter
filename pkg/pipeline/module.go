@@ -3,9 +3,9 @@ package pipeline
 import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/seznam/slo-exporter/pkg/event"
 )
 
 type moduleFactoryFunction func(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (Module, error)
