@@ -1,0 +1,40 @@
+webServerListenAddress: "0.0.0.0:8001"
+maximumGracefulShutdownDuration: "10s"
+afterPipelineShutdownDelay: "1s"
+
+pipeline: ["envoyAccessLogServer", "relabel", "eventKeyGenerator", "metadataClassifier", "sloEventProducer", "prometheusExporter"]
+
+modules:
+
+  envoyAccessLogServer: {}
+
+  relabel:
+    eventRelabelConfigs:
+      # Drop events with unwanted status codes
+    - source_labels: ["responseCode"]
+      regex: "30[12]|40[045]|411|408|499"
+      action: drop
+
+  eventKeyGenerator:
+    filedSeparator: ":"
+    metadataKeys:
+      - requestMethod
+      - path
+
+  metadataClassifier:
+    sloDomainMetadataKey: http_slo-domain
+    sloClassMetadataKey: http_slo-class
+    sloAppMetadataKey: http_slo-app
+
+  sloEventProducer:
+    rulesFiles:
+      - "slo_rules.yaml"
+
+  prometheusExporter:
+    metricName: "slo_events_total"
+    labelNames:
+      result: "result"
+      sloDomain: "slo_domain"
+      sloClass: "slo_class"
+      sloApp: "slo_app"
+      eventKey: "event_key"

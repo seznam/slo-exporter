@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  envoy:
+    network_mode: "host"
+    image: envoyproxy/envoy:v1.16-latest
+    volumes:
+      - "./envoy/envoy.yaml:/conf/envoy.yaml:ro"
+    command:
+      - "-c"
+      - "/conf/envoy.yaml"
+
+  slo-exporter:
+    network_mode: "host"
+    image: slo_exporter:latest
+    ports:
+      - 8001:8001
+    working_dir: /slo-exporter
+    command:
+      - "--config-file=/slo-exporter/slo_exporter.yaml"
+      - "--log-level=debug"
+    volumes:
+      - ./slo-exporter/:/slo-exporter/
+
+  slo-event-generator:
+    network_mode: "host"
+    image: curlimages/curl
+    entrypoint: /bin/sh
+    command: |
+        -c 'while true; do
+                  for i in `seq 20`; do curl -s -H "slo-domain: example-domain" -H "slo-class: critical" -H "slo-app: homepage-static" http://localhost:8080/ >/dev/null 2>&1 ; done;
+                  echo -n ".";
+                  sleep 5;
+                done'
