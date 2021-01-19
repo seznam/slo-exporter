@@ -209,13 +209,13 @@ func (e *PrometheusSloEventExporter) initializeMetricForGivenMetadata(metadata s
 }
 
 func (e *PrometheusSloEventExporter) labelsFromEvent(sloEvent *event.Slo) stringmap.StringMap {
-	return sloEvent.Metadata.Merge(stringmap.StringMap{
+	return stringmap.StringMap{
 		e.labelNames.Result:    string(sloEvent.Result),
 		e.labelNames.SloDomain: sloEvent.Domain,
 		e.labelNames.SloClass:  sloEvent.Class,
 		e.labelNames.SloApp:    sloEvent.App,
 		e.labelNames.EventKey:  sloEvent.Key,
-	})
+	}.Merge(sloEvent.Metadata)
 }
 
 func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
