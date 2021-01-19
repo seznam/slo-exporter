@@ -1,6 +1,6 @@
 module github.com/seznam/slo-exporter
 
-go 1.14
+go 1.15
 
 require (
 	github.com/go-kit/kit v0.10.0
@@ -10,9 +10,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hpcloud/tail v1.0.1-0.20180514194441-a1dbeea552b7
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
-	github.com/mattn/go-colorable v0.1.7 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
-	github.com/mgechev/revive v1.0.2 // indirect
 	github.com/prometheus/client_golang v1.6.0
 	github.com/prometheus/common v0.10.0
 	github.com/prometheus/prometheus v1.8.2-0.20200213233353-b90be6f32a33
