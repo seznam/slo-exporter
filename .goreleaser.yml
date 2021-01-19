@@ -15,6 +15,10 @@ builds:
       - amd64
       - 386
 
+    ignore:
+    - goos: darwin
+      goarch: 386
+
 source:
   enabled: true
 
