@@ -21,7 +21,7 @@ Description of the whole setup follows:
   - an infinite loop accessing the Nginx instance to generate slo-events.
 
 ### How to run it
-```
+```bash
 docker-compose pull && docker-compose up
 ```
 

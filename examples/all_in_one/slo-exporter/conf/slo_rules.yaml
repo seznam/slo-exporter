@@ -9,6 +9,7 @@ rules:
       slo_type: availability
       slo_version: 1
       namespace: test
+      cluster: test-cluster
 
   - slo_matcher:
       domain: example-domain
@@ -23,6 +24,7 @@ rules:
       percentile: 90
       le: 0.8
       namespace: test
+      cluster: test-cluster
 
   - slo_matcher:
       domain: example-domain
@@ -37,3 +39,4 @@ rules:
       percentile: 99
       le: 2
       namespace: test
+      cluster: test-cluster
