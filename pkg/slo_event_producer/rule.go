@@ -4,10 +4,31 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"regexp"
 )
+
+type sloClassificationMatcher struct {
+	domainRegexp *regexp.Regexp
+	classRegexp  *regexp.Regexp
+	appRegexp    *regexp.Regexp
+}
+
+func (s *sloClassificationMatcher) matchesSloClassification(c event.SloClassification) bool {
+	if s.domainRegexp != nil && !s.domainRegexp.MatchString(c.Domain) {
+		return false
+	}
+	if s.classRegexp != nil && !s.classRegexp.MatchString(c.Class) {
+		return false
+	}
+	if s.appRegexp != nil && !s.appRegexp.MatchString(c.App) {
+		return false
+	}
+	return true
+}
 
 func getOperators(operatorOpts []operatorOptions) ([]operator, error) {
 	var operators = make([]operator, len(operatorOpts))
@@ -33,12 +54,30 @@ func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluation
 	if failureConditions, err = getOperators(opts.FailureConditionsOptions); err != nil {
 		return nil, err
 	}
+	sloMatcher := sloClassificationMatcher{}
+	if opts.SloMatcher.DomainRegexp != "" {
+		r, err := regexp.Compile(opts.SloMatcher.DomainRegexp)
+		if err != nil {
+			return nil, fmt.Errorf("invalid domain matcher regexp: %w",err)
+		}
+		sloMatcher.domainRegexp = r
+	}
+	if opts.SloMatcher.ClassRegexp != "" {
+		r, err := regexp.Compile(opts.SloMatcher.ClassRegexp)
+		if err != nil {
+			return nil, fmt.Errorf("invalid class matcher regexp: %w",err)
+		}
+		sloMatcher.classRegexp = r
+	}
+	if opts.SloMatcher.AppRegexp != "" {
+		r, err := regexp.Compile(opts.SloMatcher.AppRegexp)
+		if err != nil {
+			return nil, fmt.Errorf("invalid app matcher regexp: %w",err)
+		}
+		sloMatcher.appRegexp = r
+	}
 	return &evaluationRule{
-		sloMatcher: event.SloClassification{
-			Domain: opts.SloMatcher.Domain,
-			App:    opts.SloMatcher.App,
-			Class:  opts.SloMatcher.Class,
-		},
+		sloMatcher:         sloMatcher,
 		metadataMatcher:    matcherConditions,
 		failureConditions:  failureConditions,
 		additionalMetadata: opts.AdditionalMetadata,
@@ -47,7 +86,7 @@ func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluation
 }
 
 type evaluationRule struct {
-	sloMatcher         event.SloClassification
+	sloMatcher         sloClassificationMatcher
 	metadataMatcher    []operator
 	failureConditions  []operator
 	additionalMetadata stringmap.StringMap
@@ -85,7 +124,7 @@ func (er *evaluationRule) processEvent(newEvent *event.Raw) (*event.Slo, bool) {
 		return nil, false
 	}
 	// Check if rule matches the newEvent
-	if !er.sloMatcher.Matches(*eventSloClassification) {
+	if !er.sloMatcher.matchesSloClassification(*eventSloClassification) {
 		return nil, false
 	}
 	var (

@@ -11,9 +11,9 @@ import (
 )
 
 type sloMatcher struct {
-	Domain string `yaml:"domain"`
-	Class  string `yaml:"class"`
-	App    string `yaml:"app"`
+	DomainRegexp string `yaml:"domain"`
+	ClassRegexp  string `yaml:"class"`
+	AppRegexp    string `yaml:"app"`
 }
 
 type operatorOptions struct {

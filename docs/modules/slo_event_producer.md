@@ -38,9 +38,9 @@ metadata_matcher:
   - <metadata_matcher_condition>
 # Matcher of the SLO classification of the event. Rule will be applied only if matches the event SLO classification.
 slo_matcher:
-  domain: <value>
-  class: <value>
-  app: <value>
+  domain: <regexp>
+  class: <regexp>
+  app: <regexp>
 # Conditions to be checked on the matching event, if any of those results with true, the event is marked as failure, otherwise success.
 failure_conditions:
   - <failure_condition>

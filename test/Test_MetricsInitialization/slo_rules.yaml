@@ -1,6 +1,6 @@
 rules:
   - slo_matcher:
-      domain: testdomain
+      domain: testdo.*
     failure_conditions:
       - operator: numberIsHigherThan
         key: statusCode
