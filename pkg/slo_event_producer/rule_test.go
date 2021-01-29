@@ -4,10 +4,10 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"regexp"
 	"testing"
 )
@@ -67,7 +67,7 @@ func TestEvaluateEvent(t *testing.T) {
 		{
 			name: "event does not match the only matcher -> error reported",
 			rule: evaluationRule{
-				sloMatcher:         event.SloClassification{Domain: "foo"},
+				sloMatcher:         sloClassificationMatcher{domainRegexp: regexp.MustCompile("foo")},
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&isMatchingRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
 				logger:             logrus.New(),
@@ -82,7 +82,7 @@ func TestEvaluateEvent(t *testing.T) {
 		{
 			name: "event does not match any matcher -> error reported",
 			rule: evaluationRule{
-				sloMatcher:         event.SloClassification{Domain: "domain"},
+				sloMatcher:         sloClassificationMatcher{domainRegexp: regexp.MustCompile("domain")},
 				metadataMatcher:    []operator{&isMatchingRegexp{key: "key", regexp: regexp.MustCompile("value")}},
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&isMatchingRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},
@@ -98,7 +98,7 @@ func TestEvaluateEvent(t *testing.T) {
 		{
 			name: "metadata matcher matches, failure_condition does not match -> succesful event",
 			rule: evaluationRule{
-				sloMatcher:         event.SloClassification{Domain: "domain"},
+				sloMatcher:         sloClassificationMatcher{domainRegexp: regexp.MustCompile("domain")},
 				metadataMatcher:    []operator{&isMatchingRegexp{key: "key", regexp: regexp.MustCompile("value")}},
 				additionalMetadata: stringmap.StringMap{},
 				failureConditions:  []operator{&isMatchingRegexp{key: "statusCode", regexp: regexp.MustCompile("500")}},

@@ -24,7 +24,7 @@ func TestSloEventProducer(t *testing.T) {
 			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "502"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					SloMatcher:                       sloMatcher{Domain: "domain"},
+					SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
 						operatorOptions{
@@ -43,7 +43,7 @@ func TestSloEventProducer(t *testing.T) {
 			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "200"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					SloMatcher:                       sloMatcher{Domain: "domain"},
+					SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
 						operatorOptions{

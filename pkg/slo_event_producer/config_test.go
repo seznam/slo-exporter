@@ -23,7 +23,7 @@ func TestConfig_loadFromFile(t *testing.T) {
 			path: "testdata/slo_rules_valid.yaml.golden",
 			expectedConfig: rulesConfig{Rules: []ruleOptions{
 				{
-					SloMatcher: sloMatcher{Domain: "domain"},
+					SloMatcher: sloMatcher{DomainRegexp: "domain"},
 					FailureConditionsOptions: []operatorOptions{
 						operatorOptions{
 							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
