@@ -7,53 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [v6.7.0] 2021-01-29
-## Changed
+### Changed
 - [#43](https://github.com/seznam/slo-exporter/pull/40) slo-event-producer: `slo_matcher` values are now regular expressions.
 
 ## [v6.6.0] 2021-01-19
-## Added
+### Added
 - [#37](https://github.com/seznam/slo-exporter/pull/37) New ingester module [`envoyAccessLogServer`](docs/modules/envoy_access_log_server.md) to receive remote [access logs from an Envoy proxy over the gRPC](https://www.envoyproxy.io/docs/envoy/latest/api-v3/data/accesslog/v3/accesslog.proto).
 
-## Fixed
+### Fixed
 - [#39](https://github.com/seznam/slo-exporter/pull/39) Prometheus-exporter: Additional SLO event metadata does not get overwritten.
 
-## Changed
+### Changed
 - [#40](https://github.com/seznam/slo-exporter/pull/40) Upgrade to Go 1.15
 
 ## [v6.5.0] 2020-11-11
-## Changed
+### Changed
 - [#28](https://github.com/seznam/slo-exporter/pull/28) Abstracted statistical classifier history to generic interface in new storage package.
 - [#34](https://github.com/seznam/slo-exporter/pull/34) Prometheus recording rules: Unified computation for SLO classes uptime, uptime-alt (slo-expoter's SLO)
 - [#34](https://github.com/seznam/slo-exporter/pull/34) Prometheus alerts: missing data alert now explicitly matches only enabled SLO domains
 - [#32](https://github.com/seznam/slo-exporter/pull/32) Prometheus alerts, recording rules: now fully reflects our internal setup
 - [#31](https://github.com/seznam/slo-exporter/pull/31) Grafana dashboard: SLO Drilldown shows current increase of events on background of error budget change
 
-## Fixed
+### Fixed
 - [#33](https://github.com/seznam/slo-exporter/pull/33) prometheus-ingester now always expose query_fails_total
 
-## Added
+### Added
 - [#32](https://github.com/seznam/slo-exporter/pull/32) Grafana dashboard: SLO Effective Burn-rate
 
 ## [v6.4.1] 2020-08-25
-## Fixed
+### Fixed
 - [#27](https://github.com/seznam/slo-exporter/pull/27) Empty configuration is now evaluated as invalid
 
 ## [v6.4.0] 2020-08-07
-## Added
+### Added
 - [#25](https://github.com/seznam/slo-exporter/pull/25) `--version` command-line flag showing only the build version
 
 ## [v6.3.0] 2020-08-05
-## Added
+### Added
 - [#24](https://github.com/seznam/slo-exporter/pull/24) DynamicClassifier: Allow use of comments in the CSV files, see [the docs](./docs/modules/dynamic_classifier.md#csv-comments).
 
-## Fixed
+### Fixed
 - [#24](https://github.com/seznam/slo-exporter/pull/24) DynamicClassifier: Panic on CSV with unexpected number of fields.
 
 ## [v6.3.0-rc1] 2020-08-04
-## Changed
+### Changed
 - [#18](https://github.com/seznam/slo-exporter/pull/18) Tailer: Upgraded hpcloud/tail package to latest commit.
 
-## Added
+### Added
 - [#20](https://github.com/seznam/slo-exporter/pull/20) CI:
      - Release additional Docker image tags:
         - `latest` Latest released version.
@@ -68,21 +68,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - `slo-exporter_windows_amd64`
 
 ## [v6.2.0] 2020-07-29
-## Added
+### Added
 - CI pipeline
   - build
   - on release, publish docker image and github release with binaries
 
 ## [v6.1.0] 2020-06-30
-## Changed
+### Changed
 - Dockerfile labels
 - Dockerfile src image
 
-## Added
+### Added
 - SLO computation recording rules, alerts
 - slo-exporter grafana dashboard
 
-## Fixed
+### Fixed
 - PrometheusIngester: Fixed unit of the `slo_exporter_prometheus_ingester_query_duration_seconds_bucket` metric.
 
 ## [v6.0.0] 2020-06-12
