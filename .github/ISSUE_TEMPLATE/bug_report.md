@@ -12,7 +12,7 @@ Please see the dedicated section of [our contributing guideline](https://github.
 **Describe the bug**
 FILL ME
 
-**To Reproduce**
+**How to Reproduce**
 FILL ME
 
 **Expected behavior**
