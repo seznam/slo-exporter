@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v6.8.0] 2021-03-24
+### Added
+- [#48](https://github.com/seznam/slo-exporter/pull/48) New ingester module [`kafkaIngester`](docs/modules/kafka_ingester.md)
+
 ## [v6.7.1] 2021-02-15
 ### Fixed
 - [#44](https://github.com/seznam/slo-exporter/issues/44) Install missing ca-certificates to docker base image
