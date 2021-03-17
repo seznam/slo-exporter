@@ -1,0 +1,96 @@
+version: '3'
+services:
+  slo-exporter:
+    image: slo_exporter
+    depends_on:
+      - topic-initialization
+    ports:
+      - 8080:8080
+    working_dir: /slo-exporter
+    command:
+      - "--config-file=/slo-exporter/slo_exporter.yaml"
+    volumes:
+      - ./slo-exporter/:/slo-exporter/
+
+  topic-initialization:
+    image: confluentinc/cp-kafka:6.0.2
+    command: kafka-topics --create --topic slo-exporter --partitions 4 --replication-factor 2 --if-not-exists --bootstrap-server kafka-1:9092
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+
+  kafkacat:
+    image: confluentinc/cp-kafkacat
+    command: |
+     bash -c "
+       while true;
+       do
+         echo '{\"quantity\": 1, \"slo_classification\": {\"app\": \"fooApp\", \"domain\": \"testDomain\", \"class\": \"critical\"}, \"metadata\": {\"name\": \"foo\", \"degradation_slave_response\": \"1\", \"result\": \"success\"}}' | kafkacat -P -b kafka-1:9092,kafka-2:9092,kafka-3:9092 -t slo-exporter -p 0
+         sleep 1
+       done"
+    depends_on:
+      - topic-initialization
+
+  zookeeper-1:
+    image: confluentinc/cp-zookeeper:6.0.2
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 22181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper-1:22888:23888;zookeeper-2:32888:33888;zookeeper-3:42888:43888
+
+  zookeeper-2:
+    image: confluentinc/cp-zookeeper:6.0.2
+    environment:
+      ZOOKEEPER_SERVER_ID: 2
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper-1:22888:23888;zookeeper-2:32888:33888;zookeeper-3:42888:43888
+
+  zookeeper-3:
+    image: confluentinc/cp-zookeeper:6.0.2
+    environment:
+      ZOOKEEPER_SERVER_ID: 3
+      ZOOKEEPER_CLIENT_PORT: 42181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper-1:22888:23888;zookeeper-2:32888:33888;zookeeper-3:42888:43888
+
+  kafka-1:
+    image: confluentinc/cp-kafka:6.0.2
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:22181,zookeeper-2:22181,zookeeper-3:22181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
+
+  kafka-2:
+    image: confluentinc/cp-kafka:6.0.2
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:22181,zookeeper-2:22181,zookeeper-3:22181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092
+
+  kafka-3:
+    image: confluentinc/cp-kafka:6.0.2
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:22181,zookeeper-2:22181,zookeeper-3:22181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092

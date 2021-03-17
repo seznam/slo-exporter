@@ -54,6 +54,6 @@ For every received message from Kafka:
 ```
 
 Strictly speaking, none of the keys is mandatory, however please note that:
-- Event with explicitly set Quantity=0 is basically noop for Producer module. To give an example, prometheusExporter does not increment any SLO metric for such events.
+- Event with explicitly set quantity=0 is basically noop for Producer module. To give an example, prometheusExporter does not increment any SLO metric for such events.
 - Event with empty Metadata does not allow much logic in following modules.
 - In case you want to allow ingesting events without SLO classification, you need to make sure that all events are classified within rest of the SLO exporter pipeline.
