@@ -1,0 +1,23 @@
+webServerListenAddress: "0.0.0.0:8080"
+
+pipeline: ["kafkaIngester", "eventKeyGenerator", "sloEventProducer", "prometheusExporter"]
+
+modules:
+  kafkaIngester:
+    brokers:
+      - "kafka-1:9092"
+      - "kafka-2:9092"
+      - "kafka-3:9092"
+    topic: slo-exporter
+    groupId: slo-exporter
+    logKafkaEvents: true
+
+  eventKeyGenerator:
+    metadataKeys:
+    - "name"
+
+  sloEventProducer:
+    rulesFiles:
+      - "slo_rules.yaml"
+
+  prometheusExporter: {}
