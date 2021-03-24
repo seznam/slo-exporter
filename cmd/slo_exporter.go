@@ -9,6 +9,7 @@ import (
 	"github.com/seznam/slo-exporter/pkg/dynamic_classifier"
 	"github.com/seznam/slo-exporter/pkg/envoy_access_log_server"
 	"github.com/seznam/slo-exporter/pkg/event_key_generator"
+	"github.com/seznam/slo-exporter/pkg/kafka_ingester"
 	"github.com/seznam/slo-exporter/pkg/metadata_classifier"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/prometheus_exporter"
@@ -64,6 +65,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return tailer.NewFromViper(conf, logger)
 	case "prometheusIngester":
 		return prometheus_ingester.NewFromViper(conf, logger)
+	case "kafkaIngester":
+		return kafka_ingester.NewFromViper(conf, logger)
 	case "envoyAccessLogServer":
 		return envoy_access_log_server.NewFromViper(conf, logger)
 	case "relabel":

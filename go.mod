@@ -16,9 +16,10 @@ require (
 	github.com/prometheus/client_golang v1.6.0
 	github.com/prometheus/common v0.10.0
 	github.com/prometheus/prometheus v1.8.2-0.20200213233353-b90be6f32a33
+	github.com/segmentio/kafka-go v0.4.11
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.7.0
-	github.com/stretchr/testify v1.6.0
+	github.com/stretchr/testify v1.6.1
 	golang.org/x/exp v0.0.0-20200513190911-00229845015e
 	golang.org/x/sys v0.0.0-20200828194041-157a740278f4 // indirect
 	golang.org/x/tools v0.0.0-20200828161849-5deb26317202 // indirect
