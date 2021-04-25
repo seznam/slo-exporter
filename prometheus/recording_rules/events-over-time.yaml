@@ -1,5 +1,5 @@
 groups:
-- name: slo-events-over-time--interval-3m
+- name: slo-events-over-time-4w--interval-3m
   interval: 3m
   rules:
      - record: slo:events_over_time
@@ -9,6 +9,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[4w])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+            
+- name: slo-events-over-time-3d--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 3d
@@ -16,6 +20,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[3d])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+- name: slo-events-over-time-1d--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 1d
@@ -23,6 +31,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[1d])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+- name: slo-events-over-time-6h--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 6h
@@ -30,6 +42,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[6h])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+- name: slo-events-over-time-2h--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 2h

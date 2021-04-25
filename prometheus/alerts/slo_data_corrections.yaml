@@ -9,7 +9,6 @@ groups:
         expr: 'avg_over_time(slo:correction_window[10m]) == 0'
         for: 10m
         labels:
-          sre: true
           severity: info
           team: sre
         annotations:
