@@ -8,11 +8,11 @@ groups:
         (
           sum(
             slo:stable_version{enabled="true"}
-          ) by (slo_version, slo_domain, namespace, team)
+          ) by (slo_version, slo_domain, namespace, escalate, team)
           unless on (slo_domain, slo_version, namespace)
           (
             slo:burn_rate{slo_time_range='5m'}
-            * on(slo_version, slo_domain, namespace) group_left(team)
+            * on(slo_version, slo_domain, namespace) group_left(escalate, team)
             slo:stable_version{enabled="true"}
           )
         )
@@ -24,7 +24,6 @@ groups:
     labels:
       severity: critical
       alert_type: slo:missing_data
-      sre: true
     annotations:
       title: 'Missing burn rate data for {{ $labels.slo_domain }}.'
       description: 'Burn rate probably failed to evaluate for {{ $labels.slo_domain }}.'

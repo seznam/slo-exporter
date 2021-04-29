@@ -7,7 +7,7 @@ groups:
       expr: |
           slo:violation_ratio{slo_time_range="4w"}
             * on (slo_domain,slo_version, namespace) group_left() 
-          slo:stable_version
+          max(slo:stable_version) by (slo_class,slo_domain,slo_version, slo_type, namespace)
             / on (slo_class,slo_domain,slo_version, slo_type, namespace) group_left ()
           (slo:violation_ratio_threshold - 1)
             + 1

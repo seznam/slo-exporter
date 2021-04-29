@@ -2,21 +2,31 @@ groups:
 - name: slo-violation-ratio-and-burn-rate
   interval: 1m
   rules:
-    # Produce zero instead of NaN.
     - record: slo:violation_ratio
-      expr:
-        0 == sum(
-            slo:events_over_time
-        ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
-          or on (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+      expr: |
         (
-          sum(
-              slo:events_over_time{result="fail"}
-          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
-          /
-          sum(
-              slo:events_over_time
-          ) by (slo_class, slo_domain, slo_version, slo_type, namespace, slo_time_range)
+          # Produce zero instead of NaN.
+          0 == sum by(namespace, slo_class, slo_domain, slo_time_range, slo_type, slo_version) (
+            slo:events_over_time
+          )
+        )
+          or on(namespace, slo_class, slo_domain, slo_time_range, slo_type, slo_version)
+        # Otherwise, compute the actual violation ratio, if possible
+        (
+          sum by(namespace, slo_class, slo_domain, slo_time_range, slo_type, slo_version) (
+            slo:events_over_time{result="fail"}
+          )
+            /
+          sum by(namespace, slo_class, slo_domain, slo_time_range, slo_type, slo_version) (
+            slo:events_over_time
+          )
+        )
+          or on(namespace, slo_class, slo_domain, slo_time_range, slo_type, slo_version)
+        # Otherwise, if no failed events are present, return 0 violation_ratio for the given set of labels
+        (
+          0 * count by(namespace, slo_class, slo_domain, slo_time_range, slo_type, slo_version) (
+            slo:events_over_time
+          )
         )
     - record: slo:burn_rate
       expr:

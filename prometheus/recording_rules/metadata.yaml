@@ -14,6 +14,8 @@ groups:
           namespace: "test"
           slo_domain: example-domain
           enabled: true
+          team: "example-team@company.org"
+          escalate: "sre-team@company.org"
 
   # slo thresholds for individual domains, slo_classes and slo_types
   - name: slo-thresholds
@@ -50,4 +52,3 @@ groups:
         slo_type: latency99
         percentile: 99
         le: 12.0
-
