@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-
+- [#54](https://github.com/seznam/slo-exporter/pull/54) Use strict unmarshal in relabel module
 - [#57](https://github.com/seznam/slo-exporter/pull/57) Upgrade to Go 1.16
 
 ## [v6.8.0] 2021-03-24
