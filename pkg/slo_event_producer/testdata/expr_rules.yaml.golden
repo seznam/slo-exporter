@@ -1,0 +1,5 @@
+rule_groups:
+  - group_expr: 'version == "1" && event.slo_domain == "userportal"'
+    rules:
+      - slo_type: 'availability'
+        slo_result_expr: 'Int(event.status_code) < 500'

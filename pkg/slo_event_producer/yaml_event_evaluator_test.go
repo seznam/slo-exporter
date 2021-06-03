@@ -4,12 +4,13 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
+	"testing"
+
 	"github.com/go-test/deep"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
-	"testing"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 type sloEventTestCase struct {
@@ -62,7 +63,7 @@ func TestSloEventProducer(t *testing.T) {
 
 	for _, tc := range testCases {
 		out := make(chan *event.Slo, 100)
-		testedEvaluator, err := NewEventEvaluatorFromConfig(&tc.rulesConfig, logrus.New())
+		testedEvaluator, err := NewYamlEventEvaluatorFromConfig(&tc.rulesConfig, logrus.New())
 		if err != nil {
 			t.Errorf("error when loading config: %v error: %v", tc.rulesConfig, err)
 		}
@@ -135,7 +136,7 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 					metrics []metric
 					err     error
 				)
-				evaluator, err := NewEventEvaluatorFromConfig(&testCase.RulesConfig, logrus.New())
+				evaluator, err := NewYamlEventEvaluatorFromConfig(&testCase.RulesConfig, logrus.New())
 				if err != nil {
 					t.Error(err)
 				}

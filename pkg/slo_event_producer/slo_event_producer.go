@@ -4,15 +4,19 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
-	"time"
+	"github.com/spf13/viper"
 
 	"github.com/sirupsen/logrus"
 )
+
+var ErrUnknowEvaluatorType = errors.New("unkonwn evaluator type")
 
 var (
 	unclassifiedEventsTotal = prometheus.NewCounter(prometheus.CounterOpts{
@@ -35,6 +39,7 @@ var (
 type sloEventProducerConfig struct {
 	ExposeRulesAsMetrics bool
 	RulesFiles           []string
+	EvaulatorType        string
 }
 
 func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*SloEventProducer, error) {
@@ -43,11 +48,24 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*SloEven
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 	viperConfig.SetDefault("ExposeRulesAsMetrics", false)
+	viperConfig.SetDefault("EvaulatorType", "yaml")
 	return New(config, logger)
 }
 
 func New(config sloEventProducerConfig, logger logrus.FieldLogger) (*SloEventProducer, error) {
-	eventEvaluator, err := NewEventEvaluatorFromConfigFiles(config.RulesFiles, logger)
+
+	var eventEvaluator EventEvaluator
+	var err error
+
+	switch config.EvaulatorType {
+	case "yaml":
+		eventEvaluator, err = NewYamlEventEvaluatorFromConfigFiles(config.RulesFiles, logger)
+	case "expr":
+		eventEvaluator, err = NewExprEventEvaluatorFromConfigFiles(config.RulesFiles, logger)
+	default:
+		err = ErrUnknowEvaluatorType
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +79,13 @@ func New(config sloEventProducerConfig, logger logrus.FieldLogger) (*SloEventPro
 	}, nil
 }
 
+type EventEvaluator interface {
+	registerMetrics(prometheus.Registerer) error
+	Evaluate(newEvent *event.Raw, outChan chan<- *event.Slo)
+}
+
 type SloEventProducer struct {
-	eventEvaluator       *EventEvaluator
+	eventEvaluator       EventEvaluator
 	observer             pipeline.EventProcessingDurationObserver
 	inputChannel         chan *event.Raw
 	outputChannel        chan *event.Slo

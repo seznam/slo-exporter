@@ -4,9 +4,10 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"testing"
+
+	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/stretchr/testify/assert"
 )
 
 type configTestCase struct {
@@ -16,7 +17,7 @@ type configTestCase struct {
 	expectedError  bool
 }
 
-func TestConfig_loadFromFile(t *testing.T) {
+func TestYamlConfig_loadFromFile(t *testing.T) {
 	testCases := []configTestCase{
 		{
 			name: "slo rules file with valid syntax",

@@ -6,9 +6,9 @@ package slo_event_producer
 import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -23,7 +23,7 @@ func configFromFile(path string) (*rulesConfig, error) {
 	return &config, nil
 }
 
-func NewEventEvaluatorFromConfigFiles(paths []string, logger logrus.FieldLogger) (*EventEvaluator, error) {
+func NewYamlEventEvaluatorFromConfigFiles(paths []string, logger logrus.FieldLogger) (*YamlEventEvaluator, error) {
 	var config rulesConfig
 	for _, path := range paths {
 		tmpConfig, err := configFromFile(path)
@@ -32,16 +32,16 @@ func NewEventEvaluatorFromConfigFiles(paths []string, logger logrus.FieldLogger)
 		}
 		config.Rules = append(config.Rules, tmpConfig.Rules...)
 	}
-	evaluator, err := NewEventEvaluatorFromConfig(&config, logger)
+	evaluator, err := NewYamlEventEvaluatorFromConfig(&config, logger)
 	if err != nil {
 		return nil, err
 	}
 	return evaluator, nil
 }
 
-func NewEventEvaluatorFromConfig(config *rulesConfig, logger logrus.FieldLogger) (*EventEvaluator, error) {
+func NewYamlEventEvaluatorFromConfig(config *rulesConfig, logger logrus.FieldLogger) (*YamlEventEvaluator, error) {
 	var configurationErrors error
-	evaluator := EventEvaluator{
+	evaluator := YamlEventEvaluator{
 		rules:  []*evaluationRule{},
 		logger: logger,
 	}
@@ -56,12 +56,12 @@ func NewEventEvaluatorFromConfig(config *rulesConfig, logger logrus.FieldLogger)
 	return &evaluator, configurationErrors
 }
 
-type EventEvaluator struct {
+type YamlEventEvaluator struct {
 	rules  []*evaluationRule
 	logger logrus.FieldLogger
 }
 
-func (re *EventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabels []string, err error) {
+func (re *YamlEventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabels []string, err error) {
 	metrics = []metric{}
 	possibleLabelsMap := stringmap.StringMap{}
 
@@ -91,7 +91,7 @@ func (re *EventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabe
 	return metrics, possibleLabelsMap.Keys(), nil
 }
 
-func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer) error {
+func (re *YamlEventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer) error {
 	metrics, possibleLabels, err := re.ruleOptionsToMetrics()
 	if err != nil {
 		return err
@@ -122,11 +122,11 @@ func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer)
 	return nil
 }
 
-func (re *EventEvaluator) AddEvaluationRule(rule *evaluationRule) {
+func (re *YamlEventEvaluator) AddEvaluationRule(rule *evaluationRule) {
 	re.rules = append(re.rules, rule)
 }
 
-func (re *EventEvaluator) Evaluate(newEvent *event.Raw, outChan chan<- *event.Slo) {
+func (re *YamlEventEvaluator) Evaluate(newEvent *event.Raw, outChan chan<- *event.Slo) {
 	if !newEvent.IsClassified() {
 		unclassifiedEventsTotal.Inc()
 		re.logger.Warnf("dropping event %s with no classification", newEvent)
