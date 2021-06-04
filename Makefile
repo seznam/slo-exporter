@@ -26,7 +26,7 @@ $(RELEASE_NOTES): $(TMP_DIR)
 .PHONY: revive
 revive:
 	@echo "Downloading linter revive..."
-	go get -u github.com/mgechev/revive
+	go install github.com/mgechev/revive@v1.0.7
 
 .PHONY: all
 all: lint test-and-coverage build
