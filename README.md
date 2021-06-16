@@ -58,4 +58,5 @@ Some advices on operating the slo-exporter, debugging and profiling can be found
 
 ## Community
 * Slack: [#slo-exporter](https://join.slack.com/t/slo-exporter/shared_invite/zt-mnqxqv1s-1zaJtDiYbuVoOCCAMQi4Kg)
+* User mailing list: [slo-exporter](https://groups.google.com/g/slo-exporter)
 * Issue Tracker: [GitHub Issues](https://github.com/seznam/slo-exporter/issues)
