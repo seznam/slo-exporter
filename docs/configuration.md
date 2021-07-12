@@ -56,6 +56,7 @@ Only produces new events from the specified data source.
   - [`tailer`](modules/tailer.md)
   - [`prometheusIngester`](modules/prometheus_ingester.md)
   - [`envoyAccessLogServer`](modules/envoy_access_log_server.md)
+  - [`kafkaIngester`](modules/kafka_ingester.md)
   
 ##### Processors:
 Reads input events, does some processing based in the module type and produces modified event.
