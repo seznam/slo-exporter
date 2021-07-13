@@ -3,12 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"runtime"
+
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/viper"
+
 	"github.com/seznam/slo-exporter/pkg/config"
 	"github.com/seznam/slo-exporter/pkg/dynamic_classifier"
 	"github.com/seznam/slo-exporter/pkg/envoy_access_log_server"
 	"github.com/seznam/slo-exporter/pkg/event_key_generator"
+	"github.com/seznam/slo-exporter/pkg/event_metadata_rename"
 	"github.com/seznam/slo-exporter/pkg/kafka_ingester"
 	"github.com/seznam/slo-exporter/pkg/metadata_classifier"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
@@ -18,8 +23,6 @@ import (
 	"github.com/seznam/slo-exporter/pkg/slo_event_producer"
 	"github.com/seznam/slo-exporter/pkg/statistical_classifier"
 	"github.com/seznam/slo-exporter/pkg/tailer"
-	"github.com/spf13/viper"
-	"runtime"
 
 	"log"
 	"net/http"
@@ -29,9 +32,10 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/seznam/slo-exporter/pkg/prober"
 	"github.com/sirupsen/logrus"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/seznam/slo-exporter/pkg/prober"
 
 	_ "net/http/pprof"
 )
@@ -69,6 +73,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return kafka_ingester.NewFromViper(conf, logger)
 	case "envoyAccessLogServer":
 		return envoy_access_log_server.NewFromViper(conf, logger)
+	case "eventMetadataRename":
+		return event_metadata_rename.NewFromViper(conf, logger)
 	case "relabel":
 		return relabel.NewFromViper(conf, logger)
 	case "eventKeyGenerator":
