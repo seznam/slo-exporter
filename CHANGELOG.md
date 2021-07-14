@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- [#60](https://github.com/seznam/slo-exporter/pull/60) New module eventMetadataRename
+- [#60](https://github.com/seznam/slo-exporter/pull/60) New module eventMetadataRenamer
 
 ### Changed
 - [#54](https://github.com/seznam/slo-exporter/pull/54) Use strict unmarshal in relabel module

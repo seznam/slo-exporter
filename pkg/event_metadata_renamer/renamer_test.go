@@ -1,4 +1,4 @@
-package event_metadata_rename
+package event_metadata_renamer
 
 import (
 	"testing"
@@ -44,7 +44,7 @@ func TestRelabel_Run(t *testing.T) {
 - source: source
   destination: destination
 `
-	var config []renameConfig
+	var config []renamerConfig
 	err := yaml.UnmarshalStrict([]byte(configYaml), &config)
 	if err != nil {
 		t.Fatal(err)

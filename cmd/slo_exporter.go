@@ -13,7 +13,7 @@ import (
 	"github.com/seznam/slo-exporter/pkg/dynamic_classifier"
 	"github.com/seznam/slo-exporter/pkg/envoy_access_log_server"
 	"github.com/seznam/slo-exporter/pkg/event_key_generator"
-	"github.com/seznam/slo-exporter/pkg/event_metadata_rename"
+	"github.com/seznam/slo-exporter/pkg/event_metadata_renamer"
 	"github.com/seznam/slo-exporter/pkg/kafka_ingester"
 	"github.com/seznam/slo-exporter/pkg/metadata_classifier"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
@@ -73,8 +73,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return kafka_ingester.NewFromViper(conf, logger)
 	case "envoyAccessLogServer":
 		return envoy_access_log_server.NewFromViper(conf, logger)
-	case "eventMetadataRename":
-		return event_metadata_rename.NewFromViper(conf, logger)
+	case "eventMetadataRenamer":
+		return event_metadata_renamer.NewFromViper(conf, logger)
 	case "relabel":
 		return relabel.NewFromViper(conf, logger)
 	case "eventKeyGenerator":
