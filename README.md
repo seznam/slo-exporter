@@ -20,7 +20,11 @@ Few among others:
  - Need to filter out some events based on high cardinality metadata which cannot be added to metrics.
 
  This lead us to decision that we need to process the events separately and in
- Prometheus do just the final computation and alerting.
+ Prometheus do just the final computation and alerting. 
+ 
+ We describe our journey towards SLO based alerting more in detail in the two articles:
+ - [Implementing SRE workbook alerting with Prometheus only](https://medium.com/@sklik.devops/our-journey-towards-slo-based-alerting-bd8bbe23c1d6)
+ - [Advanced SLO infrastructure based on slo-exporter](https://medium.com/@sklik.devops/our-journey-towards-slo-based-alerting-d23d4f6f620e)
 
 ## How it works
 Every ingested event has metadata which are used to classify it to specific SLO domain and class
