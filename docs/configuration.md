@@ -53,6 +53,7 @@ modules:
 
 ##### Producers:
 Only produces new events from the specified data source.
+  - [`envoy_access_log_server`](modules/envoy_access_log_server.md)
   - [`tailer`](modules/tailer.md)
   - [`prometheusIngester`](modules/prometheus_ingester.md)
   
