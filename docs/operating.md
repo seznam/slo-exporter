@@ -23,7 +23,7 @@ Go profiling using pprof on `/debug/pprof/` web interface path. For usage see th
 ## Frequently asked questions
 
 ### How to add new normalization replacement rule?
-Event normalization can be done using the `relabel` module, see [its documentation](docs/modules/relabel.md).
+Event normalization can be done using the `relabel` module, see [its documentation](modules/relabel.md).
 
 ### How to deal with malformed lines?
 Before !87. If you are seeing too many malformed lines then you should inspect [tailer package](pkg/tailer/tailer.go) and seek for variable `lineParseRegexp`.
