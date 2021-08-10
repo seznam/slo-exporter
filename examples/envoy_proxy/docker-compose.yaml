@@ -13,8 +13,6 @@ services:
   slo-exporter:
     network_mode: "host"
     image: slo_exporter:latest
-    ports:
-      - 8001:8001
     working_dir: /slo-exporter
     command:
       - "--config-file=/slo-exporter/slo_exporter.yaml"
