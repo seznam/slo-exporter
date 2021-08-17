@@ -3,11 +3,11 @@ package prometheus_exporter
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -226,7 +226,7 @@ func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 	labels := e.labelsFromEvent(newEvent)
 
 	if e.isCardinalityExceeded(newEvent.Key) {
-		e.logger.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
+		e.logger.Infof("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
 		labels[e.labelNames.EventKey] = e.exceededKeyLimitPlaceholder
 	}
 
