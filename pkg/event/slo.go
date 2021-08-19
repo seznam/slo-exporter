@@ -31,6 +31,8 @@ type Slo struct {
 
 	Metadata stringmap.StringMap
 	Quantity float64
+
+	OriginalEvent Raw
 }
 
 func (s *Slo) IsClassified() bool {
@@ -49,5 +51,6 @@ func (s Slo) Copy() Slo {
 		Class:    s.Class,
 		App:      s.App,
 		Metadata: s.Metadata.Copy(),
+		OriginalEvent: s.OriginalEvent,
 	}
 }

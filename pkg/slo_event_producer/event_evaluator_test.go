@@ -5,10 +5,10 @@ package slo_event_producer
 
 import (
 	"github.com/go-test/deep"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -36,7 +36,12 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []event.Slo{
-				{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Fail},
+				{
+					Domain: "domain", Class: "class", App: "app", Key: "",
+					Metadata:      stringmap.StringMap{"slo_type": "availability"},
+					Result:        event.Fail,
+					OriginalEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "502"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+				},
 			},
 		},
 		{
@@ -55,7 +60,12 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []event.Slo{
-				{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Success},
+				{
+					Domain: "domain", Class: "class", App: "app", Key: "",
+					Metadata:      stringmap.StringMap{"slo_type": "availability"},
+					Result:        event.Success,
+					OriginalEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "200"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+				},
 			},
 		},
 	}

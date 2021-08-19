@@ -33,8 +33,11 @@ func TestEvaluateEvent(t *testing.T) {
 				Metadata:          stringmap.StringMap{"statusCode": "200"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
-			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
-			ok:             true,
+			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success, OriginalEvent: event.Raw{
+				Metadata:          stringmap.StringMap{"statusCode": "200"},
+				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
+			}},
+			ok: true,
 		},
 		{
 			name: "no metadata_matcher, failure_condition does match -> failed event",
@@ -47,7 +50,10 @@ func TestEvaluateEvent(t *testing.T) {
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
-			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Fail},
+			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Fail, OriginalEvent: event.Raw{
+				Metadata:          stringmap.StringMap{"statusCode": "502"},
+				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
+			}},
 			ok:             true,
 		},
 		{
@@ -108,7 +114,10 @@ func TestEvaluateEvent(t *testing.T) {
 				Metadata:          stringmap.StringMap{"statusCode": "200", "key": "value"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			},
-			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success},
+			outputSloEvent: &event.Slo{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{}, Result: event.Success, OriginalEvent: event.Raw{
+				Metadata:          stringmap.StringMap{"statusCode": "200", "key": "value"},
+				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
+			}},
 			ok:             true,
 		},
 	}
