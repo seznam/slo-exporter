@@ -29,6 +29,8 @@ metricName: "slo_events_total"
 maximumUniqueEventKeys: 1000
 # Placeholder to replace new event keys when the limit is hit.
 ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
+# List of original raw event metadata keys to be added as an exemplars labels   
+ExemplarMetadataKeys: ["trace-id"]
 # Names of labels to be used for specific event information.
 labelNames:
   # Contains information about the event result (success, fail, ...).

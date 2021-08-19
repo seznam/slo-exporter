@@ -126,8 +126,13 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 		_, _ = w.Write([]byte("current logging level is: " + logger.Level.String()))
 	}
 
+	promHandler := promhttp.InstrumentMetricHandler(
+		prometheus.DefaultRegisterer,
+		promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{EnableOpenMetrics: true}),
+	)
+
 	router := mux.NewRouter()
-	router.Handle("/metrics", promhttp.Handler())
+	router.Handle("/metrics", promHandler)
 	router.HandleFunc("/liveness", liveness.HandleFunc)
 	router.HandleFunc("/readiness", readiness.HandleFunc)
 	router.HandleFunc("/logging", dynamicLoggingHandler)
