@@ -28,7 +28,7 @@ var operatorFactoryRegistry = map[string]operatorFactory{
 type operatorFactory func() operator
 
 type operator interface {
-	Evaluate(*event.Raw) (bool, error)
+	Evaluate(event.Raw) (bool, error)
 	LoadOptions(operatorOptions) error
 }
 
@@ -87,8 +87,8 @@ func (n *numberComparisonOperator) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.Raw) (float64, bool, error) {
-	metadataValue, ok := evaluatedEvent.Metadata[n.key]
+func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent event.Raw) (float64, bool, error) {
+	metadataValue, ok := evaluatedEvent.Metadata()[n.key]
 	if !ok {
 		return 0, false, nil
 	}
@@ -115,7 +115,7 @@ type numberIsHigherThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberIsHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsHigherThan) Evaluate(evaluatedEvent event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -132,7 +132,7 @@ type numberIsEqualOrHigherThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberIsEqualOrHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsEqualOrHigherThan) Evaluate(evaluatedEvent event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -149,7 +149,7 @@ type numberIsEqualOrLessThan struct {
 	numberComparisonOperator
 }
 
-func (r *numberIsEqualOrLessThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsEqualOrLessThan) Evaluate(evaluatedEvent event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -166,7 +166,7 @@ type numberIsEqualTo struct {
 	numberComparisonOperator
 }
 
-func (r *numberIsEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsEqualTo) Evaluate(evaluatedEvent event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -187,7 +187,7 @@ type numberIsNotEqualTo struct {
 	numberComparisonOperator
 }
 
-func (r *numberIsNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
+func (r *numberIsNotEqualTo) Evaluate(evaluatedEvent event.Raw) (bool, error) {
 	testedValue, ok, err := r.getKeyNumber(evaluatedEvent)
 	if !ok {
 		return false, err
@@ -219,8 +219,8 @@ func (r *durationIsHigherThan) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (r *durationIsHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
-	metadataValue, ok := evaluatedEvent.Metadata[r.key]
+func (r *durationIsHigherThan) Evaluate(evaluatedEvent event.Raw) (bool, error) {
+	metadataValue, ok := evaluatedEvent.Metadata()[r.key]
 	if !ok {
 		return false, nil
 	}
@@ -251,8 +251,8 @@ func (r *isEqualTo) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (r *isEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
-	testedValue, ok := evaluatedEvent.Metadata[r.key]
+func (r *isEqualTo) Evaluate(evaluatedEvent event.Raw) (bool, error) {
+	testedValue, ok := evaluatedEvent.Metadata()[r.key]
 	if !ok {
 		return false, nil
 	}
@@ -283,8 +283,8 @@ func (r *isNotEqualTo) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (r *isNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
-	testedValue, ok := evaluatedEvent.Metadata[r.key]
+func (r *isNotEqualTo) Evaluate(evaluatedEvent event.Raw) (bool, error) {
+	testedValue, ok := evaluatedEvent.Metadata()[r.key]
 	if !ok {
 		return false, nil
 	}
@@ -314,8 +314,8 @@ func (r *isMatchingRegexp) LoadOptions(options operatorOptions) error {
 	return err
 }
 
-func (r *isMatchingRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
-	testedValue, ok := evaluatedEvent.Metadata[r.key]
+func (r *isMatchingRegexp) Evaluate(evaluatedEvent event.Raw) (bool, error) {
+	testedValue, ok := evaluatedEvent.Metadata()[r.key]
 	if !ok {
 		return false, nil
 	}
@@ -345,8 +345,8 @@ func (r *isNotMatchingRegexp) LoadOptions(options operatorOptions) error {
 	return err
 }
 
-func (r *isNotMatchingRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
-	testedValue, ok := evaluatedEvent.Metadata[r.key]
+func (r *isNotMatchingRegexp) Evaluate(evaluatedEvent event.Raw) (bool, error) {
+	testedValue, ok := evaluatedEvent.Metadata()[r.key]
 	if !ok {
 		return false, nil
 	}

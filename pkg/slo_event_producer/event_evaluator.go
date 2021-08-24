@@ -6,9 +6,9 @@ package slo_event_producer
 import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -126,7 +126,7 @@ func (re *EventEvaluator) AddEvaluationRule(rule *evaluationRule) {
 	re.rules = append(re.rules, rule)
 }
 
-func (re *EventEvaluator) Evaluate(newEvent *event.Raw, outChan chan<- *event.Slo) {
+func (re *EventEvaluator) Evaluate(newEvent event.Raw, outChan chan<- event.Slo) {
 	if !newEvent.IsClassified() {
 		unclassifiedEventsTotal.Inc()
 		re.logger.Warnf("dropping event %s with no classification", newEvent)

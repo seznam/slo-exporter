@@ -6,8 +6,8 @@ package dynamic_classifier
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 	"io"
 	"sync"
 
@@ -17,7 +17,7 @@ import (
 const exactMatcherType = "exact"
 
 type memoryExactMatcher struct {
-	exactMatches  map[string]*event.SloClassification
+	exactMatches  map[string]event.SloClassification
 	matchersCount prometheus.Counter
 	mtx           sync.RWMutex
 	logger        logrus.FieldLogger
@@ -25,7 +25,7 @@ type memoryExactMatcher struct {
 
 // newMemoryExactMatcher returns instance of memoryCache
 func newMemoryExactMatcher(logger logrus.FieldLogger) *memoryExactMatcher {
-	exactMatches := map[string]*event.SloClassification{}
+	exactMatches := map[string]event.SloClassification{}
 	return &memoryExactMatcher{
 		exactMatches: exactMatches,
 		mtx:          sync.RWMutex{},
@@ -34,7 +34,7 @@ func newMemoryExactMatcher(logger logrus.FieldLogger) *memoryExactMatcher {
 }
 
 // set sets endpoint classification in cache
-func (c *memoryExactMatcher) set(key string, classification *event.SloClassification) error {
+func (c *memoryExactMatcher) set(key string, classification event.SloClassification) error {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("set", exactMatcherType))
 	defer timer.ObserveDuration()
 	c.mtx.Lock()
@@ -45,7 +45,7 @@ func (c *memoryExactMatcher) set(key string, classification *event.SloClassifica
 }
 
 // get gets endpoint classification from cache
-func (c *memoryExactMatcher) get(key string) (*event.SloClassification, error) {
+func (c *memoryExactMatcher) get(key string) (event.SloClassification, error) {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("get", exactMatcherType))
 	defer timer.ObserveDuration()
 	c.mtx.RLock()

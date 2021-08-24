@@ -5,8 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Fixed
+### Added
+- [#70](https://github.com/seznam/slo-exporter/pull/70) Every event has a unique id set, so it can be filtered in logs.
+  The `kafkaIngester`, `tailer` and `envoyAccessLogServer` modules
+  has new config option `eventIdMetadataKey` to use value of this metadata key as the unique identifier.
+  (Mostly should be used with a trace id for example).
 
+### Changed
+- _Internal:_ Event structs `Raw` and `Slo` has been abstracted into interfaces.
+
+### Fixed
 - [#71](https://github.com/seznam/slo-exporter/pull/71) Fix corner cases in StringMap.Merge(), StringMap.Without()
 
 ## [v6.9.0] 2021-07-14

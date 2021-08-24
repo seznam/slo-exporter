@@ -25,7 +25,7 @@ var conf = prometheusExporterConfig{
 }
 
 type testProcessEvent struct {
-	ev              *event.Slo
+	ev              event.Slo
 	expectedMetrics string
 }
 
@@ -38,26 +38,14 @@ func Test_PrometheusSloEventExporter_processEvent(t *testing.T) {
 
 	testCases := []testProcessEvent{
 		{
-			ev: &event.Slo{
-				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
-				Key:      "foo",
-				Domain:   "domain",
-				Result:   event.Fail,
-				Quantity: 1,
-			},
+			ev: event.NewSlo("foo", 1, event.Fail, event.SloClassification{Domain: "domain"}, stringmap.StringMap{"a": "a1", "b": "b1"}),
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
 				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="fail", %[4]s = "", %[5]s = "", %[6]s = "domain"} 1
 				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="success", %[4]s = "", %[5]s = "", %[6]s = "domain"} 0
 				`, testedMetricName, conf.LabelNames.EventKey, conf.LabelNames.Result, conf.LabelNames.SloApp, conf.LabelNames.SloClass, conf.LabelNames.SloDomain),
 		},
 		{
-			ev: &event.Slo{
-				Metadata: stringmap.StringMap{"a": "a1", "b": "b1"},
-				Key:      "foo",
-				Domain:   "domain",
-				Result:   event.Success,
-				Quantity: 1,
-			},
+			ev: event.NewSlo("foo", 1, event.Success, event.SloClassification{Domain: "domain"}, stringmap.StringMap{"a": "a1", "b": "b1"}),
 			expectedMetrics: metricMetadata + fmt.Sprintf(`
 				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="success", %[4]s = "", %[5]s = "", %[6]s = "domain"} 1
 				%[1]s{ a = "a1" , b = "b1", %[2]s = "foo", %[3]s ="fail", %[4]s = "", %[5]s = "", %[6]s = "domain"} 0

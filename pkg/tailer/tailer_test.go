@@ -203,9 +203,11 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 				continue
 			}
 		}
-		parsedEvent := &event.Raw{Metadata: data}
+		eventId := "xxx"
 
-		var expectedEvent *event.Raw
+		parsedEvent := event.NewRaw(eventId, 1, data, nil)
+
+		var expectedEvent event.Raw
 
 		if test.isLineValid {
 			// line is considered valid, build the expectedEvent struct in order to compare it to the parsed one
@@ -216,7 +218,7 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 					delete(test.lineContentMapping, k)
 				}
 			}
-			expectedEvent = &event.Raw{Metadata: test.lineContentMapping}
+			expectedEvent = event.NewRaw(eventId, 1, test.lineContentMapping, nil)
 			if !reflect.DeepEqual(expectedEvent, parsedEvent) {
 				t.Errorf("Unexpected result of parse line: %s\nGot: %+v\nExpected: %+v", requestLine, parsedEvent, expectedEvent)
 			}
@@ -272,7 +274,7 @@ type offsetPersistenceTest struct {
 }
 
 // reads in chan and on close returns count to out chan
-func countEvents(in chan *event.Raw, out chan int) {
+func countEvents(in chan event.Raw, out chan int) {
 	count := 0
 	for range in {
 		count++

@@ -12,10 +12,10 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -86,7 +86,7 @@ type PrometheusIngester struct {
 	client          api.Client
 	api             v1.API
 	shutdownChannel chan struct{}
-	outputChannel   chan *event.Raw
+	outputChannel   chan event.Raw
 	logger          logrus.FieldLogger
 	done            bool
 }
@@ -113,7 +113,7 @@ func (i *PrometheusIngester) Done() bool {
 	return i.done
 }
 
-func (i *PrometheusIngester) OutputChannel() chan *event.Raw {
+func (i *PrometheusIngester) OutputChannel() chan event.Raw {
 	return i.outputChannel
 }
 
@@ -160,7 +160,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		queryTimeout:    initConfig.QueryTimeout,
 		client:          client,
 		api:             v1.NewAPI(client),
-		outputChannel:   make(chan *event.Raw),
+		outputChannel:   make(chan event.Raw),
 		done:            false,
 		shutdownChannel: make(chan struct{}),
 		logger:          logger,

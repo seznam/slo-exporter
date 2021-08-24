@@ -131,4 +131,6 @@ Please note that some of the keys may not be present	|
 address: ":18090"
 # gracefulShutdownTimeout for the GRPC server. Please note also the existence of 'maximumGracefulShutdownDuration' global config option which is effectively an upper boundary of here-specified timeout value.
 gracefulShutdownTimeout: "5s"
+# eventIdMetadataKey it's value will be used as a unique id for the generated event if present.
+eventIdMetadataKey: <string>
 ```

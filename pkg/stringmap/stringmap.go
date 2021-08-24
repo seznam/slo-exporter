@@ -70,7 +70,7 @@ func (m StringMap) AddKeys(keys ...string) {
 	}
 }
 
-// Keys returns sorted list of StringMap keys.
+// SortedKeys returns sorted list of StringMap keys.
 func (m StringMap) SortedKeys() []string {
 	keys := m.Keys()
 	sort.Strings(keys)
@@ -170,4 +170,18 @@ func (m StringMap) AsPrometheusLabels() labels.Labels {
 		i++
 	}
 	return newLabels
+}
+
+// Get returns value of the given key, if not found, returns the default value
+func (m StringMap) Get(key, defaultValue string) string {
+	val, ok := m[key]
+	if !ok {
+		return defaultValue
+	}
+	return val
+}
+
+// Set the value of given key
+func (m StringMap) Set(key, value string) {
+	m[key] = value
 }

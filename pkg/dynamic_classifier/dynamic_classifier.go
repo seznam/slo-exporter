@@ -60,8 +60,8 @@ type DynamicClassifier struct {
 	unclassifiedEventMetadataKeys []string
 	eventsMetric                  *prometheus.CounterVec
 	observer                      pipeline.EventProcessingDurationObserver
-	inputChannel                  chan *event.Raw
-	outputChannel                 chan *event.Raw
+	inputChannel                  chan event.Raw
+	outputChannel                 chan event.Raw
 	logger                        logrus.FieldLogger
 	done                          bool
 }
@@ -102,11 +102,11 @@ func (dc *DynamicClassifier) Stop() {
 	return
 }
 
-func (dc *DynamicClassifier) SetInputChannel(channel chan *event.Raw) {
+func (dc *DynamicClassifier) SetInputChannel(channel chan event.Raw) {
 	dc.inputChannel = channel
 }
 
-func (dc *DynamicClassifier) OutputChannel() chan *event.Raw {
+func (dc *DynamicClassifier) OutputChannel() chan event.Raw {
 	return dc.outputChannel
 }
 
@@ -129,8 +129,8 @@ func New(conf classifierConfig, logger logrus.FieldLogger) (*DynamicClassifier, 
 		exactMatches:                  newMemoryExactMatcher(logger),
 		regexpMatches:                 newRegexpMatcher(logger),
 		unclassifiedEventMetadataKeys: conf.UnclassifiedEventMetadataKeys,
-		inputChannel:                  make(chan *event.Raw),
-		outputChannel:                 make(chan *event.Raw),
+		inputChannel:                  make(chan event.Raw),
+		outputChannel:                 make(chan event.Raw),
 		done:                          false,
 		logger:                        logger,
 	}
@@ -235,7 +235,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 		sloApp := line[1]
 		sloClass := line[2]
 		sloEndpoint := line[3]
-		classification := &event.SloClassification{
+		classification := event.SloClassification{
 			Domain: sloDomain,
 			App:    sloApp,
 			Class:  sloClass,
@@ -251,14 +251,14 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 }
 
 // Classify classifies endpoint by updating its Classification field
-func (dc *DynamicClassifier) Classify(newEvent *event.Raw) (bool, error) {
+func (dc *DynamicClassifier) Classify(newEvent event.Raw) (bool, error) {
 	var (
 		classificationErrors error
-		classification       *event.SloClassification
+		classification       event.SloClassification
 		classifiedBy         matcherType
 	)
 	if newEvent.IsClassified() {
-		if err := dc.exactMatches.set(newEvent.EventKey(), newEvent.SloClassification); err != nil {
+		if err := dc.exactMatches.set(newEvent.EventKey(), newEvent.SloClassification()); err != nil {
 			return true, fmt.Errorf("failed to set the exact matcher: %w", err)
 		}
 		return true, nil
@@ -272,20 +272,20 @@ func (dc *DynamicClassifier) Classify(newEvent *event.Raw) (bool, error) {
 			dc.logger.Errorf("error while classifying event: %+v", err)
 			classificationErrors = multierror.Append(classificationErrors, err)
 		}
-		if classification != nil {
+		if classification.IsClassified() {
 			classifiedBy = classifier.getType()
 			break
 		}
 	}
 
-	if classification == nil {
-		dc.reportEvent(unclassifiedEventLabel, string(classifiedBy), newEvent.Metadata)
+	if !classification.IsClassified() {
+		dc.reportEvent(unclassifiedEventLabel, string(classifiedBy), newEvent.Metadata())
 		return false, classificationErrors
 	}
 
 	dc.logger.Debugf("event '%s' matched by %s matcher", newEvent.EventKey(), classifiedBy)
-	newEvent.UpdateSLOClassification(classification)
-	dc.reportEvent(classifiedEventLabel, string(classifiedBy), newEvent.Metadata)
+	newEvent.SetSLOClassification(classification)
+	dc.reportEvent(classifiedEventLabel, string(classifiedBy), newEvent.Metadata())
 
 	// Those matched by regex we want to write to the exact matcher so it is cached
 	if classifiedBy == regexpMatcherType {
@@ -311,7 +311,7 @@ func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
 	return matcher.dumpCSV(w)
 }
 
-func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *event.Raw) (*event.SloClassification, error) {
+func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event event.Raw) (event.SloClassification, error) {
 	return matcher.get(event.EventKey())
 }
 

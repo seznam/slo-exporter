@@ -28,6 +28,8 @@ retentionTime: <duration>
 # fallbackStartOffset determines from whence the consumer group should begin consuming when it finds a partition without a committed offset.
 # Default: FirstOffset
 fallbackStartOffset: <LastOffset|FirstOffset>
+# eventIdMetadataKey it's value will be used as a unique id for the generated event if present.
+eventIdMetadataKey: <string>
 ```
 
 

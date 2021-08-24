@@ -3,11 +3,11 @@ package prometheus_exporter
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -64,7 +64,7 @@ type PrometheusSloEventExporter struct {
 	eventKeyCache               map[string]int
 	observer                    pipeline.EventProcessingDurationObserver
 
-	inputChannel chan *event.Slo
+	inputChannel chan event.Slo
 	done         bool
 	logger       logrus.FieldLogger
 }
@@ -139,7 +139,7 @@ func (e *PrometheusSloEventExporter) Done() bool {
 	return e.done
 }
 
-func (e *PrometheusSloEventExporter) SetInputChannel(channel chan *event.Slo) {
+func (e *PrometheusSloEventExporter) SetInputChannel(channel chan event.Slo) {
 	e.inputChannel = channel
 }
 
@@ -208,32 +208,32 @@ func (e *PrometheusSloEventExporter) initializeMetricForGivenMetadata(metadata s
 	}
 }
 
-func (e *PrometheusSloEventExporter) labelsFromEvent(sloEvent *event.Slo) stringmap.StringMap {
+func (e *PrometheusSloEventExporter) labelsFromEvent(sloEvent event.Slo) stringmap.StringMap {
 	return stringmap.StringMap{
-		e.labelNames.Result:    string(sloEvent.Result),
-		e.labelNames.SloDomain: sloEvent.Domain,
-		e.labelNames.SloClass:  sloEvent.Class,
-		e.labelNames.SloApp:    sloEvent.App,
-		e.labelNames.EventKey:  sloEvent.Key,
-	}.Merge(sloEvent.Metadata)
+		e.labelNames.Result:    string(sloEvent.Result()),
+		e.labelNames.SloDomain: sloEvent.SloClassification().Domain,
+		e.labelNames.SloClass:  sloEvent.SloClassification().Class,
+		e.labelNames.SloApp:    sloEvent.SloClassification().App,
+		e.labelNames.EventKey:  sloEvent.EventKey(),
+	}.Merge(sloEvent.Metadata())
 }
 
-func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
-	if !e.isValidResult(newEvent.Result) {
-		return &InvalidSloEventResult{string(newEvent.Result), event.PossibleResults}
+func (e *PrometheusSloEventExporter) processEvent(newEvent event.Slo) error {
+	if !e.isValidResult(newEvent.Result()) {
+		return &InvalidSloEventResult{string(newEvent.Result()), event.PossibleResults}
 	}
 
 	labels := e.labelsFromEvent(newEvent)
 
-	if e.isCardinalityExceeded(newEvent.Key) {
-		e.logger.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.Key, e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
+	if e.isCardinalityExceeded(newEvent.EventKey()) {
+		e.logger.Warnf("event key '%s' exceeded limit '%d', masked as '%s'", newEvent.EventKey(), e.eventKeyLimit, e.exceededKeyLimitPlaceholder)
 		labels[e.labelNames.EventKey] = e.exceededKeyLimitPlaceholder
 	}
 
 	e.initializeMetricForGivenMetadata(labels)
 
 	// add result to metadata
-	labels[e.labelNames.Result] = string(newEvent.Result)
-	e.aggregatedMetricsSet.add(newEvent.Quantity, labels)
+	labels[e.labelNames.Result] = string(newEvent.Result())
+	e.aggregatedMetricsSet.add(newEvent.Quantity(), labels)
 	return nil
 }

@@ -5,10 +5,10 @@ package slo_event_producer
 
 import (
 	"github.com/go-test/deep"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -21,13 +21,13 @@ type sloEventTestCase struct {
 func TestSloEventProducer(t *testing.T) {
 	testCases := []sloEventTestCase{
 		{
-			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "502"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			inputEvent: event.NewRaw("", 1, stringmap.StringMap{"statusCode": "502"}, &event.SloClassification{Class: "class", App: "app", Domain: "domain"}),
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
 					SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
-						operatorOptions{
+						{
 							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
@@ -36,17 +36,17 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []event.Slo{
-				{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Fail},
+				event.NewSlo("", 1, event.Fail, event.SloClassification{Domain: "domain", App: "app", Class: "class"}, stringmap.StringMap{"slo_type": "availability"}),
 			},
 		},
 		{
-			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "200"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
+			inputEvent: event.NewRaw("", 1, stringmap.StringMap{"statusCode": "200"}, &event.SloClassification{Class: "class", App: "app", Domain: "domain"}),
 			rulesConfig: rulesConfig{Rules: []ruleOptions{
 				{
 					SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
 					MetadataMatcherConditionsOptions: []operatorOptions{},
 					FailureConditionsOptions: []operatorOptions{
-						operatorOptions{
+						{
 							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
@@ -55,25 +55,25 @@ func TestSloEventProducer(t *testing.T) {
 			},
 			},
 			expectedSloEvents: []event.Slo{
-				{Domain: "domain", Class: "class", App: "app", Key: "", Metadata: stringmap.StringMap{"slo_type": "availability"}, Result: event.Success},
+				event.NewSlo("", 1, event.Success, event.SloClassification{Domain: "domain", App: "app", Class: "class"}, stringmap.StringMap{"slo_type": "availability"}),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		out := make(chan *event.Slo, 100)
+		out := make(chan event.Slo, 100)
 		testedEvaluator, err := NewEventEvaluatorFromConfig(&tc.rulesConfig, logrus.New())
 		if err != nil {
 			t.Errorf("error when loading config: %v error: %v", tc.rulesConfig, err)
 		}
-		testedEvaluator.Evaluate(&tc.inputEvent, out)
+		testedEvaluator.Evaluate(tc.inputEvent, out)
 		close(out)
 		var results []event.Slo
 		for newEvent := range out {
-			results = append(results, *newEvent)
+			results = append(results, newEvent)
 		}
 		if diff := deep.Equal(tc.expectedSloEvents, results); diff != nil {
-			t.Errorf("events are different %+v, \nexpected: %+v\n result: %+v\n input event metadata: %+v", diff, tc.expectedSloEvents, results, tc.inputEvent.Metadata)
+			t.Errorf("events are different %+v, \nexpected: %+v\n result: %+v\n input event metadata: %+v", diff, tc.expectedSloEvents, results, tc.inputEvent.Metadata())
 		}
 	}
 }

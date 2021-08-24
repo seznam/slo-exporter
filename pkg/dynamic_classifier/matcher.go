@@ -12,7 +12,7 @@ type matcherType string
 
 type matcher interface {
 	getType() matcherType
-	set(key string, classification *event.SloClassification) error
-	get(key string) (*event.SloClassification, error)
+	set(key string, classification event.SloClassification) error
+	get(key string) (event.SloClassification, error)
 	dumpCSV(w io.Writer) error
 }

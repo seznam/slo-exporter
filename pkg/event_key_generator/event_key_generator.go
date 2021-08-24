@@ -3,11 +3,11 @@ package event_key_generator
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -30,8 +30,8 @@ type EventKeyGenerator struct {
 	metadataKeys        []string
 	observer            pipeline.EventProcessingDurationObserver
 	logger              logrus.FieldLogger
-	inputChannel        chan *event.Raw
-	outputChannel       chan *event.Raw
+	inputChannel        chan event.Raw
+	outputChannel       chan event.Raw
 	done                bool
 }
 
@@ -51,11 +51,11 @@ func (e *EventKeyGenerator) Stop() {
 	return
 }
 
-func (e *EventKeyGenerator) SetInputChannel(channel chan *event.Raw) {
+func (e *EventKeyGenerator) SetInputChannel(channel chan event.Raw) {
 	e.inputChannel = channel
 }
 
-func (e *EventKeyGenerator) OutputChannel() chan *event.Raw {
+func (e *EventKeyGenerator) OutputChannel() chan event.Raw {
 	return e.outputChannel
 }
 
@@ -74,8 +74,8 @@ func NewFromConfig(config eventKeyGeneratorConfig, logger logrus.FieldLogger) (*
 		separator:           config.FiledSeparator,
 		overrideExistingKey: config.OverrideExistingEventKey,
 		metadataKeys:        config.MetadataKeys,
-		outputChannel:       make(chan *event.Raw),
-		inputChannel:        make(chan *event.Raw),
+		outputChannel:       make(chan event.Raw),
+		inputChannel:        make(chan event.Raw),
 		done:                false,
 		logger:              logger,
 	}
@@ -119,7 +119,7 @@ func (e *EventKeyGenerator) Run() {
 		for newEvent := range e.inputChannel {
 			start := time.Now()
 			if newEvent.EventKey() == "" || e.overrideExistingKey {
-				newKey := e.generateEventKey(newEvent.Metadata)
+				newKey := e.generateEventKey(newEvent.Metadata())
 				newEvent.SetEventKey(newKey)
 				processedEventsTotal.WithLabelValues("generated-event-key").Inc()
 				e.logger.WithField("event", newEvent).WithField("event-key", newKey).Debug("generated new event key for event")
