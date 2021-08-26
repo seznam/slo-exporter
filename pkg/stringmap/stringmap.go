@@ -149,21 +149,16 @@ func (m StringMap) Select(keys []string) StringMap {
 	return selected
 }
 
-// Without returns new StringMap with without specified keys from the original StringMap.
+// Without returns a new non-nil StringMap with without specified keys from the original StringMap.
 func (m StringMap) Without(keys []string) StringMap {
-	if m == nil {
-		return nil
+	result := m.Copy()
+	if len(result) == 0 {
+		return result
 	}
-	if len(keys) == 0 {
-		return m
-	}
-	other := m.Copy()
 	for _, key := range keys {
-		if _, ok := other[key]; ok {
-			delete(other, key)
-		}
+		delete(result, key)
 	}
-	return other
+	return result
 }
 
 // AsPrometheusLabels converts the stringmap to prometheus labels as is.

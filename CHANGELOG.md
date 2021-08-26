@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 
-- [#71](https://github.com/seznam/slo-exporter/pull/71) Fix a corner case in StringMap.Merge()
+- [#71](https://github.com/seznam/slo-exporter/pull/71) Fix corner cases in StringMap.Merge(), StringMap.Without()
 
 ## [v6.9.0] 2021-07-14
 ### Added

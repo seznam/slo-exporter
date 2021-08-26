@@ -158,13 +158,22 @@ func TestStringMap_Without(t *testing.T) {
 		{a: StringMap{"a": "1", "b": "2"}, b: []string{"b"}, result: StringMap{"a": "1"}},
 		{a: StringMap{"a": "2"}, b: []string{"a"}, result: StringMap{}},
 		{a: StringMap{"a": "1"}, b: []string{}, result: StringMap{"a": "1"}},
+		{a: StringMap{"a": "1"}, b: []string{"b"}, result: StringMap{"a": "1"}},
 		{a: StringMap{}, b: []string{}, result: StringMap{}},
-		{a: nil, b: []string{"A"}, result: nil},
+		{a: nil, b: []string{"A"}, result: StringMap{}},
+		{a: nil, b: nil, result: StringMap{}},
 		{a: StringMap{"a": "1"}, b: nil, result: StringMap{"a": "1"}},
 	}
 
-	for _, tc := range testCases {
-		assert.Equal(t, tc.result, tc.a.Without(tc.b), tc)
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("testCases[%d]", i), func(t *testing.T) {
+			got := tc.a.Without(tc.b)
+			assert.Equal(t, tc.result, got)
+			assert.NotNil(t, got)
+			if tc.a != nil {
+				assert.NotEqual(t, reflect.ValueOf(got).Pointer(), reflect.ValueOf(tc.a).Pointer(), "got the same map")
+			}
+		})
 	}
 }
 
