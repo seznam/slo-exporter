@@ -26,7 +26,7 @@ func NewFromLabels(labels labels.Labels) StringMap {
 
 type StringMap map[string]string
 
-// Copy returns new StringMap as a copy of the original.
+// Copy returns a new non-nil StringMap with a copy of the original.
 func (m StringMap) Copy() StringMap {
 	copied := StringMap{}
 	for k, v := range m {
@@ -35,11 +35,8 @@ func (m StringMap) Copy() StringMap {
 	return copied
 }
 
-// Merge returns new StringMap from the original one with all values from the other merged in. The other StringMap overrides original StringMap keys.
+// Merge returns a new non-nil StringMap from the original one with all values from the other merged in. The other StringMap overrides original StringMap keys.
 func (m StringMap) Merge(other StringMap) StringMap {
-	if m == nil {
-		return other
-	}
 	merged := m.Copy()
 	for k, v := range other {
 		merged[k] = v
