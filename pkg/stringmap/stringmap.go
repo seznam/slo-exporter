@@ -26,7 +26,7 @@ func NewFromLabels(labels labels.Labels) StringMap {
 
 type StringMap map[string]string
 
-// Copy returns new StringMap as a copy of the original.
+// Copy returns a new non-nil StringMap with a copy of the original.
 func (m StringMap) Copy() StringMap {
 	copied := StringMap{}
 	for k, v := range m {
@@ -35,11 +35,8 @@ func (m StringMap) Copy() StringMap {
 	return copied
 }
 
-// Merge returns new StringMap from the original one with all values from the other merged in. The other StringMap overrides original StringMap keys.
+// Merge returns a new non-nil StringMap from the original one with all values from the other merged in. The other StringMap overrides original StringMap keys.
 func (m StringMap) Merge(other StringMap) StringMap {
-	if m == nil {
-		return other
-	}
 	merged := m.Copy()
 	for k, v := range other {
 		merged[k] = v
@@ -152,21 +149,16 @@ func (m StringMap) Select(keys []string) StringMap {
 	return selected
 }
 
-// Without returns new StringMap with without specified keys from the original StringMap.
+// Without returns a new non-nil StringMap with without specified keys from the original StringMap.
 func (m StringMap) Without(keys []string) StringMap {
-	if m == nil {
-		return nil
+	result := m.Copy()
+	if len(result) == 0 {
+		return result
 	}
-	if len(keys) == 0 {
-		return m
-	}
-	other := m.Copy()
 	for _, key := range keys {
-		if _, ok := other[key]; ok {
-			delete(other, key)
-		}
+		delete(result, key)
 	}
-	return other
+	return result
 }
 
 // AsPrometheusLabels converts the stringmap to prometheus labels as is.
