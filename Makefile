@@ -29,7 +29,12 @@ revive:
 	go install github.com/mgechev/revive@v1.0.7
 
 .PHONY: all
-all: lint test-and-coverage build
+all: format lint test-and-coverage build
+
+
+.PHONY: format
+format:
+	go mod tidy
 
 .PHONY: lint
 lint: revive
