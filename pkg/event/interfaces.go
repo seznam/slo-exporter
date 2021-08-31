@@ -7,7 +7,7 @@ import (
 
 type WithEventKey interface {
 	EventKey() string
-	SetEventKey(k string)
+	SetEventKey(string)
 }
 
 type Classifiable interface {
@@ -17,13 +17,13 @@ type Classifiable interface {
 }
 
 type WithMetadata interface {
-	SetMetadata(stringMap stringmap.StringMap)
+	SetMetadata(stringmap.StringMap)
 	Metadata() stringmap.StringMap
 }
 
 type WithQuantity interface {
 	Quantity() float64
-	SetQuantity(float642 float64)
+	SetQuantity(float64)
 }
 
 type WithId interface {
