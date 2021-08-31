@@ -11,11 +11,14 @@ import (
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
+const defaultEventId = "xxx"
+
 func Test_processMessage(t *testing.T) {
 	tests := []struct {
 		Name         string
 		KafkaMessage kafka.Message
-		OutputEvent  *event.Raw
+		CheckIds     bool
+		OutputEvent  event.Raw
 		ErrExpected  bool
 	}{
 		{
@@ -24,7 +27,19 @@ func Test_processMessage(t *testing.T) {
 				Topic: "topic",
 				Value: []byte(`{}`),
 			},
-			OutputEvent: &event.Raw{Quantity: 1},
+			CheckIds:    false,
+			OutputEvent: event.NewRaw(defaultEventId, 1, stringmap.StringMap{}, nil),
+		},
+		{
+			Name: "Id set",
+			KafkaMessage: kafka.Message{
+				Topic: "topic",
+				Value: []byte(`{
+					"id": "foo"
+				}`)},
+			CheckIds:    true,
+			OutputEvent: event.NewRaw("foo", 1, stringmap.StringMap{}, nil),
+			ErrExpected: false,
 		},
 		{
 			Name: "Event without classification",
@@ -35,7 +50,8 @@ func Test_processMessage(t *testing.T) {
 					"metadata": {"foo": "bar"}
 				}`),
 			},
-			OutputEvent: &event.Raw{Quantity: 1, Metadata: stringmap.StringMap{"foo": "bar"}},
+			CheckIds:    false,
+			OutputEvent: event.NewRaw(defaultEventId, 1, stringmap.StringMap{"foo": "bar"}, nil),
 		},
 		{
 			Name: "Event with classification",
@@ -47,11 +63,8 @@ func Test_processMessage(t *testing.T) {
 					"slo_classification": {"app": "fooApp", "class": "fooClass", "domain": "fooDomain"}
 				}`),
 			},
-			OutputEvent: &event.Raw{
-				Quantity:          1,
-				Metadata:          stringmap.StringMap{"foo": "bar"},
-				SloClassification: &event.SloClassification{App: "fooApp", Class: "fooClass", Domain: "fooDomain"},
-			},
+			CheckIds:    false,
+			OutputEvent: event.NewRaw(defaultEventId, 1, stringmap.StringMap{"foo": "bar"}, &event.SloClassification{App: "fooApp", Class: "fooClass", Domain: "fooDomain"}),
 		},
 		{
 			Name: "Kafka message containing only unknown fields",
@@ -59,7 +72,8 @@ func Test_processMessage(t *testing.T) {
 				Topic: "topic",
 				Value: []byte(`{"unknown_field": 1111}`),
 			},
-			OutputEvent: &event.Raw{Quantity: 1},
+			CheckIds:    false,
+			OutputEvent: event.NewRaw(defaultEventId, 1, stringmap.StringMap{}, nil),
 		},
 		{
 			Name: "Valid event data accompanied with unknown fields",
@@ -71,11 +85,8 @@ func Test_processMessage(t *testing.T) {
 					"slo_classification": {"app": "fooApp", "class": "fooClass", "domain": "fooDomain"},
 					"unknown_fields": "foo"
 				}`)},
-			OutputEvent: &event.Raw{
-				Quantity:          1,
-				Metadata:          stringmap.StringMap{"foo": "bar"},
-				SloClassification: &event.SloClassification{App: "fooApp", Class: "fooClass", Domain: "fooDomain"},
-			},
+			CheckIds:    false,
+			OutputEvent: event.NewRaw(defaultEventId, 1, stringmap.StringMap{"foo": "bar"}, &event.SloClassification{App: "fooApp", Class: "fooClass", Domain: "fooDomain"}),
 		},
 		{
 			Name: "Valid event data, explicit schema version",
@@ -87,11 +98,8 @@ func Test_processMessage(t *testing.T) {
 					"metadata": {"foo": "bar"},
 					"slo_classification": {"app": "fooApp", "class": "fooClass", "domain": "fooDomain"}
 				}`)},
-			OutputEvent: &event.Raw{
-				Quantity:          1,
-				Metadata:          stringmap.StringMap{"foo": "bar"},
-				SloClassification: &event.SloClassification{App: "fooApp", Class: "fooClass", Domain: "fooDomain"},
-			},
+			CheckIds:    false,
+			OutputEvent: event.NewRaw(defaultEventId, 1, stringmap.StringMap{"foo": "bar"}, &event.SloClassification{App: "fooApp", Class: "fooClass", Domain: "fooDomain"}),
 		},
 		{
 			Name: "Valid event data, unknown schema version",
@@ -103,6 +111,7 @@ func Test_processMessage(t *testing.T) {
 					"metadata": {"foo": "bar"},
 					"slo_classification": {"app": "fooApp", "class": "fooClass", "domain": "fooDomain"}
 				}`)},
+			CheckIds:    false,
 			OutputEvent: nil,
 			ErrExpected: true,
 		},
@@ -114,6 +123,7 @@ func Test_processMessage(t *testing.T) {
 				Value: []byte(`{
 					"quantity": "1",
 				}`)},
+			CheckIds:    false,
 			OutputEvent: nil,
 			ErrExpected: true,
 		},
@@ -123,13 +133,14 @@ func Test_processMessage(t *testing.T) {
 				Headers: []kafka.Header{{schemaVersionMessageHeader, []byte("unknown")}},
 				Topic:   "topic",
 				Value:   []byte(`[{}]`)},
+			CheckIds:    false,
 			OutputEvent: nil,
 			ErrExpected: true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			event, err := processMessage(test.KafkaMessage)
+			e, err := processMessage(test.KafkaMessage)
 			if err != nil {
 				if !test.ErrExpected {
 					t.Errorf("Unexpected error while processing kafka message: %w", err)
@@ -138,7 +149,7 @@ func Test_processMessage(t *testing.T) {
 			if test.ErrExpected && err == nil {
 				t.Errorf("Event processing was expected to result in error, but none occurred")
 			}
-			assert.Equal(t, test.OutputEvent, event)
+			event.AssertRawEventsEqual(t, test.OutputEvent, e, test.CheckIds)
 		})
 	}
 }

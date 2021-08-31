@@ -28,16 +28,18 @@ var (
 type accessLogServerConfig struct {
 	Address                 string
 	GracefulShutdownTimeout time.Duration
+	EventIdMetadataKey      string
 }
 
 type AccessLogServer struct {
-	outputChannel           chan *event.Raw
+	outputChannel           chan event.Raw
 	logger                  logrus.FieldLogger
 	done                    bool
 	server                  *grpc.Server
 	service_v3              *AccessLogServiceV3
 	address                 string
 	gracefulShutdownTimeout time.Duration
+	eventIdMetadataKey      string
 }
 
 func init() {
@@ -61,10 +63,11 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*AccessL
 // New returns an instance of AccessLogServer
 func New(config accessLogServerConfig, logger logrus.FieldLogger) (*AccessLogServer, error) {
 	als := AccessLogServer{
-		outputChannel:           make(chan *event.Raw),
+		outputChannel:           make(chan event.Raw),
 		logger:                  logger,
 		address:                 config.Address,
 		gracefulShutdownTimeout: config.GracefulShutdownTimeout,
+		eventIdMetadataKey:      config.EventIdMetadataKey,
 	}
 	return &als, nil
 }
@@ -79,8 +82,9 @@ func (als *AccessLogServer) Run() {
 	)
 
 	als.service_v3 = &AccessLogServiceV3{
-		outChan: als.outputChannel,
-		logger:  als.logger.WithField("EnvoyApiVersion", "3"),
+		outChan:            als.outputChannel,
+		logger:             als.logger.WithField("EnvoyApiVersion", "3"),
+		eventIdMetadataKey: als.eventIdMetadataKey,
 	}
 	als.service_v3.Register(als.server)
 
@@ -130,6 +134,6 @@ func (als *AccessLogServer) RegisterMetrics(_ prometheus.Registerer, wrappedRegi
 	return nil
 }
 
-func (als *AccessLogServer) OutputChannel() chan *event.Raw {
+func (als *AccessLogServer) OutputChannel() chan event.Raw {
 	return als.outputChannel
 }

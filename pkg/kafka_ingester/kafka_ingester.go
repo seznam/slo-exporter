@@ -55,9 +55,10 @@ var (
 )
 
 type IngestedEventV1 struct {
+	Id                string                         `json:"id"`
 	Metadata          stringmap.StringMap            `json:"metadata"`
 	SloClassification *IngestedEventV1Classification `json:"slo_classification"`
-	Quantity          *float64                       `json:"quantity"`
+	Quantity          float64                        `json:"quantity"`
 }
 
 type IngestedEventV1Classification struct {
@@ -81,7 +82,7 @@ type kafkaIngesterConfig struct {
 type KafkaIngester struct {
 	kafkaReader     *kafka.Reader
 	observer        pipeline.EventProcessingDurationObserver
-	outputChannel   chan *event.Raw
+	outputChannel   chan event.Raw
 	shutdownChannel chan struct{}
 	logger          logrus.FieldLogger
 	done            bool
@@ -135,7 +136,7 @@ func New(config kafkaIngesterConfig, logger logrus.FieldLogger) (*KafkaIngester,
 	}).Set(1)
 
 	return &KafkaIngester{
-		outputChannel:   make(chan *event.Raw),
+		outputChannel:   make(chan event.Raw),
 		shutdownChannel: make(chan struct{}),
 		done:            false,
 		logger:          logger,
@@ -167,7 +168,7 @@ func (k *KafkaIngester) Done() bool {
 	return k.done
 }
 
-func (k *KafkaIngester) OutputChannel() chan *event.Raw {
+func (k *KafkaIngester) OutputChannel() chan event.Raw {
 	return k.outputChannel
 }
 
@@ -229,7 +230,7 @@ func getSchemaVersionFromHeaders(headers []kafka.Header) (schemaVer string, foun
 	return
 }
 
-func processMessage(m kafka.Message) (*event.Raw, error) {
+func processMessage(m kafka.Message) (event.Raw, error) {
 	schemaVer, ok := getSchemaVersionFromHeaders(m.Headers)
 	if !ok {
 		schemaVer = defaultSchemaVer
@@ -242,18 +243,11 @@ func processMessage(m kafka.Message) (*event.Raw, error) {
 	}
 }
 
-func processEventV1(m kafka.Message) (*event.Raw, error) {
-	ingestedEvent := IngestedEventV1{}
+func processEventV1(m kafka.Message) (event.Raw, error) {
+	ingestedEvent := IngestedEventV1{Quantity: 1}
 	err := json.Unmarshal(m.Value, &ingestedEvent)
 	if err != nil {
 		return nil, err
-	}
-	var quantity float64
-	if ingestedEvent.Quantity == nil {
-		// Quantity not specified in the ingested data, default to 1
-		quantity = 1
-	} else {
-		quantity = *ingestedEvent.Quantity
 	}
 	var classification *event.SloClassification
 	if ingestedEvent.SloClassification != nil {
@@ -263,12 +257,7 @@ func processEventV1(m kafka.Message) (*event.Raw, error) {
 			Class:  ingestedEvent.SloClassification.Class,
 		}
 	}
-	outputEvent := event.Raw{
-		Metadata:          ingestedEvent.Metadata,
-		Quantity:          quantity,
-		SloClassification: classification,
-	}
-	return &outputEvent, nil
+	return event.NewRaw(ingestedEvent.Id, ingestedEvent.Quantity, ingestedEvent.Metadata, classification), nil
 }
 
 func (k *KafkaIngester) Stop() {

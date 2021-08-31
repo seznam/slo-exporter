@@ -3,6 +3,7 @@ package tailer
 import (
 	"errors"
 	"fmt"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"io"
 	"os"
 	"regexp"
@@ -49,6 +50,7 @@ type tailerConfig struct {
 	PositionPersistenceInterval time.Duration
 	LoglineParseRegexp          string
 	EmptyGroupRE                string
+	EventIdMetadataKey          string
 }
 
 // getDefaultPositionsFilePath derives positions file path for given tailed filename
@@ -65,10 +67,11 @@ type Tailer struct {
 	observer                pipeline.EventProcessingDurationObserver
 	lineParseRegexp         *regexp.Regexp
 	emptyGroupRegexp        *regexp.Regexp
-	outputChannel           chan *event.Raw
+	outputChannel           chan event.Raw
 	shutdownChannel         chan struct{}
 	logger                  logrus.FieldLogger
 	done                    bool
+	eventIdMetadataKey      string
 }
 
 func (t *Tailer) String() string {
@@ -150,8 +153,9 @@ func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 		persistPositionInterval: config.PositionPersistenceInterval,
 		lineParseRegexp:         lineParseRegexp,
 		emptyGroupRegexp:        emptyGroupRegexp,
-		outputChannel:           make(chan *event.Raw),
+		outputChannel:           make(chan event.Raw),
 		shutdownChannel:         make(chan struct{}),
+		eventIdMetadataKey:      config.EventIdMetadataKey,
 		done:                    false,
 		logger:                  logger,
 	}, nil
@@ -181,7 +185,7 @@ func (t *Tailer) Done() bool {
 	return t.done
 }
 
-func (t *Tailer) OutputChannel() chan *event.Raw {
+func (t *Tailer) OutputChannel() chan event.Raw {
 	return t.outputChannel
 }
 
@@ -278,8 +282,8 @@ func (t *Tailer) markOffsetPosition() error {
 // parseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
 // - if content of any of the matched named groups matches emptyGroupRegexp, it is replaced by an empty string ""
-func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, line string) (map[string]string, error) {
-	lineData := make(map[string]string)
+func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, line string) (stringmap.StringMap, error) {
+	lineData := make(stringmap.StringMap)
 
 	match := lineParseRegexp.FindStringSubmatch(line)
 	if len(match) != len(lineParseRegexp.SubexpNames()) {
@@ -295,10 +299,10 @@ func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, 
 	return lineData, nil
 }
 
-func (t *Tailer) processLine(line string) (*event.Raw, error) {
+func (t *Tailer) processLine(line string) (event.Raw, error) {
 	lineData, err := parseLine(t.lineParseRegexp, t.emptyGroupRegexp, line)
 	if err != nil {
 		return nil, err
 	}
-	return &event.Raw{Quantity: 1, Metadata: lineData}, nil
+	return event.NewRaw(lineData.Get(t.eventIdMetadataKey, ""), 1, lineData, nil), nil
 }

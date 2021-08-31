@@ -2,9 +2,9 @@ package pipeline
 
 import (
 	"fmt"
+	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/seznam/slo-exporter/pkg/event"
 )
 
 func testModuleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (Module, error) {
@@ -36,7 +36,7 @@ func (t testRawIngester) Done() bool {
 	return false
 }
 
-func (t testRawIngester) SetInputChannel(chan *event.Raw) {
+func (t testRawIngester) SetInputChannel(chan event.Raw) {
 	return
 }
 
@@ -54,8 +54,8 @@ func (t testRawProducer) Done() bool {
 	return false
 }
 
-func (t testRawProducer) OutputChannel() chan *event.Raw {
-	return make(chan *event.Raw)
+func (t testRawProducer) OutputChannel() chan event.Raw {
+	return make(chan event.Raw)
 }
 
 type testSloIngester struct{}
@@ -72,7 +72,7 @@ func (t testSloIngester) Done() bool {
 	return false
 }
 
-func (t testSloIngester) SetInputChannel(chan *event.Slo) {
+func (t testSloIngester) SetInputChannel(chan event.Slo) {
 	return
 }
 
@@ -90,6 +90,6 @@ func (t testSloProducer) Done() bool {
 	return false
 }
 
-func (t testSloProducer) OutputChannel() chan *event.Slo {
-	return make(chan *event.Slo)
+func (t testSloProducer) OutputChannel() chan event.Slo {
+	return make(chan event.Slo)
 }

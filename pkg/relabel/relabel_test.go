@@ -15,40 +15,40 @@ import (
 
 type testCase struct {
 	name        string
-	inputEvent  *event.Raw
-	outputEvent *event.Raw
+	inputEvent  event.Raw
+	outputEvent event.Raw
 }
 
 var testCases = []testCase{
 	{
 		name:        "relabel event with empty metadata",
-		inputEvent:  &event.Raw{Metadata: map[string]string{}},
-		outputEvent: &event.Raw{Metadata: map[string]string{}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{}, nil),
 	},
 	{
 		name:        "relabel event with simple metadata that will not be modified",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"foo": "bar"}},
-		outputEvent: &event.Raw{Metadata: map[string]string{"foo": "bar"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"foo": "bar"}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{"foo": "bar"}, nil),
 	},
 	{
 		name:        "relabel event which should be dropped",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"to_be_dropped": "true"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"to_be_dropped": "true"}, nil),
 		outputEvent: nil,
 	},
 	{
 		name:        "relabel event where label should be dropped",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"foo": "bar", "label_to_be_dropped": "xxx"}},
-		outputEvent: &event.Raw{Metadata: map[string]string{"foo": "bar"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"foo": "bar", "label_to_be_dropped": "xxx"}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{"foo": "bar"}, nil),
 	},
 	{
 		name:        "relabel event where get parameter of url is parsed out to new label",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"url": "http://foo.bar:8080?operationName=test-operation"}},
-		outputEvent: &event.Raw{Metadata: map[string]string{"url": "http://foo.bar:8080?operationName=test-operation", "operation_name": "test-operation"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"url": "http://foo.bar:8080?operationName=test-operation"}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{"url": "http://foo.bar:8080?operationName=test-operation", "operation_name": "test-operation"}, nil),
 	},
 	{
 		name:        "relabel event to add all labels with prefix http_ as new labels without the prefix",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"http_status": "200", "http_method": "POST"}},
-		outputEvent: &event.Raw{Metadata: map[string]string{"http_status": "200", "http_method": "POST", "status": "200", "method": "POST"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"http_status": "200", "http_method": "POST"}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{"http_status": "200", "http_method": "POST", "status": "200", "method": "POST"}, nil),
 	},
 }
 

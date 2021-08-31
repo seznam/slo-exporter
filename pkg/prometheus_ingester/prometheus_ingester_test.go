@@ -12,11 +12,13 @@ import (
 	"time"
 
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
+
+const defaultEventId = "xxx"
 
 type MockedRoundTripper struct {
 	t      *testing.T
@@ -71,10 +73,10 @@ func newMetric(name model.LabelValue, labels map[string]string) model.Metric {
 	return m
 }
 
-func HttpRequestsToString(rawResults []*event.Raw) []string {
+func HttpRequestsToString(rawResults []event.Raw) []string {
 	stringResults := make([]string, len(rawResults))
 	for i, rawResult := range rawResults {
-		marshalledBytes, err := json.Marshal(*rawResult)
+		marshalledBytes, err := json.Marshal(rawResult)
 		if err != nil {
 			marshalledBytes = []byte{}
 		}
@@ -86,7 +88,7 @@ func HttpRequestsToString(rawResults []*event.Raw) []string {
 type modelTypeIngestTestCase struct {
 	prometheusResult model.Value
 	query            queryOptions
-	eventsProduced   []*event.Raw
+	eventsProduced   []event.Raw
 }
 
 func Test_Ingests_Various_ModelTypes(t *testing.T) {
@@ -126,23 +128,11 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 				Type:             simpleQueryType,
 				ResultAsQuantity: newFalse(),
 			},
-			eventsProduced: []*event.Raw{
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "3", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "4", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
+				event.NewRaw(defaultEventId, 1, metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}), nil),
+				event.NewRaw(defaultEventId, 1, metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "3", metadataTimestampKey: "0"}), nil),
+				event.NewRaw(defaultEventId, 1, metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "4", metadataTimestampKey: "0"}), nil),
 			},
 		},
 		{
@@ -162,15 +152,9 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 			query: queryOptions{
 				Type:             simpleQueryType,
 				ResultAsQuantity: newFalse(),
-			}, eventsProduced: []*event.Raw{
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
-				{
-					Metadata: metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			}, eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
+				event.NewRaw(defaultEventId, 1, metricStringMap.Merge(stringmap.StringMap{metadataValueKey: "2", metadataTimestampKey: "0"}), nil),
 			},
 		},
 		{
@@ -182,11 +166,8 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 			query: queryOptions{
 				Type:             simpleQueryType,
 				ResultAsQuantity: newFalse(),
-			}, eventsProduced: []*event.Raw{
-				{
-					Metadata: stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			}, eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, stringmap.NewFromMetric(make(model.Metric)).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
 			},
 		},
 	}
@@ -194,15 +175,16 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 	for _, tc := range testCases {
 		q := queryExecutor{
 			Query:      tc.query,
-			eventsChan: make(chan *event.Raw),
+			eventsChan: make(chan event.Raw),
 		}
 		go func() {
 			err := q.ProcessResult(tc.prometheusResult, time.Now())
 			assert.NoError(t, err)
 			close(q.eventsChan)
 		}()
-		var actualEventResult []*event.Raw
+		var actualEventResult []event.Raw
 		for newEvent := range q.eventsChan {
+			newEvent.SetId(defaultEventId)
 			actualEventResult = append(actualEventResult, newEvent)
 		}
 
@@ -214,7 +196,7 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 type labelAddOrDropTestCase struct {
 	prometheusResult model.Value
 	query            queryOptions
-	eventsProduced   []*event.Raw
+	eventsProduced   []event.Raw
 }
 
 func Test_Add_Or_Drop_Labels(t *testing.T) {
@@ -234,11 +216,8 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.Raw{
-				{
-					Metadata: m.Merge(stringmap.StringMap{"a": "1", "job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, m.Merge(stringmap.StringMap{"a": "1", "job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
 			},
 		},
 		{
@@ -255,11 +234,8 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.Raw{
-				{
-					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "osaka", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "osaka", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
 			},
 		},
 		{
@@ -276,11 +252,8 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.Raw{
-				{
-					Metadata: m.Merge(stringmap.StringMap{"locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, m.Merge(stringmap.StringMap{"locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
 			},
 		},
 		{
@@ -297,11 +270,8 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.Raw{
-				{
-					Metadata: m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, m.Merge(stringmap.StringMap{"job": "kubernetes", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
 			},
 		},
 		{
@@ -321,11 +291,8 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 					Value:     model.SampleValue(1),
 				},
 			},
-			eventsProduced: []*event.Raw{
-				{
-					Metadata: m.Merge(stringmap.StringMap{"job": "openshift", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}),
-					Quantity: 1,
-				},
+			eventsProduced: []event.Raw{
+				event.NewRaw(defaultEventId, 1, m.Merge(stringmap.StringMap{"job": "openshift", "locality": "nagano", "__name__": "test_metric", metadataValueKey: "1", metadataTimestampKey: "0"}), nil),
 			},
 		},
 	}
@@ -333,7 +300,7 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 	for _, tc := range testCases {
 		q := queryExecutor{
 			Query:      tc.query,
-			eventsChan: make(chan *event.Raw),
+			eventsChan: make(chan event.Raw),
 		}
 		go func() {
 			err := q.ProcessResult(tc.prometheusResult, time.Now())
@@ -341,8 +308,9 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			close(q.eventsChan)
 		}()
 
-		var actualEventResult []*event.Raw
+		var actualEventResult []event.Raw
 		for newEvent := range q.eventsChan {
+			newEvent.SetId(defaultEventId)
 			actualEventResult = append(actualEventResult, newEvent)
 		}
 		// Prepare the string interpretation of the actual results
@@ -382,7 +350,7 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 		return
 	}
 
-	var genEvents []*event.Raw
+	var genEvents []event.Raw
 	done := make(chan struct{})
 	go func() {
 		for e := range ingester.outputChannel {
@@ -482,7 +450,7 @@ func Test_processMetricsIncrease(t *testing.T) {
 		q              *queryExecutor
 		ts             time.Time
 		result         []*model.SampleStream // == type Matrix
-		expectedEvents []*event.Raw
+		expectedEvents []event.Raw
 	}
 
 	x := newMetric("x", nil)
@@ -524,11 +492,8 @@ func Test_processMetricsIncrease(t *testing.T) {
 					},
 				},
 			},
-			expectedEvents: []*event.Raw{
-				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 10,
-				},
+			expectedEvents: []event.Raw{
+				event.NewRaw(defaultEventId, 10, stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}), nil),
 			},
 		},
 		// value with reset on x, monotonic value for y
@@ -567,26 +532,21 @@ func Test_processMetricsIncrease(t *testing.T) {
 					},
 				},
 			},
-			expectedEvents: []*event.Raw{
-				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 10,
-				},
-				{
-					Metadata: stringmap.NewFromMetric(y).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 1,
-				},
+			expectedEvents: []event.Raw{
+				event.NewRaw(defaultEventId, 10, stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}), nil),
+				event.NewRaw(defaultEventId, 1, stringmap.NewFromMetric(y).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}), nil),
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
-		testCase.q.eventsChan = make(chan *event.Raw)
+		testCase.q.eventsChan = make(chan event.Raw)
 
-		var generatedEvents []*event.Raw
+		var generatedEvents []event.Raw
 		done := make(chan struct{})
 		go func() {
 			for e := range testCase.q.eventsChan {
+				e.SetId(defaultEventId)
 				generatedEvents = append(generatedEvents, e)
 			}
 			done <- struct{}{}
@@ -614,7 +574,7 @@ func Test_processHistogramIncrease(t *testing.T) {
 	type testCase struct {
 		ts             time.Time
 		data           []*model.SampleStream // == type Matrix
-		expectedEvents []*event.Raw
+		expectedEvents []event.Raw
 	}
 	ts := time.Now()
 	tsStr := strconv.Itoa(int(ts.Unix()))
@@ -649,19 +609,19 @@ func Test_processHistogramIncrease(t *testing.T) {
 					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
 				},
 			},
-			expectedEvents: []*event.Raw{
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "0.5", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "0.5", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "0.5", metadataHistogramMaxValue: "+Inf", metadataValueKey: "8"}, Quantity: 8},
+			expectedEvents: []event.Raw{
+				event.NewRaw(defaultEventId, 2, stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, nil),
+				event.NewRaw(defaultEventId, 6, stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, nil),
+				event.NewRaw(defaultEventId, 2, stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, nil),
+				event.NewRaw(defaultEventId, 2, stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "0.5", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "0.5", metadataValueKey: "2"}, nil),
+				event.NewRaw(defaultEventId, 8, stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "0.5", metadataHistogramMaxValue: "+Inf", metadataValueKey: "8"}, nil),
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
 		q := &queryExecutor{
-			eventsChan: make(chan *event.Raw),
+			eventsChan: make(chan event.Raw),
 			Query: queryOptions{
 				Type:             histogramQueryType,
 				ResultAsQuantity: newTrue(),
@@ -669,10 +629,11 @@ func Test_processHistogramIncrease(t *testing.T) {
 			previousResult: resultFromSampleStreams(testCase.ts, testCase.data, 0),
 		}
 
-		var generatedEvents []*event.Raw
+		var generatedEvents []event.Raw
 		done := make(chan struct{})
 		go func() {
 			for e := range q.eventsChan {
+				e.SetId(defaultEventId)
 				generatedEvents = append(generatedEvents, e)
 			}
 			done <- struct{}{}

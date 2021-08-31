@@ -35,5 +35,7 @@ positionPersistenceInterval: "2s"
 loglineParseRegexp: '^(?P<ip>[A-Fa-f0-9.:]{4,50}) \S+ \S+ \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<statusCode>\d+) \d+ "(?P<referer>.*?)" uag="(?P<userAgent>[^"]+)" "[^"]+" ua="[^"]+" rt="(?P<requestDuration>\d+(\.\d+)??)".+ignore-slo="(?P<ignoreSloHeader>[^"]*)" slo-domain="(?P<sloDomain>[^"]*)" slo-app="(?P<sloApp>[^"]*)" slo-class="(?P<sloClass>[^"]*)" slo-endpoint="(?P<sloEndpoint>[^"]*)" slo-result="(?P<sloResult>[^"]*)"'    # emptyGroupRE defines RE used to decide whether some of the RE match groups specified in loglineParseRegexp is empty and this its assigned variable should be kept unitialized
 # Value, that will be treated as empty value.
 emptyGroupRE: '^-$'
+# eventIdMetadataKey its value will be used as a unique id for the generated event if present (hint: use a trace ID if possible).
+eventIdMetadataKey: <string>
 ```
 

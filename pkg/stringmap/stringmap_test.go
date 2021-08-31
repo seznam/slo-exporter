@@ -131,6 +131,44 @@ func TestStringMap_Select(t *testing.T) {
 	}
 }
 
+type stringMapGetTestCase struct {
+	meta         StringMap
+	key          string
+	defaultValue string
+	res          string
+}
+
+func TestStringMap_Get(t *testing.T) {
+	testCases := []stringMapGetTestCase{
+		{meta: StringMap{"a": "1"}, key: "a", defaultValue: "bar", res: "1"},
+		{meta: StringMap{"a": "1"}, key: "foo", defaultValue: "bar", res: "bar"},
+	}
+
+	for _, tc := range testCases {
+		assert.Equal(t, tc.res, tc.meta.Get(tc.key, tc.defaultValue))
+	}
+}
+
+type stringMapSetTestCase struct {
+	meta  StringMap
+	key   string
+	value string
+	res   StringMap
+}
+
+func TestStringMap_Set(t *testing.T) {
+	testCases := []stringMapSetTestCase{
+		{meta: StringMap{}, key: "foo", value: "bar", res: StringMap{"foo": "bar"}},
+		{meta: StringMap{"foo": ""}, key: "foo", value: "bar", res: StringMap{"foo": "bar"}},
+		{meta: StringMap{"xxx": "yyy"}, key: "foo", value: "bar", res: StringMap{"xxx": "yyy", "foo": "bar"}},
+	}
+
+	for _, tc := range testCases {
+		tc.meta.Set(tc.key, tc.value)
+		assert.Equal(t, tc.res, tc.meta)
+	}
+}
+
 type stringMapLowercaseTestCase struct {
 	meta StringMap
 	res  StringMap

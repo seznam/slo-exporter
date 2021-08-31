@@ -20,34 +20,79 @@ var (
 	PossibleResults = []Result{Success, Fail}
 )
 
-type Slo struct {
+func NewSlo(eventKey string, quantity float64, result Result, classification SloClassification, metadata stringmap.StringMap) Slo {
+	if metadata == nil {
+		metadata = stringmap.StringMap{}
+	}
+	return &slo{
+		key:            eventKey,
+		result:         result,
+		classification: classification,
+		metadata:       metadata,
+		quantity:       quantity,
+	}
+}
+
+type slo struct {
 	// same value as in source event Raw.EventKey()
-	Key    string
-	Result Result
+	key    string
+	result Result
 
-	Domain string
-	Class  string
-	App    string
+	classification SloClassification
 
-	Metadata stringmap.StringMap
-	Quantity float64
+	metadata stringmap.StringMap
+	quantity float64
 }
 
-func (s *Slo) IsClassified() bool {
-	return s.Domain != "" && s.Class != "" && s.App != ""
+func (s slo) Quantity() float64 {
+	return s.quantity
 }
 
-func (s *Slo) String() string {
-	return fmt.Sprintf("SLO event %q of domain: %q, class: %q, app: %q with metadata: %+v", s.Key, s.Domain, s.Class, s.App, s.Metadata)
+func (s *slo) SetQuantity(newQuantity float64) {
+	s.quantity = newQuantity
 }
 
-func (s Slo) Copy() Slo {
-	return Slo{
-		Key:      s.Key,
-		Result:   s.Result,
-		Domain:   s.Domain,
-		Class:    s.Class,
-		App:      s.App,
-		Metadata: s.Metadata.Copy(),
+func (s *slo) SetMetadata(newMetadata stringmap.StringMap) {
+	s.metadata = newMetadata
+}
+
+func (s slo) Metadata() stringmap.StringMap {
+	return s.metadata
+}
+
+func (s slo) SloClassification() SloClassification {
+	return s.classification
+}
+
+func (s *slo) SetSLOClassification(classification SloClassification) {
+	s.classification = classification
+}
+
+func (s slo) EventKey() string {
+	return s.key
+}
+
+func (s *slo) SetEventKey(newKey string) {
+	s.key = newKey
+}
+
+func (s slo) Result() Result {
+	return s.result
+}
+
+func (s slo) IsClassified() bool {
+	return s.classification.IsClassified()
+}
+
+func (s slo) String() string {
+	return fmt.Sprintf("Slo event %s of %s with metadata: %s", s.EventKey(), s.SloClassification(), s.Metadata())
+}
+
+func (s slo) Copy() Slo {
+	return &slo{
+		key:            s.EventKey(),
+		result:         s.Result(),
+		classification: s.SloClassification(),
+		metadata:       s.Metadata().Copy(),
 	}
 }

@@ -37,11 +37,11 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventRe
 	return NewFromConfig(relabelConf, logger)
 }
 
-// New returns requestNormalizer which allows to add Key to RequestEvent
+// NewFromConfig returns requestNormalizer which allows to add Key to RequestEvent
 func NewFromConfig(relabelConfig []relabel.Config, logger logrus.FieldLogger) (*eventRelabelManager, error) {
 	relabelManager := eventRelabelManager{
 		relabelConfig: relabelConfig,
-		outputChannel: make(chan *event.Raw),
+		outputChannel: make(chan event.Raw),
 		logger:        logger,
 	}
 	return &relabelManager, nil
@@ -50,8 +50,8 @@ func NewFromConfig(relabelConfig []relabel.Config, logger logrus.FieldLogger) (*
 type eventRelabelManager struct {
 	relabelConfig []relabel.Config
 	observer      pipeline.EventProcessingDurationObserver
-	inputChannel  chan *event.Raw
-	outputChannel chan *event.Raw
+	inputChannel  chan event.Raw
+	outputChannel chan event.Raw
 	done          bool
 	logger        logrus.FieldLogger
 }
@@ -68,11 +68,11 @@ func (r *eventRelabelManager) RegisterMetrics(_ prometheus.Registerer, wrappedRe
 	return wrappedRegistry.Register(droppedEventsTotal)
 }
 
-func (r *eventRelabelManager) SetInputChannel(channel chan *event.Raw) {
+func (r *eventRelabelManager) SetInputChannel(channel chan event.Raw) {
 	r.inputChannel = channel
 }
 
-func (r *eventRelabelManager) OutputChannel() chan *event.Raw {
+func (r *eventRelabelManager) OutputChannel() chan event.Raw {
 	return r.outputChannel
 }
 
@@ -92,15 +92,15 @@ func (r *eventRelabelManager) observeDuration(start time.Time) {
 
 // relabelEvent applies the relabel configs on the event metadata.
 // If event is about to be dropped, nil is returned.
-func (r *eventRelabelManager) relabelEvent(event *event.Raw) *event.Raw {
-	newLabels := event.Metadata.AsPrometheusLabels()
+func (r *eventRelabelManager) relabelEvent(event event.Raw) event.Raw {
+	newLabels := event.Metadata().AsPrometheusLabels()
 	for _, relabelConfigRule := range r.relabelConfig {
 		newLabels = relabel.Process(newLabels, &relabelConfigRule)
 		if newLabels == nil {
 			return nil
 		}
 	}
-	event.Metadata = stringmap.NewFromLabels(newLabels)
+	event.SetMetadata(stringmap.NewFromLabels(newLabels))
 	return event
 }
 

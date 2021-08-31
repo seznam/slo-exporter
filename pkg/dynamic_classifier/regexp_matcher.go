@@ -6,8 +6,8 @@ package dynamic_classifier
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 	"io"
 	"regexp"
 	"sync"
@@ -20,7 +20,7 @@ const regexpMatcherType = "regexp"
 // regexpSloClassification encapsulates combination of regexp and endpoint classification
 type regexpSloClassification struct {
 	regexpCompiled *regexp.Regexp
-	classification *event.SloClassification
+	classification event.SloClassification
 }
 
 // regexpMatcher is list of endpoint classifications
@@ -39,7 +39,7 @@ func newRegexpMatcher(logger logrus.FieldLogger) *regexpMatcher {
 }
 
 // newRegexSloClassification returns new instance of regexpSloClassification
-func newRegexSloClassification(regexpString string, classification *event.SloClassification) (*regexpSloClassification, error) {
+func newRegexSloClassification(regexpString string, classification event.SloClassification) (*regexpSloClassification, error) {
 	compiledMatcher, err := regexp.Compile(regexpString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new regexp endpoint classification: %w", err)
@@ -52,7 +52,7 @@ func newRegexSloClassification(regexpString string, classification *event.SloCla
 }
 
 // set adds new endpoint classification regexp to list
-func (rm *regexpMatcher) set(regexpString string, classification *event.SloClassification) error {
+func (rm *regexpMatcher) set(regexpString string, classification event.SloClassification) error {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("set", regexpMatcherType))
 	defer timer.ObserveDuration()
 	rm.mtx.Lock()
@@ -67,13 +67,13 @@ func (rm *regexpMatcher) set(regexpString string, classification *event.SloClass
 }
 
 // get gets through all regexes and returns first endpoint classification which matches it
-func (rm *regexpMatcher) get(key string) (*event.SloClassification, error) {
+func (rm *regexpMatcher) get(key string) (event.SloClassification, error) {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("get", regexpMatcherType))
 	defer timer.ObserveDuration()
 	rm.mtx.RLock()
 	defer rm.mtx.RUnlock()
 
-	var classification *event.SloClassification = nil
+	var classification event.SloClassification
 	for _, r := range rm.matchers {
 		// go next if no match
 		if !r.regexpCompiled.MatchString(key) {
@@ -81,7 +81,7 @@ func (rm *regexpMatcher) get(key string) (*event.SloClassification, error) {
 		}
 
 		// if already classified, but matches next regex
-		if classification != nil {
+		if classification.IsClassified() {
 			rm.logger.Warnf("key '%s' is matched by another regexp: '%s'\n", key, r.regexpCompiled.String())
 			continue
 		}

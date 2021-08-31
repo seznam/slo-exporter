@@ -12,30 +12,30 @@ import (
 
 type testCase struct {
 	name        string
-	inputEvent  *event.Raw
-	outputEvent *event.Raw
+	inputEvent  event.Raw
+	outputEvent event.Raw
 }
 
 var testCases = []testCase{
 	{
 		name:        "event with empty metadata",
-		inputEvent:  &event.Raw{Metadata: map[string]string{}},
-		outputEvent: &event.Raw{Metadata: map[string]string{}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{}, nil),
 	},
 	{
 		name:        "attempt to rename key which is not present in the event's metadata",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"sourceX": "bar"}},
-		outputEvent: &event.Raw{Metadata: map[string]string{"sourceX": "bar"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"sourceX": "bar"}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{"sourceX": "bar"}, nil),
 	},
 	{
 		name:        "Destination metadata key already exist (collision)",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"destination": "destinationCollisionNotOverriden"}},
-		outputEvent:  &event.Raw{Metadata: map[string]string{"destination": "destinationCollisionNotOverriden"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"destination": "destinationCollisionNotOverriden"}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{"destination": "destinationCollisionNotOverriden"}, nil),
 	},
 	{
 		name:        "valid rename of metadata key",
-		inputEvent:  &event.Raw{Metadata: map[string]string{"source": "bar", "other": "xxx"}},
-		outputEvent: &event.Raw{Metadata: map[string]string{"destination": "bar", "other": "xxx"}},
+		inputEvent:  event.NewRaw("xxx", 1, map[string]string{"source": "bar", "other": "xxx"}, nil),
+		outputEvent: event.NewRaw("xxx", 1, map[string]string{"destination": "bar", "other": "xxx"}, nil),
 	},
 }
 

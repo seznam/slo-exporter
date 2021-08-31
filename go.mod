@@ -7,6 +7,7 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-test/deep v1.0.6
 	github.com/golang/protobuf v1.4.2
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.7.4
 	github.com/grafana/loki v1.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20191002090509-6af20e3a5340

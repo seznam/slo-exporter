@@ -6,13 +6,13 @@ package statistical_classifier
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -58,8 +58,8 @@ type StatisticalClassifier struct {
 	classifier    *weightedClassifier
 	observer      pipeline.EventProcessingDurationObserver
 	logger        logrus.FieldLogger
-	inputChannel  chan *event.Raw
-	outputChannel chan *event.Raw
+	inputChannel  chan event.Raw
+	outputChannel chan event.Raw
 	done          bool
 }
 
@@ -114,17 +114,17 @@ func New(conf classifierConfig, logger logrus.FieldLogger) (*StatisticalClassifi
 	return &StatisticalClassifier{
 		classifier:    newClassifier,
 		logger:        logger,
-		inputChannel:  make(chan *event.Raw),
-		outputChannel: make(chan *event.Raw),
+		inputChannel:  make(chan event.Raw),
+		outputChannel: make(chan event.Raw),
 		done:          false,
 	}, nil
 }
 
-func (sc *StatisticalClassifier) OutputChannel() chan *event.Raw {
+func (sc *StatisticalClassifier) OutputChannel() chan event.Raw {
 	return sc.outputChannel
 }
 
-func (sc *StatisticalClassifier) SetInputChannel(channel chan *event.Raw) {
+func (sc *StatisticalClassifier) SetInputChannel(channel chan event.Raw) {
 	sc.inputChannel = channel
 }
 
@@ -157,24 +157,24 @@ func (sc *StatisticalClassifier) observeDuration(start time.Time) {
 }
 
 // To be able to distinguish statistically guessed events from regular ones, some of the classification parts are replaced with placeholder.
-func (sc *StatisticalClassifier) sanitizeGuessedClassification(classification *event.SloClassification) event.SloClassification {
+func (sc *StatisticalClassifier) sanitizeGuessedClassification(classification event.SloClassification) event.SloClassification {
 	newClassification := classification.Copy()
 	newClassification.App = guessedLabelPlaceholder
 	return newClassification
 }
 
 // Classify classifies event. Classification is guessed based on frequency of observed classifications over history window.
-func (sc *StatisticalClassifier) Classify(event *event.Raw) error {
+func (sc *StatisticalClassifier) Classify(event event.Raw) error {
 	if !event.IsClassified() {
 		classification, err := sc.classifier.guessClass()
 		if err != nil {
 			eventsTotal.WithLabelValues("unclassified").Inc()
 			return err
 		}
-		event.UpdateSLOClassification(classification)
+		event.SetSLOClassification(*classification)
 		eventsTotal.WithLabelValues("classified").Inc()
 	} else {
-		sc.classifier.increaseWeight(sc.sanitizeGuessedClassification(event.GetSloClassification()), 1)
+		sc.classifier.increaseWeight(sc.sanitizeGuessedClassification(event.SloClassification()), 1)
 		eventsTotal.WithLabelValues("increased-weight").Inc()
 	}
 	return nil

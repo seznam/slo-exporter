@@ -12,15 +12,15 @@ import (
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
 )
 
 type queryExecutor struct {
 	Query             queryOptions
 	queryTimeout      time.Duration
-	eventsChan        chan *event.Raw
+	eventsChan        chan event.Raw
 	logger            logrus.FieldLogger
 	api               v1.API
 	previousResult    queryResult
@@ -158,15 +158,15 @@ func (q *queryExecutor) emitEvent(ts time.Time, result float64, metadata stringm
 	if quantity == 0 {
 		return
 	}
-	e := &event.Raw{
-		Metadata: metadata,
-		Quantity: quantity,
-	}
-	e.Metadata = e.Metadata.Merge(stringmap.StringMap{
-		metadataValueKey:     fmt.Sprintf("%g", result),
-		metadataTimestampKey: fmt.Sprintf("%d", ts.Unix()),
-	})
-	e.Metadata = e.Metadata.Without(q.Query.DropLabels).Merge(q.Query.AdditionalLabels)
+	e := event.NewRaw(
+		"",
+		quantity,
+		metadata.Merge(stringmap.StringMap{
+			metadataValueKey:     fmt.Sprintf("%g", result),
+			metadataTimestampKey: fmt.Sprintf("%d", ts.Unix()),
+		}).Without(q.Query.DropLabels).Merge(q.Query.AdditionalLabels),
+		nil,
+	)
 	q.eventsChan <- e
 }
 
@@ -213,12 +213,12 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 	for _, metric := range metricBucketIncreases {
 		metricBuckets := make([]float64, len(metric))
 		i := 0
-		for bucket, _ := range metric {
+		for bucket := range metric {
 			metricBuckets[i] = bucket
 			i++
 		}
 		sort.Float64s(metricBuckets)
-		var previousBucketKey float64 = math.Inf(-1)
+		var previousBucketKey = math.Inf(-1)
 		// Iterate over all buckets and report event with quantity equal to difference of it's and preceding bucket increase.
 		for _, key := range metricBuckets {
 			maxValue := key

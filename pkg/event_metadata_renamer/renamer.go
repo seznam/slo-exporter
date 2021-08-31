@@ -33,15 +33,16 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventMe
 	return NewFromConfig(config, logger)
 }
 
-// New returns requestNormalizer which allows to add Key to RequestEvent
+// NewFromConfig returns requestNormalizer which allows to add Key to RequestEvent
 func NewFromConfig(config []renamerConfig, logger logrus.FieldLogger) (*eventMetadataRenamerManager, error) {
 	relabelManager := eventMetadataRenamerManager{
 		renamerConfig: config,
-		outputChannel: make(chan *event.Raw),
+		outputChannel: make(chan event.Raw),
 		logger:        logger,
 	}
 	return &relabelManager, nil
 }
+
 type renamerConfig struct {
 	Source, Destination string
 }
@@ -49,8 +50,8 @@ type renamerConfig struct {
 type eventMetadataRenamerManager struct {
 	renamerConfig []renamerConfig
 	observer      pipeline.EventProcessingDurationObserver
-	inputChannel  chan *event.Raw
-	outputChannel chan *event.Raw
+	inputChannel  chan event.Raw
+	outputChannel chan event.Raw
 	done          bool
 	logger        logrus.FieldLogger
 }
@@ -67,11 +68,11 @@ func (r *eventMetadataRenamerManager) RegisterMetrics(_ prometheus.Registerer, w
 	return wrappedRegistry.Register(renamingCollisionsTotal)
 }
 
-func (r *eventMetadataRenamerManager) SetInputChannel(channel chan *event.Raw) {
+func (r *eventMetadataRenamerManager) SetInputChannel(channel chan event.Raw) {
 	r.inputChannel = channel
 }
 
-func (r *eventMetadataRenamerManager) OutputChannel() chan *event.Raw {
+func (r *eventMetadataRenamerManager) OutputChannel() chan event.Raw {
 	return r.outputChannel
 }
 
@@ -90,18 +91,18 @@ func (r *eventMetadataRenamerManager) observeDuration(start time.Time) {
 }
 
 // renameEventMetadata applies the relabel configs on the event metadata.
-func (r *eventMetadataRenamerManager) renameEventMetadata(e *event.Raw) *event.Raw {
+func (r *eventMetadataRenamerManager) renameEventMetadata(e event.Raw) event.Raw {
 	for _, renameConfig := range r.renamerConfig {
-		if _, ok := e.Metadata[renameConfig.Source]; !ok {
+		if _, ok := e.Metadata()[renameConfig.Source]; !ok {
 			continue
 		}
-		if _, ok := e.Metadata[renameConfig.Destination]; ok {
-			r.logger.Warnf("refusing to override metadata's %s:%s with %s:%s", renameConfig.Destination, e.Metadata[renameConfig.Destination], renameConfig.Source, e.Metadata[renameConfig.Source])
+		if _, ok := e.Metadata()[renameConfig.Destination]; ok {
+			r.logger.Warnf("refusing to override metadata's %s:%s with %s:%s", renameConfig.Destination, e.Metadata()[renameConfig.Destination], renameConfig.Source, e.Metadata()[renameConfig.Source])
 			renamingCollisionsTotal.WithLabelValues(renameConfig.Source, renameConfig.Destination).Inc()
 			continue
 		}
-		e.Metadata[renameConfig.Destination] = e.Metadata[renameConfig.Source]
-		delete(e.Metadata, renameConfig.Source)
+		e.Metadata().Set(renameConfig.Destination, e.Metadata().Get(renameConfig.Source, ""))
+		delete(e.Metadata(), renameConfig.Source)
 	}
 	return e
 }

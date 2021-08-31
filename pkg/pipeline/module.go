@@ -37,7 +37,7 @@ type WebInterfaceModule interface {
 }
 
 type RawEventIngester interface {
-	SetInputChannel(chan *event.Raw)
+	SetInputChannel(chan event.Raw)
 }
 
 type RawEventIngesterModule interface {
@@ -46,7 +46,7 @@ type RawEventIngesterModule interface {
 }
 
 type RawEventProducer interface {
-	OutputChannel() chan *event.Raw
+	OutputChannel() chan event.Raw
 }
 
 type RawEventProducerModule interface {
@@ -55,7 +55,7 @@ type RawEventProducerModule interface {
 }
 
 type SloEventIngester interface {
-	SetInputChannel(chan *event.Slo)
+	SetInputChannel(chan event.Slo)
 }
 
 type SloEventIngesterModule interface {
@@ -64,7 +64,7 @@ type SloEventIngesterModule interface {
 }
 
 type SloEventProducer interface {
-	OutputChannel() chan *event.Slo
+	OutputChannel() chan event.Slo
 }
 
 type SloEventProducerModule interface {

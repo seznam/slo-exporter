@@ -25,6 +25,10 @@ func (sc *SloClassification) Matches(other SloClassification) bool {
 	return true
 }
 
+func (sc SloClassification) IsClassified() bool {
+	return sc.Domain != "" && sc.Class != "" && sc.App != ""
+}
+
 func (sc *SloClassification) GetMetadata() stringmap.StringMap {
 	return stringmap.StringMap{
 		"slo_domain": sc.Domain,

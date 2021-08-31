@@ -6,8 +6,8 @@ package dynamic_classifier
 import (
 	"bytes"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newSloClassification(domain string, app string, class string) *event.SloClassification {
-	return &event.SloClassification{
+func newSloClassification(domain string, app string, class string) event.SloClassification {
+	return event.SloClassification{
 		Domain: domain,
 		App:    app,
 		Class:  class,
@@ -30,15 +30,15 @@ func TestMatcher(t *testing.T) {
 	cases := []struct {
 		matcher     matcher
 		key         string
-		value       *event.SloClassification
+		value       event.SloClassification
 		wantedKey   string
-		wantedValue *event.SloClassification
+		wantedValue event.SloClassification
 		setErr      string
 		getErr      string
 	}{
 		{newMemoryExactMatcher(logger), "test", newSloClassification("test-domain", "test-app", "test-class"), "test", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
 		{newMemoryExactMatcher(logger), "", newSloClassification("test-domain", "test-app", "test-class"), "", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
-		{newMemoryExactMatcher(logger), "test", newSloClassification("test-domain", "test-app", "test-class"), "aaa", nil, "", ""},
+		{newMemoryExactMatcher(logger), "test", newSloClassification("test-domain", "test-app", "test-class"), "aaa", event.SloClassification{}, "", ""},
 		{newRegexpMatcher(logger), ".*", newSloClassification("test-domain", "test-app", "test-class"), "aaa", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
 		{newRegexpMatcher(logger), ".*****", newSloClassification("test-domain", "test-app", "test-class"), "aaa", newSloClassification("test-domain", "test-app", "test-class"), "failed to create new regexp endpoint classification: error parsing regexp: invalid nested repetition operator: `**`", ""},
 	}

@@ -3,10 +3,10 @@ package metadata_classifier
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -31,8 +31,8 @@ type metadataClassifier struct {
 	appKey                 string
 	observer               pipeline.EventProcessingDurationObserver
 	logger                 logrus.FieldLogger
-	inputChannel           chan *event.Raw
-	outputChannel          chan *event.Raw
+	inputChannel           chan event.Raw
+	outputChannel          chan event.Raw
 	done                   bool
 }
 
@@ -52,11 +52,11 @@ func (e *metadataClassifier) Stop() {
 	return
 }
 
-func (e *metadataClassifier) SetInputChannel(channel chan *event.Raw) {
+func (e *metadataClassifier) SetInputChannel(channel chan event.Raw) {
 	e.inputChannel = channel
 }
 
-func (e *metadataClassifier) OutputChannel() chan *event.Raw {
+func (e *metadataClassifier) OutputChannel() chan event.Raw {
 	return e.outputChannel
 }
 
@@ -75,8 +75,8 @@ func NewFromConfig(config metadataClassifierConfig, logger logrus.FieldLogger) (
 		domainKey:              config.SloDomainMetadataKey,
 		classKey:               config.SloClassMetadataKey,
 		appKey:                 config.SloAppMetadataKey,
-		outputChannel:          make(chan *event.Raw),
-		inputChannel:           make(chan *event.Raw),
+		outputChannel:          make(chan event.Raw),
+		inputChannel:           make(chan event.Raw),
 		done:                   false,
 		logger:                 logger,
 	}
@@ -93,22 +93,21 @@ func (e *metadataClassifier) observeDuration(start time.Time) {
 	}
 }
 
-func (e *metadataClassifier) generateSloClassification(toBeClassified *event.Raw) event.SloClassification {
+func (e *metadataClassifier) generateSloClassification(toBeClassified event.Raw) event.SloClassification {
 	newClassification := event.SloClassification{}
-	if toBeClassified.SloClassification != nil {
-		newClassification.Domain = toBeClassified.SloClassification.Domain
-		newClassification.Class = toBeClassified.SloClassification.Class
-		newClassification.App = toBeClassified.SloClassification.App
+	if toBeClassified.IsClassified() {
+		classification := toBeClassified.SloClassification()
+		newClassification = classification.Copy()
 	}
-	metadataDomain, ok := toBeClassified.Metadata[e.domainKey]
+	metadataDomain, ok := toBeClassified.Metadata()[e.domainKey]
 	if ok && (e.overrideExistingValues || newClassification.Domain == "") {
 		newClassification.Domain = metadataDomain
 	}
-	metadataClass, ok := toBeClassified.Metadata[e.classKey]
+	metadataClass, ok := toBeClassified.Metadata()[e.classKey]
 	if ok && (e.overrideExistingValues || newClassification.Class == "") {
 		newClassification.Class = metadataClass
 	}
-	metadataApp, ok := toBeClassified.Metadata[e.appKey]
+	metadataApp, ok := toBeClassified.Metadata()[e.appKey]
 	if ok && (e.overrideExistingValues || newClassification.App == "") {
 		newClassification.App = metadataApp
 	}
@@ -127,7 +126,7 @@ func (e *metadataClassifier) Run() {
 				processedEventsTotal.WithLabelValues("skipped").Inc()
 			} else {
 				newClassification := e.generateSloClassification(newEvent)
-				newEvent.SloClassification = &newClassification
+				newEvent.SetSLOClassification(newClassification)
 				processedEventsTotal.WithLabelValues("generated-slo-classification").Inc()
 				e.logger.WithField("event", newEvent).WithField("slo-classification", newClassification).Debug("classified new event")
 			}

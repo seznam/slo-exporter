@@ -58,21 +58,21 @@ func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluation
 	if opts.SloMatcher.DomainRegexp != "" {
 		r, err := regexp.Compile(opts.SloMatcher.DomainRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("invalid domain matcher regexp: %w",err)
+			return nil, fmt.Errorf("invalid domain matcher regexp: %w", err)
 		}
 		sloMatcher.domainRegexp = r
 	}
 	if opts.SloMatcher.ClassRegexp != "" {
 		r, err := regexp.Compile(opts.SloMatcher.ClassRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("invalid class matcher regexp: %w",err)
+			return nil, fmt.Errorf("invalid class matcher regexp: %w", err)
 		}
 		sloMatcher.classRegexp = r
 	}
 	if opts.SloMatcher.AppRegexp != "" {
 		r, err := regexp.Compile(opts.SloMatcher.AppRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("invalid app matcher regexp: %w",err)
+			return nil, fmt.Errorf("invalid app matcher regexp: %w", err)
 		}
 		sloMatcher.appRegexp = r
 	}
@@ -93,38 +93,30 @@ type evaluationRule struct {
 	logger             logrus.FieldLogger
 }
 
-func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
-	if failed {
-		newEvent.Result = event.Fail
-	} else {
-		newEvent.Result = event.Success
-	}
-}
-
 // evaluateEvent and return bool on whether it is to be considered as failed
-func (er *evaluationRule) evaluateEvent(newEvent *event.Raw) bool {
-	failed := false
+func (er *evaluationRule) evaluateEvent(newEvent event.Raw) event.Result {
+	result := event.Success
 	// Evaluate all criteria and if matches any, mark it as failed.
 	for _, operator := range er.failureConditions {
-		result, err := operator.Evaluate(newEvent)
+		matches, err := operator.Evaluate(newEvent)
 		if err != nil {
 			er.logger.WithError(err).WithField("event", newEvent).Warnf("failed to evaluate operator %v", operator)
 		}
-		if result {
-			failed = true
+		if matches {
+			result = event.Fail
 			break
 		}
 	}
-	return failed
+	return result
 }
 
-func (er *evaluationRule) processEvent(newEvent *event.Raw) (*event.Slo, bool) {
-	eventSloClassification := newEvent.GetSloClassification()
-	if !newEvent.IsClassified() || eventSloClassification == nil {
+func (er *evaluationRule) processEvent(newEvent event.Raw) (event.Slo, bool) {
+	eventSloClassification := newEvent.SloClassification()
+	if !newEvent.IsClassified() {
 		return nil, false
 	}
 	// Check if rule matches the newEvent
-	if !er.sloMatcher.matchesSloClassification(*eventSloClassification) {
+	if !er.sloMatcher.matchesSloClassification(eventSloClassification) {
 		return nil, false
 	}
 	var (
@@ -142,17 +134,9 @@ func (er *evaluationRule) processEvent(newEvent *event.Raw) (*event.Slo, bool) {
 		}
 	}
 
-	failed := er.evaluateEvent(newEvent)
+	result := er.evaluateEvent(newEvent)
 
-	newSloEvent := &event.Slo{
-		Key:      newEvent.EventKey(),
-		Domain:   eventSloClassification.Domain,
-		Class:    eventSloClassification.Class,
-		App:      eventSloClassification.App,
-		Metadata: er.additionalMetadata,
-		Quantity: newEvent.Quantity,
-	}
-	er.markEventResult(failed, newSloEvent)
+	newSloEvent := event.NewSlo(newEvent.EventKey(), newEvent.Quantity(), result, eventSloClassification, er.additionalMetadata)
 	er.logger.WithField("event", newSloEvent).Debug("generated new slo event")
 	return newSloEvent, true
 

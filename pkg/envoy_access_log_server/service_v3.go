@@ -17,9 +17,10 @@ import (
 )
 
 type AccessLogServiceV3 struct {
-	outChan chan *event.Raw
+	outChan chan event.Raw
 	logger  logrus.FieldLogger
 	envoy_service_accesslog_v3.UnimplementedAccessLogServiceServer
+	eventIdMetadataKey string
 }
 
 type envoyV3AccessLogEntryCommonProperties envoy_data_accesslog_v3.AccessLogCommon
@@ -218,20 +219,16 @@ func (service_v3 *AccessLogServiceV3) emitEvents(msg *envoy_service_accesslog_v3
 	if logs := msg.GetHttpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
 			logEntriesTotal.WithLabelValues("HTTP", "v3").Inc()
-			e := &event.Raw{
-				Metadata: envoyV3HttpAccessLogEntry(*l).StringMap(service_v3.logger),
-				Quantity: 1,
-			}
+			metadata := envoyV3HttpAccessLogEntry(*l).StringMap(service_v3.logger)
+			e := event.NewRaw(metadata.Get(service_v3.eventIdMetadataKey, ""), 1, metadata, nil)
 			service_v3.logger.Debug(e)
 			service_v3.outChan <- e
 		}
 	} else if logs := msg.GetTcpLogs(); logs != nil {
 		for _, l := range logs.LogEntry {
 			logEntriesTotal.WithLabelValues("TCP", "v3").Inc()
-			e := &event.Raw{
-				Metadata: envoyV3TcpAccessLogEntry(*l).StringMap(service_v3.logger),
-				Quantity: 1,
-			}
+			metadata := envoyV3TcpAccessLogEntry(*l).StringMap(service_v3.logger)
+			e := event.NewRaw(metadata.Get(service_v3.eventIdMetadataKey, ""), 1, metadata, nil)
 			service_v3.logger.Debug(e)
 			service_v3.outChan <- e
 		}

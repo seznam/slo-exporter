@@ -2,60 +2,89 @@ package event
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
-
-// Raw represents single event as received by an EventsProcessor instance
-type Raw struct {
-	Metadata          stringmap.StringMap
-	SloClassification *SloClassification
-	Quantity          float64
-}
 
 const (
 	eventKeyMetadataKey = "__eventKey"
 )
 
-func (r *Raw) EventKey() string {
-	return r.Metadata[eventKeyMetadataKey]
-}
-
-func (r *Raw) SetEventKey(k string) {
-	if r.Metadata == nil {
-		r.Metadata = make(stringmap.StringMap)
+func NewRaw(id string, quantity float64, metadata stringmap.StringMap, classification *SloClassification) Raw {
+	if id == "" {
+		id = uuid.New().String()
 	}
-	r.Metadata[eventKeyMetadataKey] = k
+	if classification == nil {
+		classification = &SloClassification{}
+	}
+	if metadata == nil {
+		metadata = stringmap.StringMap{}
+	}
+	return &raw{
+		id:                id,
+		metadata:          metadata,
+		sloClassification: *classification,
+		quantity:          quantity,
+	}
 }
 
-// UpdateSLOClassification updates SloClassification field
-func (r *Raw) UpdateSLOClassification(classification *SloClassification) {
-	r.SloClassification = classification
+// raw represents single event as received by an EventsProcessor instance
+type raw struct {
+	id                string
+	metadata          stringmap.StringMap
+	sloClassification SloClassification
+	quantity          float64
+}
+
+func (r raw) Quantity() float64 {
+	return r.quantity
+}
+
+func (r *raw) SetQuantity(newQuantity float64) {
+	r.quantity = newQuantity
+}
+
+func (r raw) Id() string {
+	return r.id
+}
+
+func (r *raw) SetId(newId string) {
+	r.id = newId
+}
+
+func (r raw) EventKey() string {
+	return r.metadata[eventKeyMetadataKey]
+}
+
+func (r *raw) SetEventKey(k string) {
+	if r.metadata == nil {
+		r.metadata = make(stringmap.StringMap)
+	}
+	r.metadata[eventKeyMetadataKey] = k
+}
+
+func (r raw) Metadata() stringmap.StringMap {
+	return r.metadata
+}
+
+func (r *raw) SetMetadata(metadata stringmap.StringMap) {
+	r.metadata = metadata
 }
 
 // IsClassified check if all SloClassification fields are set
-func (r *Raw) IsClassified() bool {
-	if r.SloClassification != nil &&
-		r.SloClassification.Domain != "" &&
-		r.SloClassification.App != "" &&
-		r.SloClassification.Class != "" {
-
-		return true
-	}
-	return false
+func (r raw) IsClassified() bool {
+	return r.sloClassification.IsClassified()
 }
 
-func (r Raw) GetSloMetadata() stringmap.StringMap {
-	if r.SloClassification == nil {
-		return nil
-	}
-	metadata := r.SloClassification.GetMetadata()
-	return metadata
+func (r raw) SloClassification() SloClassification {
+	return r.sloClassification
 }
 
-func (r Raw) GetSloClassification() *SloClassification {
-	return r.SloClassification
+// SetSLOClassification updates SloClassification field
+func (r *raw) SetSLOClassification(classification SloClassification) {
+	r.sloClassification = classification
 }
 
-func (r Raw) String() string {
-	return fmt.Sprintf("key: %s, metadata: %s, classification: %s", r.EventKey(), r.Metadata, r.GetSloMetadata())
+func (r raw) String() string {
+	return fmt.Sprintf("id:%s, key: %s, metadata: %s, classification: %s", r.Id(), r.EventKey(), r.Metadata(), r.SloClassification())
 }
