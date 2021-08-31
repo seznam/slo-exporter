@@ -11,6 +11,14 @@ jobs:
       - checkout
       - run: make lint
 
+  check_format:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: |
+         make format
+         git diff --color --exit-code -- go.mod go.sum
+
   test:
     <<: *defaults
     steps:
@@ -52,6 +60,7 @@ workflows:
   slo-exporter:
     jobs:
       - lint
+      - check_format
       - test
       - build:
           filters:
