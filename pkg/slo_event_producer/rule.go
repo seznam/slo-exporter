@@ -151,6 +151,7 @@ func (er *evaluationRule) processEvent(newEvent *event.Raw) (*event.Slo, bool) {
 		App:      eventSloClassification.App,
 		Metadata: er.additionalMetadata,
 		Quantity: newEvent.Quantity,
+		OriginalEvent: *newEvent,
 	}
 	er.markEventResult(failed, newSloEvent)
 	er.logger.WithField("event", newSloEvent).Debug("generated new slo event")

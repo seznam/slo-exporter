@@ -3,11 +3,11 @@ package prometheus_exporter
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -53,6 +53,7 @@ type prometheusExporterConfig struct {
 	LabelNames                  labelsNamesConfig
 	MaximumUniqueEventKeys      int
 	ExceededKeyLimitPlaceholder string
+	ExemplarMetadataKeys        []string
 }
 
 type PrometheusSloEventExporter struct {
@@ -61,6 +62,7 @@ type PrometheusSloEventExporter struct {
 	labelNames                  labelsNamesConfig
 	eventKeyLimit               int
 	exceededKeyLimitPlaceholder string
+	exemplarMetadataKeys        []string
 	eventKeyCache               map[string]int
 	observer                    pipeline.EventProcessingDurationObserver
 
@@ -87,6 +89,7 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*Prometh
 	viperConfig.SetDefault("LabelNames.SloApp", "slo_app")
 	viperConfig.SetDefault("LabelNames.EventKey", "event_key")
 	viperConfig.SetDefault("exceededKeyLimitPlaceholder", "cardinalityLimitExceeded")
+	viperConfig.SetDefault("exemplarMetadataKeys", "[]")
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -98,7 +101,7 @@ func New(config prometheusExporterConfig, logger logrus.FieldLogger) (*Prometheu
 	eventKeyCardinalityLimit.Set(float64(config.MaximumUniqueEventKeys))
 
 	aggregationLabels := []string{config.LabelNames.SloDomain, config.LabelNames.SloClass, config.LabelNames.SloApp, config.LabelNames.EventKey}
-	newAggregatedMetricsSet := newAggregatedCounterVectorSet(config.MetricName, metricHelp, aggregationLabels, logger)
+	newAggregatedMetricsSet := newAggregatedCounterVectorSet(config.MetricName, metricHelp, aggregationLabels, logger, config.ExemplarMetadataKeys)
 
 	return &PrometheusSloEventExporter{
 		aggregatedMetricsSet: newAggregatedMetricsSet,
@@ -108,6 +111,8 @@ func New(config prometheusExporterConfig, logger logrus.FieldLogger) (*Prometheu
 		eventKeyLimit:               config.MaximumUniqueEventKeys,
 		exceededKeyLimitPlaceholder: config.ExceededKeyLimitPlaceholder,
 		eventKeyCache:               map[string]int{},
+
+		exemplarMetadataKeys: config.ExemplarMetadataKeys,
 
 		logger:   logger,
 		observer: nil,
@@ -234,6 +239,10 @@ func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 
 	// add result to metadata
 	labels[e.labelNames.Result] = string(newEvent.Result)
-	e.aggregatedMetricsSet.add(newEvent.Quantity, labels)
+	if len(e.exemplarMetadataKeys) > 0 {
+		e.aggregatedMetricsSet.addWithExemplar(newEvent.Quantity, labels, newEvent.OriginalEvent.Metadata.Select(e.exemplarMetadataKeys))
+	} else {
+		e.aggregatedMetricsSet.add(newEvent.Quantity, labels)
+	}
 	return nil
 }

@@ -2,10 +2,12 @@ package prometheus_exporter
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
 	"strings"
 	"sync"
+	"time"
 )
 
 func aggregatedMetricName(metricName string, aggregatedLabels ...string) string {
@@ -13,14 +15,14 @@ func aggregatedMetricName(metricName string, aggregatedLabels ...string) string 
 }
 
 // newAggregatedCounterVector creates set of counters which will create set of cascade aggregation level metrics by dropping aggregation labels.
-func newAggregatedCounterVectorSet(metricName, metricHelp string, aggregationLabels []string, logger logrus.FieldLogger) *aggregatedCounterVectorSet {
+func newAggregatedCounterVectorSet(metricName, metricHelp string, aggregationLabels []string, logger logrus.FieldLogger, exemplarMetadataKeys []string) *aggregatedCounterVectorSet {
 	vectorSet := aggregatedCounterVectorSet{
 		aggregatedMetrics: []*aggregatedCounterVector{},
 	}
 	// Generate new metric vector for every label aggregation level.
 	for i := 1; i <= len(aggregationLabels); i++ {
 		vectorSet.aggregatedMetrics = append(vectorSet.aggregatedMetrics, &aggregatedCounterVector{
-			vector:       newCounterVector(aggregatedMetricName(metricName, aggregationLabels[:i]...), metricHelp, logger),
+			vector:       newCounterVector(aggregatedMetricName(metricName, aggregationLabels[:i]...), metricHelp, logger, exemplarMetadataKeys),
 			labelsToDrop: aggregationLabels[i:],
 		})
 	}
@@ -44,7 +46,11 @@ func (v *aggregatedCounterVector) inc(labels stringmap.StringMap) {
 }
 
 func (v *aggregatedCounterVector) add(value float64, labels stringmap.StringMap) {
-	v.vector.add(value, labels.Without(v.labelsToDrop))
+	v.addWithExemplar(value, labels, stringmap.StringMap{})
+}
+
+func (v *aggregatedCounterVector) addWithExemplar(value float64, labels stringmap.StringMap, exemplarLabels stringmap.StringMap) {
+	v.vector.addWithExemplar(value, labels.Without(v.labelsToDrop), exemplarLabels)
 }
 
 type aggregatedCounterVectorSet struct {
@@ -65,12 +71,16 @@ func (s *aggregatedCounterVectorSet) inc(labels stringmap.StringMap) {
 }
 
 func (s *aggregatedCounterVectorSet) add(value float64, labels stringmap.StringMap) {
+	s.addWithExemplar(value, labels, stringmap.StringMap{})
+}
+
+func (s *aggregatedCounterVectorSet) addWithExemplar(value float64, labels stringmap.StringMap, exemplarLabels stringmap.StringMap) {
 	for _, metric := range s.aggregatedMetrics {
-		metric.add(value, labels)
+		metric.addWithExemplar(value, labels, exemplarLabels)
 	}
 }
 
-func newCounterVector(name, help string, logger logrus.FieldLogger) *counterVector {
+func newCounterVector(name, help string, logger logrus.FieldLogger, exemplarMetadataKeys []string) *counterVector {
 	newVector := counterVector{
 		name:     name,
 		help:     help,
@@ -85,10 +95,22 @@ type counter struct {
 	value       float64
 	labelNames  []string
 	labelValues []string
+	exemplar    *dto.Exemplar
 }
 
 func (e *counter) add(value float64) {
+	e.addWithExemplar(value, stringmap.StringMap{})
+}
+
+func (e *counter) addWithExemplar(value float64, exemplarLabels stringmap.StringMap) {
 	e.value += value
+	if len(exemplarLabels) > 0 {
+		exemplar, err := newExemplar(value, time.Now(), prometheus.Labels(exemplarLabels))
+		if err != nil {
+			return
+		}
+		e.exemplar = exemplar
+	}
 }
 
 func (e *counter) inc() {
@@ -104,6 +126,10 @@ type counterVector struct {
 }
 
 func (e *counterVector) add(value float64, labels stringmap.StringMap) {
+	e.addWithExemplar(value, labels, stringmap.StringMap{})
+}
+
+func (e *counterVector) addWithExemplar(value float64, labels stringmap.StringMap, exemplarLabels stringmap.StringMap) {
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
 	labelsString := labels.String()
@@ -117,7 +143,7 @@ func (e *counterVector) add(value float64, labels stringmap.StringMap) {
 		}
 		e.counters[labelsString] = newCounter
 	}
-	newCounter.add(value)
+	newCounter.addWithExemplar(value, exemplarLabels)
 }
 
 func (e *counterVector) inc(labels stringmap.StringMap) {
@@ -133,15 +159,19 @@ func (e *counterVector) Collect(ch chan<- prometheus.Metric) {
 	e.mtx.RLock()
 	defer e.mtx.RUnlock()
 	for _, c := range e.counters {
-		newMetric, err := prometheus.NewConstMetric(
+		newMetric, err := NewConstCounterWithExemplar(
 			prometheus.NewDesc(e.name, e.help, c.labelNames, nil),
 			prometheus.CounterValue,
 			c.value,
-			c.labelValues...
+			c.labelValues...,
 		)
 		if err != nil {
 			e.logger.Errorf("failed to initialize new const metric: %v", err)
 			ch <- prometheus.NewInvalidMetric(prometheus.NewDesc(e.name, e.help, c.labelNames, nil), err)
+			continue
+		}
+		if c.exemplar != nil {
+			newMetric.AddExemplar(c.exemplar)
 		}
 		ch <- newMetric
 	}
