@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
-- [#69](https://github.com/seznam/slo-exporter/pull/69) Exemplars support for the `prometheus_exporter` module.
+- [#69](https://github.com/seznam/slo-exporter/pull/69) *Experimental* Exemplars support for the `prometheus_exporter` module.
 
 ### Fixed
 - [#71](https://github.com/seznam/slo-exporter/pull/71) Fix corner cases in StringMap.Merge(), StringMap.Without()

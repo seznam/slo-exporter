@@ -20,8 +20,8 @@ Few among others:
  - Need to filter out some events based on high cardinality metadata which cannot be added to metrics.
 
  This lead us to decision that we need to process the events separately and in
- Prometheus do just the final computation and alerting. 
- 
+ Prometheus do just the final computation and alerting.
+
  We describe our journey towards SLO based alerting more in detail in the two articles:
  - [Implementing SRE workbook alerting with Prometheus only](https://medium.com/@sklik.devops/our-journey-towards-slo-based-alerting-bd8bbe23c1d6)
  - [Advanced SLO infrastructure based on slo-exporter](https://medium.com/@sklik.devops/our-journey-towards-slo-based-alerting-d23d4f6f620e)
@@ -58,7 +58,9 @@ Detailed configuration documentation you can find here [docs/configuration](docs
 To see some real use-cases and examples you can look at the [examples/](examples).
 
 ## Operating
-Some advices on operating the slo-exporter, debugging and profiling can be found here [docs/operating.md](docs/operating.md)
+Some advices on operating the slo-exporter, debugging and profiling can be found here [docs/operating.md](docs/operating.md).
+
+Please note that features marked as *Experimental* are not considered stable and may be removed or changed even in [minor or patch release](https://semver.org/).
 
 ## Community
 * Slack: [#slo-exporter](https://join.slack.com/t/slo-exporter/shared_invite/zt-mnqxqv1s-1zaJtDiYbuVoOCCAMQi4Kg)

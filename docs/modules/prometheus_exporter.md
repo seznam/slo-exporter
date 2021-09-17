@@ -29,7 +29,7 @@ metricName: "slo_events_total"
 maximumUniqueEventKeys: 1000
 # Placeholder to replace new event keys when the limit is hit.
 ExceededKeyLimitPlaceholder: "cardinalityLimitExceeded"
-# List of original raw event metadata keys to be added as an exemplars labels   
+# *Experimental* List of original raw event metadata keys to be added as an exemplars labels.
 ExemplarMetadataKeys: ["trace-id"]
 # Names of labels to be used for specific event information.
 labelNames:
@@ -55,4 +55,4 @@ slo_domain_slo_class_slo_app:slo_events_total{result=~"success|fail",slo_domain=
 slo_domain_slo_class_slo_app_event_key:slo_events_total{result=~"success|fail",slo_domain="__domain_name__",slo_class="__slo_class__",slo_app="__slo_app__",event_key="__event_key__"}
 ```
 
-Each of the timeseries will have additional labels which are (optionally) specified in [sloEventProducer](./slo_event_producer.md) rules configuration (as `additional_metadata`) - for example slo_version, slo_type,... 
+Each of the timeseries will have additional labels which are (optionally) specified in [sloEventProducer](./slo_event_producer.md) rules configuration (as `additional_metadata`) - for example slo_version, slo_type,...
