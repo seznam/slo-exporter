@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [v6.10.0] 2021-09-17
 ### Added
 - [#69](https://github.com/seznam/slo-exporter/pull/69) *Experimental* Exemplars support for the `prometheus_exporter` module.
 
