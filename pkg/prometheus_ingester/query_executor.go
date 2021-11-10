@@ -282,7 +282,10 @@ func (q *queryExecutor) processMatrixResultAsIncrease(matrix model.Matrix, ts ti
 				metric:   singleMetricSampleStream.Metric,
 			}
 		}
-		q.previousResult = currentResult
+		if len(currentResult.metrics) > 0 {
+			// skip empty result - miss scrape interval
+			q.previousResult = currentResult
+		}
 	}()
 	return outChan
 }

@@ -685,3 +685,61 @@ func Test_processHistogramIncrease(t *testing.T) {
 		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
 	}
 }
+
+func Test_processMetricsIncreaseMissScrapeInterval(t *testing.T) {
+	x := newMetric("x", nil)
+	ts := time.Now()
+	q := &queryExecutor{
+		Query: queryOptions{
+			Interval:         time.Second * 20,
+			Type:             counterQueryType,
+			ResultAsQuantity: newTrue(),
+		},
+		previousResult: queryResult{},
+	}
+	q.eventsChan = make(chan *event.Raw)
+	var generatedEvents []*event.Raw
+
+	done := make(chan struct{})
+	go func() {
+		for e := range q.eventsChan {
+			generatedEvents = append(generatedEvents, e)
+		}
+		done <- struct{}{}
+	}()
+
+	q.processCountersIncrease([]*model.SampleStream{
+		{
+			Metric: x,
+			Values: []model.SamplePair{
+				{
+					Timestamp: model.Time(ts.Add(time.Minute * -5).Unix()),
+					Value:     model.SampleValue(5),
+				},
+			},
+		},
+	}, ts)
+	q.processCountersIncrease([]*model.SampleStream{}, ts) // empty result - miss crape interval
+	q.processCountersIncrease([]*model.SampleStream{
+		{
+			Metric: x,
+			Values: []model.SamplePair{
+				{
+					Timestamp: model.Time(ts.Add(time.Minute * -4).Unix()),
+					Value:     model.SampleValue(8),
+				},
+			},
+		},
+	}, ts)
+
+	close(q.eventsChan)
+	<-done
+
+	expectedEvents := []*event.Raw{
+		{
+			Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "3", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
+			Quantity: 3,
+		},
+	}
+	assert.ElementsMatchf(t, expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", expectedEvents, generatedEvents)
+}
