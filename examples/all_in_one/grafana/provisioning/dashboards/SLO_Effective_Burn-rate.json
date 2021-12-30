@@ -1,24 +1,69 @@
 {
+  "__inputs": [
+    {
+      "name": "Prometheus",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "8.2.2"
+    },
+    {
+      "type": "panel",
+      "id": "graph",
+      "name": "Graph (old)",
+      "version": ""
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "text",
+      "name": "Text",
+      "version": ""
+    }
+  ],
   "annotations": {
     "list": [
       {
+        "$$hashKey": "object:28",
         "builtIn": 1,
         "datasource": "Prometheus",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
         "type": "dashboard"
       }
     ]
   },
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 2921,
-  "iteration": 1604580107545,
+  "id": null,
+  "iteration": 1640880027707,
   "links": [
     {
+      "$$hashKey": "object:105",
       "icon": "external link",
       "includeVars": true,
       "tags": [
@@ -30,6 +75,7 @@
       "type": "dashboards"
     },
     {
+      "$$hashKey": "object:202",
       "icon": "external link",
       "tags": [
         "SLO",
@@ -38,35 +84,71 @@
       ],
       "targetBlank": true,
       "type": "dashboards"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": true,
+      "title": "SLO Detailed",
+      "tooltip": "Show SLO Detailed dashboard (info about tresholds etc.)",
+      "type": "link",
+      "url": "https://grafana/d/lRKeWGZGk/slo-detailed?var-slo_version=$slo_version&var-slo_domain=$slo_domain&var-slo_type=$slo_type&var-slo_class=$slo_class&var-slo_time_range=4w&var-latency_slo_type=All&var-namespace=$namespace"
     }
   ],
+  "liveNow": false,
   "panels": [
     {
+      "collapsed": false,
       "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
       },
+      "id": 38,
+      "panels": [],
+      "title": "README",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
       "gridPos": {
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "id": 28,
       "options": {
         "content": "Precomputed SLO burn-rate multiplied with events rate coefficient. The result, as diplayed in the graphs, is what is used for SLO burn rate alerting.\n\nWe discussed the need for events rate coefficient in [one of our articles.](https://medium.com/@sklik.devops/our-journey-towards-slo-based-alerting-bd8bbe23c1d6)",
         "mode": "markdown"
       },
-      "pluginVersion": "7.3.0",
+      "pluginVersion": "8.2.2",
       "timeFrom": null,
       "timeShift": null,
       "title": "README",
       "type": "text"
     },
     {
+      "collapsed": false,
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 36,
+      "panels": [],
+      "repeat": "slo_type",
+      "title": "LATENCY90 BURN-RATE (ALL / 1h)",
+      "type": "row"
+    },
+    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -74,31 +156,38 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
-          "links": []
+          "links": [
+            {
+              "targetBlank": true,
+              "title": "SLO Drilldown - ${__field.labels.slo_domain} - ${__field.labels.slo_class} - ${__field.labels.slo_type}",
+              "url": "https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&&var-slo_version=${__field.labels.slo_version}&var-slo_domain=${__field.labels.slo_domain}&var-slo_class=${__field.labels.slo_class}&var-slo_time_range=${__field.labels.slo_time_range}&var-slo_type=${__field.labels.slo_type}&var-namespace=${__field.labels.namespace}&var-offset=All&var-cluster=All&var-instance=All&${__url_time_range}"
+            }
+          ]
         },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 11,
         "w": 24,
         "x": 0,
-        "y": 3
+        "y": 5
       },
       "hiddenSeries": false,
       "id": 24,
       "legend": {
-        "alignAsTable": false,
-        "avg": false,
-        "current": false,
-        "max": false,
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
         "min": false,
         "rightSide": true,
         "show": true,
+        "sort": "max",
+        "sortDesc": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -109,34 +198,46 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.0",
+      "pluginVersion": "8.2.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "repeat": "slo_type",
+      "repeat": "slo_class",
       "repeatDirection": "v",
-      "scopedVars": {
-        "slo_type": {
-          "selected": false,
-          "text": "latency90",
-          "value": "latency90"
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:620",
+          "alias": "/Events rate.+/",
+          "fill": 1,
+          "lines": true,
+          "points": true
         }
-      },
-      "seriesOverrides": [],
+      ],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "\nslo:burn_rate{slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=~\"$slo_time_range\", namespace=\"$namespace\"}\n* on(slo_domain, slo_class, slo_type, namespace) group_left() \nslo:events_rate_coefficient{slo_time_range=\"$request_rate_time_range\"}",
+          "exemplar": true,
+          "expr": "\nslo:burn_rate{slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=~\"$slo_time_range\", namespace=\"$namespace\"}\n* on(slo_domain, slo_class, slo_type, namespace) group_left() \nslo:events_rate_coefficient{slo_time_range=\"$request_rate_time_range\", namespace=\"$namespace\"}",
           "hide": false,
+          "instant": false,
           "interval": "",
-          "legendFormat": "{{ slo_class }} / {{ slo_time_range }}",
+          "legendFormat": "Burn rate {{ slo_domain }} {{ slo_class }} {{ slo_type }} / {{ slo_time_range }}",
           "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "max(slo:events_rate_coefficient{slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=~\"$slo_time_range\", namespace=\"$namespace\"}) by (slo_domain, slo_class)",
+          "hide": true,
+          "interval": "",
+          "legendFormat": "Events rate coeff {{ slo_domain }} {{ slo_class }}",
+          "refId": "B"
         }
       ],
       "thresholds": [
         {
+          "$$hashKey": "object:101",
           "colorMode": "warning",
           "fill": false,
           "fillColor": "rgba(50, 116, 217, 0.2)",
@@ -153,7 +254,7 @@
       "title": "$slo_type Burn-rate ($slo_class / $slo_time_range)",
       "tooltip": {
         "shared": true,
-        "sort": 0,
+        "sort": 2,
         "value_type": "individual"
       },
       "type": "graph",
@@ -166,6 +267,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:71",
           "decimals": 3,
           "format": "short",
           "label": null,
@@ -175,252 +277,7 @@
           "show": true
         },
         {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": "0",
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 10
-      },
-      "hiddenSeries": false,
-      "id": 29,
-      "legend": {
-        "alignAsTable": false,
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.0",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "repeatDirection": "v",
-      "repeatIteration": 1604580107545,
-      "repeatPanelId": 24,
-      "scopedVars": {
-        "slo_type": {
-          "selected": false,
-          "text": "latency99",
-          "value": "latency99"
-        }
-      },
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "\nslo:burn_rate{slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=~\"$slo_time_range\", namespace=\"$namespace\"}\n* on(slo_domain, slo_class, slo_type, namespace) group_left() \nslo:events_rate_coefficient{slo_time_range=\"$request_rate_time_range\"}",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "{{ slo_class }} / {{ slo_time_range }}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "warning",
-          "fill": false,
-          "fillColor": "rgba(50, 116, 217, 0.2)",
-          "line": true,
-          "lineColor": "#FA6400",
-          "op": "gt",
-          "value": 1,
-          "yaxis": "left"
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "$slo_type Burn-rate ($slo_class / $slo_time_range)",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": 3,
-          "format": "short",
-          "label": null,
-          "logBase": 2,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": "0",
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 17
-      },
-      "hiddenSeries": false,
-      "id": 30,
-      "legend": {
-        "alignAsTable": false,
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.0",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "repeatDirection": "v",
-      "repeatIteration": 1604580107545,
-      "repeatPanelId": 24,
-      "scopedVars": {
-        "slo_type": {
-          "selected": false,
-          "text": "availability",
-          "value": "availability"
-        }
-      },
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "\nslo:burn_rate{slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=~\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=~\"$slo_time_range\", namespace=\"$namespace\"}\n* on(slo_domain, slo_class, slo_type, namespace) group_left() \nslo:events_rate_coefficient{slo_time_range=\"$request_rate_time_range\"}",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "{{ slo_class }} / {{ slo_time_range }}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "warning",
-          "fill": false,
-          "fillColor": "rgba(50, 116, 217, 0.2)",
-          "line": true,
-          "lineColor": "#FA6400",
-          "op": "gt",
-          "value": 1,
-          "yaxis": "left"
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "$slo_type Burn-rate ($slo_class / $slo_time_range)",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": 3,
-          "format": "short",
-          "label": null,
-          "logBase": 2,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
+          "$$hashKey": "object:72",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -436,7 +293,7 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 26,
+  "schemaVersion": 31,
   "style": "dark",
   "tags": [
     "SLO, SRE"
@@ -448,6 +305,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{}, slo_version)",
+        "description": null,
         "error": null,
         "hide": 0,
         "includeAll": false,
@@ -455,45 +313,51 @@
         "multi": false,
         "name": "slo_version",
         "options": [],
-        "query": "label_values(slo:violation_ratio_threshold{}, slo_version)",
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{}, slo_version)",
+          "refId": "Prometheus-slo_version-Variable-Query"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
       },
       {
-        "allValue": null,
+        "allValue": ".+",
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
+        "description": null,
         "error": null,
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "label": null,
-        "multi": false,
+        "multi": true,
         "name": "slo_domain",
         "options": [],
-        "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
+          "refId": "Prometheus-slo_domain-Variable-Query"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
       },
       {
-        "allValue": null,
+        "allValue": ".+",
         "current": {},
         "datasource": "Prometheus",
-        "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_class)",
+        "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\"}, slo_class)",
+        "description": null,
         "error": null,
         "hide": 0,
         "includeAll": true,
@@ -501,13 +365,15 @@
         "multi": true,
         "name": "slo_class",
         "options": [],
-        "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_class)",
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\"}, slo_class)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -517,6 +383,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:burn_rate{slo_version=\"$slo_version\"}, slo_time_range)",
+        "description": null,
         "error": null,
         "hide": 0,
         "includeAll": true,
@@ -524,13 +391,15 @@
         "multi": true,
         "name": "slo_time_range",
         "options": [],
-        "query": "label_values(slo:burn_rate{slo_version=\"$slo_version\"}, slo_time_range)",
+        "query": {
+          "query": "label_values(slo:burn_rate{slo_version=\"$slo_version\"}, slo_time_range)",
+          "refId": "Prometheus-slo_time_range-Variable-Query"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -540,20 +409,41 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values( slo:events_rate_coefficient{slo_version=\"$slo_version\"}, slo_time_range)",
-        "error": null,
+        "description": null,
+        "error": {
+          "config": {
+            "headers": {
+              "X-Grafana-Org-Id": 1
+            },
+            "hideFromInspector": true,
+            "method": "GET",
+            "retry": 0,
+            "url": "api/datasources/proxy/20/api/v1/series?match%5B%5D=%20slo%3Aevents_rate_coefficient%7Bslo_version%3D%226%22%7D&start=1640707208&end=1640880008"
+          },
+          "data": {
+            "error": "Bad Gateway",
+            "message": "Bad Gateway",
+            "response": ""
+          },
+          "message": "Bad Gateway",
+          "status": 502,
+          "statusText": "Bad Gateway"
+        },
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "request_rate_time_range",
         "options": [],
-        "query": "label_values( slo:events_rate_coefficient{slo_version=\"$slo_version\"}, slo_time_range)",
+        "query": {
+          "query": "label_values( slo:events_rate_coefficient{slo_version=\"$slo_version\"}, slo_time_range)",
+          "refId": "Prometheus-request_rate_time_range-Variable-Query"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -563,6 +453,7 @@
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_type)",
+        "description": null,
         "error": null,
         "hide": 0,
         "includeAll": true,
@@ -570,13 +461,15 @@
         "multi": true,
         "name": "slo_type",
         "options": [],
-        "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_type)",
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_type)",
+          "refId": "Prometheus-slo_type-Variable-Query"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -585,7 +478,8 @@
         "allValue": null,
         "current": {},
         "datasource": "Prometheus",
-        "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, namespace)",
+        "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\"}, namespace)",
+        "description": null,
         "error": null,
         "hide": 0,
         "includeAll": false,
@@ -593,13 +487,15 @@
         "multi": false,
         "name": "namespace",
         "options": [],
-        "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, namespace)",
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=~\"$slo_domain\"}, namespace)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -637,5 +533,5 @@
   "timezone": "",
   "title": "SLO Effective Burn-rate",
   "uid": "5r2KMMWMk",
-  "version": 8
+  "version": 25
 }

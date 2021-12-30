@@ -1,15 +1,25 @@
 {
+  "__inputs": [
+    {
+      "name": "Prometheus",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
   "__requires": [
     {
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "7.0.0"
+      "version": "8.2.2"
     },
     {
       "type": "panel",
       "id": "graph",
-      "name": "Graph",
+      "name": "Graph (old)",
       "version": ""
     },
     {
@@ -17,12 +27,6 @@
       "id": "prometheus",
       "name": "Prometheus",
       "version": "1.0.0"
-    },
-    {
-      "type": "panel",
-      "id": "singlestat",
-      "name": "Singlestat",
-      "version": ""
     },
     {
       "type": "panel",
@@ -34,24 +38,33 @@
   "annotations": {
     "list": [
       {
+        "$$hashKey": "object:25",
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": "Prometheus",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
         "type": "dashboard"
       }
     ]
   },
   "description": "",
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1593202166365,
+  "iteration": 1640877138688,
   "links": [
     {
+      "$$hashKey": "object:201",
       "icon": "external link",
       "includeVars": false,
       "tags": [
@@ -63,6 +76,7 @@
       "type": "dashboards"
     },
     {
+      "$$hashKey": "object:224",
       "icon": "external link",
       "tags": [
         "SRE",
@@ -73,6 +87,7 @@
       "type": "dashboards"
     }
   ],
+  "liveNow": false,
   "panels": [
     {
       "collapsed": false,
@@ -82,6 +97,159 @@
         "w": 24,
         "x": 0,
         "y": 0
+      },
+      "id": 430,
+      "panels": [],
+      "title": "ON CALL",
+      "type": "row"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "links": [
+            {
+              "targetBlank": true,
+              "title": "opsgenie teams",
+              "url": "https://opsgenie.com/teams/list"
+            }
+          ],
+          "mappings": [],
+          "noValue": "-",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "id": 428,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "/^Value$/",
+          "values": true
+        },
+        "text": {},
+        "textMode": "name"
+      },
+      "pluginVersion": "8.2.2",
+      "targets": [
+        {
+          "displayType": "Regular",
+          "exemplar": true,
+          "expr": "max(slo:stable_version{slo_domain=\"$slo_domain\",slo_version=\"$slo_version\"}) by (team)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "{{team}}",
+          "refId": "A",
+          "valueHandler": "Number Threshold"
+        }
+      ],
+      "title": "Responsible team",
+      "type": "stat"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "links": [
+            {
+              "targetBlank": true,
+              "title": "OpsGenie Teams",
+              "url": "https://opsgenie.com/teams/list"
+            }
+          ],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 393,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "/^Value$/",
+          "values": true
+        },
+        "text": {},
+        "textMode": "name"
+      },
+      "pluginVersion": "8.2.2",
+      "targets": [
+        {
+          "displayType": "Regular",
+          "exemplar": true,
+          "expr": "max(slo:stable_version{slo_domain=\"$slo_domain\",slo_version=\"$slo_version\"}) by (escalate)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "{{escalate}}",
+          "refId": "A",
+          "valueHandler": "Number Threshold"
+        }
+      ],
+      "title": "Shadow (non-working hours) escalation",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 3
       },
       "id": 256,
       "panels": [],
@@ -94,18 +262,32 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "decimals": 2,
-          "mappings": [
+          "links": [
             {
-              "id": 0,
-              "op": "=",
-              "text": "N/A",
-              "type": 1,
-              "value": "null"
+              "targetBlank": true,
+              "title": "SLO Drilldown - ${__field.labels.slo_domain} - ${__field.labels.slo_class} - ${__field.labels.slo_type}",
+              "url": "https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version=${__field.labels.slo_version}&var-slo_domain=${__field.labels.slo_domain}&var-slo_class=${__field.labels.slo_class}&var-slo_time_range=${__field.labels.slo_time_range}&var-slo_type=${__field.labels.slo_type}&var-namespace=${__field.labels.namespace}&var-instance=All&${__url_time_range}"
+            },
+            {
+              "targetBlank": true,
+              "title": "SLO Effective Burn-rate - ${__field.labels.slo_domain} - ${__field.labels.slo_class} - ${__field.labels.slo_type}",
+              "url": "https://grafana/d/5r2KMMWMk/slo-effective-burn-rate?orgId=1&&var-slo_version=${__field.labels.slo_version}&var-slo_domain=${__field.labels.slo_domain}&var-slo_class=${__field.labels.slo_class}&var-slo_time_range=${__field.labels.slo_time_range}&var-slo_type=All&var-namespace=${__field.labels.namespace}&var-offset=All&var-cluster=All&var-instance=All&${__url_time_range}"
             }
           ],
-          "nullValueMode": "connected",
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "max": 1,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -131,7 +313,7 @@
         "h": 3,
         "w": 6,
         "x": 0,
-        "y": 1
+        "y": 4
       },
       "id": 52,
       "interval": null,
@@ -151,17 +333,23 @@
           "calcs": [
             "mean"
           ],
+          "fields": "",
           "values": false
-        }
+        },
+        "text": {},
+        "textMode": "auto"
       },
-      "pluginVersion": "7.0.0",
+      "pluginVersion": "8.2.2",
       "repeat": "slo_class",
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "1 - slo:violation_ratio{slo_domain=\"$slo_domain\", slo_type=\"$slo_type\", slo_class=\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=\"$slo_time_range\", namespace=\"$namespace\"}",
+          "exemplar": true,
+          "expr": "1 - max_over_time(slo:violation_ratio{slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=\"$slo_time_range\", namespace=\"$namespace\"}[5m])",
           "hide": false,
           "instant": true,
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -175,7 +363,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 57
       },
       "id": 146,
       "panels": [],
@@ -190,19 +378,13 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 13
+        "y": 58
       },
       "hiddenSeries": false,
       "id": 144,
@@ -219,13 +401,19 @@
       },
       "lines": true,
       "linewidth": 1,
-      "links": [],
+      "links": [
+        {
+          "title": "SLO Drilldown",
+          "url": "https://grafana/d/rPOkReFMz/slo-drilldown?orgId=1&var-slo_version=${slo_version}&var-slo_domain=${slo_domain}&var-slo_class=${slo_class}&var-slo_time_range=${slo_time_range}&var-slo_type=${slo_type}&var-namespace=${namespace}&var-offset=All&${__url_time_range}"
+        }
+      ],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "paceLength": 10,
       "percentage": false,
+      "pluginVersion": "8.2.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -233,10 +421,12 @@
       "repeatDirection": "h",
       "seriesOverrides": [
         {
+          "$$hashKey": "object:498",
           "alias": "placeholder",
           "lines": false
         },
         {
+          "$$hashKey": "object:499",
           "alias": "zero",
           "lines": false
         }
@@ -252,8 +442,9 @@
           "refId": "B"
         },
         {
-          "expr": "slo:violation_ratio{slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=\"$slo_time_range\", namespace=\"$namespace\"}\n/ on (slo_class,slo_domain,slo_version, slo_type, namespace) group_left ()\n(\n    slo:violation_ratio_threshold - 1\n)\n+1",
+          "expr": "max_over_time(slo:violation_ratio{slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_class=\"$slo_class\", slo_version=\"$slo_version\", slo_time_range=\"$slo_time_range\", namespace=\"$namespace\"}[15m])\n/ on (slo_class,slo_domain,slo_version, slo_type, namespace) group_left ()\n(\n    slo:violation_ratio_threshold - 1\n)\n+1",
           "hide": false,
+          "instant": false,
           "interval": "",
           "legendFormat": "{{ slo_type }}",
           "refId": "A"
@@ -279,6 +470,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:512",
           "format": "percentunit",
           "label": null,
           "logBase": 1,
@@ -287,6 +479,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:513",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -307,7 +500,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 70
       },
       "id": 163,
       "panels": [
@@ -316,18 +509,20 @@
           "datasource": "Prometheus",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "decimals": 2,
               "mappings": [
                 {
-                  "id": 0,
-                  "op": "=",
-                  "text": "N/A",
-                  "type": 1,
-                  "value": "null"
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
                 }
               ],
-              "nullValueMode": "connected",
+              "max": 1,
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -349,7 +544,7 @@
             "h": 2,
             "w": 6,
             "x": 0,
-            "y": 14
+            "y": 22
           },
           "id": 180,
           "interval": null,
@@ -369,297 +564,15 @@
               "calcs": [
                 "mean"
               ],
+              "fields": "",
               "values": false
-            }
+            },
+            "text": {},
+            "textMode": "auto"
           },
-          "pluginVersion": "7.0.0",
+          "pluginVersion": "8.0.2",
           "repeat": "slo_class",
           "repeatDirection": "h",
-          "scopedVars": {
-            "slo_class": {
-              "selected": false,
-              "text": "critical",
-              "value": "critical"
-            },
-            "slo_type": {
-              "selected": false,
-              "text": "availability",
-              "value": "availability"
-            }
-          },
-          "targets": [
-            {
-              "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$slo_type\", namespace=\"$namespace\"}",
-              "format": "time_series",
-              "hide": false,
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "title": "$slo_type $slo_class",
-          "type": "stat"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {},
-              "decimals": 2,
-              "mappings": [
-                {
-                  "id": 0,
-                  "op": "=",
-                  "text": "N/A",
-                  "type": 1,
-                  "value": "null"
-                }
-              ],
-              "nullValueMode": "connected",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 2,
-            "w": 6,
-            "x": 6,
-            "y": 14
-          },
-          "id": 339,
-          "interval": null,
-          "links": [],
-          "maxDataPoints": 100,
-          "options": {
-            "colorMode": "value",
-            "fieldOptions": {
-              "calcs": [
-                "mean"
-              ]
-            },
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
-              "values": false
-            }
-          },
-          "pluginVersion": "7.0.0",
-          "repeat": null,
-          "repeatDirection": "h",
-          "repeatIteration": 1591090840059,
-          "repeatPanelId": 180,
-          "scopedVars": {
-            "slo_class": {
-              "selected": false,
-              "text": "high_fast",
-              "value": "high_fast"
-            },
-            "slo_type": {
-              "selected": false,
-              "text": "availability",
-              "value": "availability"
-            }
-          },
-          "targets": [
-            {
-              "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$slo_type\", namespace=\"$namespace\"}",
-              "format": "time_series",
-              "hide": false,
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "title": "$slo_type $slo_class",
-          "type": "stat"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {},
-              "decimals": 2,
-              "mappings": [
-                {
-                  "id": 0,
-                  "op": "=",
-                  "text": "N/A",
-                  "type": 1,
-                  "value": "null"
-                }
-              ],
-              "nullValueMode": "connected",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 2,
-            "w": 6,
-            "x": 12,
-            "y": 14
-          },
-          "id": 340,
-          "interval": null,
-          "links": [],
-          "maxDataPoints": 100,
-          "options": {
-            "colorMode": "value",
-            "fieldOptions": {
-              "calcs": [
-                "mean"
-              ]
-            },
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
-              "values": false
-            }
-          },
-          "pluginVersion": "7.0.0",
-          "repeat": null,
-          "repeatDirection": "h",
-          "repeatIteration": 1591090840059,
-          "repeatPanelId": 180,
-          "scopedVars": {
-            "slo_class": {
-              "selected": false,
-              "text": "high_slow",
-              "value": "high_slow"
-            },
-            "slo_type": {
-              "selected": false,
-              "text": "availability",
-              "value": "availability"
-            }
-          },
-          "targets": [
-            {
-              "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$slo_type\", namespace=\"$namespace\"}",
-              "format": "time_series",
-              "hide": false,
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "title": "$slo_type $slo_class",
-          "type": "stat"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {},
-              "decimals": 2,
-              "mappings": [
-                {
-                  "id": 0,
-                  "op": "=",
-                  "text": "N/A",
-                  "type": 1,
-                  "value": "null"
-                }
-              ],
-              "nullValueMode": "connected",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 2,
-            "w": 6,
-            "x": 18,
-            "y": 14
-          },
-          "id": 341,
-          "interval": null,
-          "links": [],
-          "maxDataPoints": 100,
-          "options": {
-            "colorMode": "value",
-            "fieldOptions": {
-              "calcs": [
-                "mean"
-              ]
-            },
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
-              "values": false
-            }
-          },
-          "pluginVersion": "7.0.0",
-          "repeat": null,
-          "repeatDirection": "h",
-          "repeatIteration": 1591090840059,
-          "repeatPanelId": 180,
-          "scopedVars": {
-            "slo_class": {
-              "selected": false,
-              "text": "low",
-              "value": "low"
-            },
-            "slo_type": {
-              "selected": false,
-              "text": "availability",
-              "value": "availability"
-            }
-          },
           "targets": [
             {
               "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$slo_type\", namespace=\"$namespace\"}",
@@ -685,33 +598,35 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 287
       },
       "id": 301,
       "panels": [
         {
           "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": false,
-          "colors": [
-            "#299c46",
-            "rgba(237, 129, 40, 0.89)",
-            "#d44a3a"
-          ],
           "datasource": "Prometheus",
           "fieldConfig": {
             "defaults": {
-              "custom": {}
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
             },
             "overrides": []
-          },
-          "format": "s",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
           },
           "gridPos": {
             "h": 2,
@@ -722,53 +637,25 @@
           "id": 199,
           "interval": null,
           "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
           "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "pluginVersion": "6.6.1",
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
+          "options": {
+            "colorMode": "none",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^le$/",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "8.0.2",
           "repeat": "slo_class",
           "repeatDirection": "h",
-          "scopedVars": {
-            "latency_slo_type": {
-              "selected": false,
-              "text": "latency90",
-              "value": "latency90"
-            },
-            "slo_class": {
-              "selected": false,
-              "text": "critical",
-              "value": "critical"
-            }
-          },
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": false,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": false
-          },
-          "tableColumn": "le",
           "targets": [
             {
               "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$latency_slo_type\", namespace=\"$namespace\"}",
@@ -779,341 +666,10 @@
               "refId": "A"
             }
           ],
-          "thresholds": "",
           "timeFrom": null,
           "timeShift": null,
           "title": "$latency_slo_type percentile threshold for $slo_class",
-          "type": "singlestat",
-          "valueFontSize": "80%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "",
-              "value": ""
-            }
-          ],
-          "valueName": "current"
-        },
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": false,
-          "colors": [
-            "#299c46",
-            "rgba(237, 129, 40, 0.89)",
-            "#d44a3a"
-          ],
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "format": "s",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "gridPos": {
-            "h": 2,
-            "w": 6,
-            "x": 6,
-            "y": 29
-          },
-          "id": 355,
-          "interval": null,
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "pluginVersion": "6.6.1",
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "repeat": null,
-          "repeatDirection": "h",
-          "repeatIteration": 1591090840059,
-          "repeatPanelId": 199,
-          "scopedVars": {
-            "latency_slo_type": {
-              "selected": false,
-              "text": "latency90",
-              "value": "latency90"
-            },
-            "slo_class": {
-              "selected": false,
-              "text": "high_fast",
-              "value": "high_fast"
-            }
-          },
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": false,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": false
-          },
-          "tableColumn": "le",
-          "targets": [
-            {
-              "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$latency_slo_type\", namespace=\"$namespace\"}",
-              "format": "table",
-              "instant": true,
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "thresholds": "",
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$latency_slo_type percentile threshold for $slo_class",
-          "type": "singlestat",
-          "valueFontSize": "80%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "",
-              "value": ""
-            }
-          ],
-          "valueName": "current"
-        },
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": false,
-          "colors": [
-            "#299c46",
-            "rgba(237, 129, 40, 0.89)",
-            "#d44a3a"
-          ],
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "format": "s",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "gridPos": {
-            "h": 2,
-            "w": 6,
-            "x": 12,
-            "y": 29
-          },
-          "id": 356,
-          "interval": null,
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "pluginVersion": "6.6.1",
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "repeat": null,
-          "repeatDirection": "h",
-          "repeatIteration": 1591090840059,
-          "repeatPanelId": 199,
-          "scopedVars": {
-            "latency_slo_type": {
-              "selected": false,
-              "text": "latency90",
-              "value": "latency90"
-            },
-            "slo_class": {
-              "selected": false,
-              "text": "high_slow",
-              "value": "high_slow"
-            }
-          },
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": false,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": false
-          },
-          "tableColumn": "le",
-          "targets": [
-            {
-              "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$latency_slo_type\", namespace=\"$namespace\"}",
-              "format": "table",
-              "instant": true,
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "thresholds": "",
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$latency_slo_type percentile threshold for $slo_class",
-          "type": "singlestat",
-          "valueFontSize": "80%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "",
-              "value": ""
-            }
-          ],
-          "valueName": "current"
-        },
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": false,
-          "colors": [
-            "#299c46",
-            "rgba(237, 129, 40, 0.89)",
-            "#d44a3a"
-          ],
-          "datasource": "Prometheus",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "format": "s",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "gridPos": {
-            "h": 2,
-            "w": 6,
-            "x": 18,
-            "y": 29
-          },
-          "id": 357,
-          "interval": null,
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "pluginVersion": "6.6.1",
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "repeat": null,
-          "repeatDirection": "h",
-          "repeatIteration": 1591090840059,
-          "repeatPanelId": 199,
-          "scopedVars": {
-            "latency_slo_type": {
-              "selected": false,
-              "text": "latency90",
-              "value": "latency90"
-            },
-            "slo_class": {
-              "selected": false,
-              "text": "low",
-              "value": "low"
-            }
-          },
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": false,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": false
-          },
-          "tableColumn": "le",
-          "targets": [
-            {
-              "expr": "slo:violation_ratio_threshold{slo_class=\"$slo_class\",slo_domain=\"$slo_domain\",slo_version=\"$slo_version\", slo_type=\"$latency_slo_type\", namespace=\"$namespace\"}",
-              "format": "table",
-              "instant": true,
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "thresholds": "",
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$latency_slo_type percentile threshold for $slo_class",
-          "type": "singlestat",
-          "valueFontSize": "80%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "",
-              "value": ""
-            }
-          ],
-          "valueName": "current"
+          "type": "stat"
         }
       ],
       "repeat": "latency_slo_type",
@@ -1121,143 +677,88 @@
       "type": "row"
     }
   ],
-  "refresh": "5s",
-  "schemaVersion": 25,
+  "refresh": "1m",
+  "schemaVersion": 31,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "SLO, SRE"
+  ],
   "templating": {
     "list": [
       {
-          "allValue": null,
-          "datasource": "Prometheus",
-          "definition": "label_values(slo:stable_version{enabled!=\"false\"}, slo_version)",
-          "hide": 0,
-          "includeAll": false,
-          "label": null,
-          "multi": false,
-          "name": "slo_version",
-          "options": [],
-          "query": "label_values(slo:stable_version{enabled!=\"false\"}, slo_version)",
-          "refresh": 2,
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": 0,
-          "tagValuesQuery": "",
-          "tags": [],
-          "tagsQuery": "",
-          "type": "query",
-          "useTags": false
+        "allValue": null,
+        "current": {},
+        "datasource": "Prometheus",
+        "definition": "label_values(slo:violation_ratio_threshold{}, slo_version)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "slo_version",
+        "options": [],
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{}, slo_version)",
+          "refId": "Prometheus-slo_version-Variable-Query"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       },
       {
         "allValue": null,
         "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "slo_domain",
         "options": [],
-        "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\"}, slo_domain)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
       },
       {
-        "allValue": null,
+        "allValue": "",
         "current": {},
         "datasource": "Prometheus",
-        "definition": "query_result(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\"})",
-        "hide": 0,
-        "includeAll": true,
-        "label": "",
-        "multi": true,
-        "name": "slo_class",
-        "options": [],
-        "query": "query_result(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\"})",
-        "refresh": 2,
-        "regex": "/slo_class=\"([^\"]+)\"/",
-        "skipUrlSync": false,
-        "sort": 1,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": null,
-        "current": {
-          "selected": true,
-          "text": "5m",
-          "value": "5m"
-        },
-        "datasource": "Prometheus",
-        "definition": "label_values(slo_time_range)",
-        "hide": 0,
-        "includeAll": false,
-        "label": null,
-        "multi": false,
-        "name": "slo_time_range",
-        "options": [],
-        "query": "label_values(slo_time_range)",
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 1,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": ".*",
-        "current": {},
-        "datasource": "Prometheus",
-        "definition": "query_result(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"})",
+        "definition": "label_values(slo:violation_ratio{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_type)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": true,
         "label": "",
         "multi": true,
         "name": "slo_type",
         "options": [],
-        "query": "query_result(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"})",
+        "query": {
+          "query": "label_values(slo:violation_ratio{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, slo_type)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 2,
-        "regex": "/slo_type=\"([^\"]+)\"/",
+        "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": ".*",
-        "current": {},
-        "datasource": "Prometheus",
-        "definition": "query_result(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\"})",
-        "hide": 2,
-        "includeAll": true,
-        "label": "",
-        "multi": true,
-        "name": "latency_slo_type",
-        "options": [],
-        "query": "query_result(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\"})",
-        "refresh": 2,
-        "regex": "/slo_type=\"(latency[^\"]*)\"/",
-        "skipUrlSync": false,
-        "sort": 1,
-        "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -1266,20 +767,102 @@
         "allValue": null,
         "current": {},
         "datasource": "Prometheus",
-        "definition": "query_result(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\"})",
+        "definition": "label_values(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\"}, slo_class)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "",
+        "multi": true,
+        "name": "slo_class",
+        "options": [],
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\", slo_type=~\"$slo_type\"}, slo_class)",
+          "refId": "Prometheus-slo_class-Variable-Query"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "Prometheus",
+        "definition": "label_values(slo_time_range)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "slo_time_range",
+        "options": [],
+        "query": {
+          "query": "label_values(slo_time_range)",
+          "refId": "Prometheus-slo_time_range-Variable-Query"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": "Prometheus",
+        "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_type=~\".*latency.*\"}, slo_type)",
+        "description": null,
+        "error": null,
+        "hide": 2,
+        "includeAll": true,
+        "label": "",
+        "multi": true,
+        "name": "latency_slo_type",
+        "options": [],
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\", slo_type=~\"$slo_type\", slo_type=~\".*latency.*\"}, slo_type)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "Prometheus",
+        "definition": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, namespace)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "namespace",
         "options": [],
-        "query": "query_result(slo:violation_ratio_threshold{slo_version=~\"$slo_version\", slo_domain=~\"$slo_domain\"})",
+        "query": {
+          "query": "label_values(slo:violation_ratio_threshold{slo_version=\"$slo_version\", slo_domain=\"$slo_domain\"}, namespace)",
+          "refId": "Prometheus-namespace-Variable-Query"
+        },
         "refresh": 2,
-        "regex": "/namespace=\"([^\"]+)\"/",
+        "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -1315,7 +898,7 @@
     ]
   },
   "timezone": "",
-  "title": "SLO detailed",
+  "title": "SLO Detailed",
   "uid": "lRKeWGZGk",
-  "version": 3
+  "version": 27
 }
