@@ -1,0 +1,21 @@
+# Configuration for slo-rules-generator tool.
+# If modified, run slo-rules-generator and move its output to recording_rules/
+# See ../../tools/slo-rules-generator/README.md for more information.
+example-domain:
+  enabled: true
+  namespace: test
+  version: 1
+  alerting:
+    team: example-team@company.org
+    escalate: sre-team@company.org
+  classes:
+    critical:
+      availability: {slo_threshold: 0.90}
+      latency90:    {
+        slo_threshold: 0.90,
+        slo_threshold_metadata: {percentile: 90, le: 0.6}
+      }
+      latency99:    {
+        slo_threshold: 0.99,
+        slo_threshold_metadata: {percentile: 99, le: 12.0}
+      }

@@ -1,0 +1,31 @@
+userportal-reports: # domain-name
+  enabled: true
+  namespace: production
+  version: 6
+  alerting:
+    team: team.x@company.com
+    escalate: sre.x@company.com
+    # Thresholds for burn-rate alerts. If not present, the following defaults are used for all domains, classes:
+    # 1h: 13.44
+    # 6h: 5.6
+    # 1d: 2.8
+    # 3d: 1
+    # class and slo_type in conditions may be an empty string - which equals to effectively any domain or slo_type
+    burn_rate_thresholds:
+      - condition: {class: 'critical', slo_type: 'availability', time_range: '1h'}
+        value: 13.44
+      - condition: {class: 'low',      slo_type: 'latency90',    time_range: '6h'}
+        value: 33.12
+  classes:
+    critical: # slo_class name
+      # availability slo_type
+      availability: {slo_threshold: 0.99}
+      # latency90 slo_type
+      latency90:    {
+        slo_threshold: 0.90,
+        # k: v which are added as a labels to resulting slo:violation_ratio_threshold metrics
+        slo_threshold_metadata: {percentile: 90, le: 0.8}
+      }
+    low:
+      availability: {slo_threshold: 0.99}
+      latency90:    {slo_threshold: 0.90, slo_threshold_metadata: {percentile: 90, le: 0.8}}
