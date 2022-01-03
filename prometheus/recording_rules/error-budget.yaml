@@ -1,7 +1,7 @@
 groups:
 # Used for simple vizualizations in Grafana.
 - name: slo-error-budget
-  interval: 20s
+  interval: 1m
   rules:
     - record: slo:error_budget
       expr: |

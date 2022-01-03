@@ -5,7 +5,7 @@ groups:
     interval: 3m
     rules:
       - record: slo:events_rate_coefficient
-        expr:
+        expr: |
             (sum(slo:events_over_time{slo_time_range="1h"}) without (result) * 24*28 )
             / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
             sum(slo:events_over_time{slo_time_range="4w"}) without (result)
@@ -13,7 +13,7 @@ groups:
           slo_time_range: 1h
 
       - record: slo:events_rate_coefficient
-        expr:
+        expr: |
             (sum(slo:events_over_time{slo_time_range="6h"}) without (result) * 4*28 )
             / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
             sum(slo:events_over_time{slo_time_range="4w"}) without (result)
@@ -21,7 +21,7 @@ groups:
           slo_time_range: 6h
 
       - record: slo:events_rate_coefficient
-        expr:
+        expr: |
             (sum(slo:events_over_time{slo_time_range="1d"}) without (result) * 28 )
             / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
             sum(slo:events_over_time{slo_time_range="4w"}) without (result)
@@ -29,7 +29,7 @@ groups:
           slo_time_range: 1d
 
       - record: slo:events_rate_coefficient
-        expr:
+        expr: |
             (sum(slo:events_over_time{slo_time_range="3d"}) without (result) * 28/3 )
             / on(slo_version, slo_domain, slo_class, slo_type, namespace) group_left()
             sum(slo:events_over_time{slo_time_range="4w"}) without (result)

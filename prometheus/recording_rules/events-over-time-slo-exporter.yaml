@@ -18,9 +18,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (28*24*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="4w"}
+            28*24*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="4w"}
        labels:
         result: fail
      # 3d
@@ -39,9 +37,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (3*24*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="3d"}
+            3*24*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="3d"}
        labels:
         result: fail
      # 1d
@@ -60,9 +56,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*24*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1d"}
+            1*24*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1d"}
        labels:
         result: fail
      # 6h
@@ -81,9 +75,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*6*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="6h"}
+            6*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="6h"}
        labels:
         result: fail
      # 2h
@@ -102,9 +94,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*2*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="2h"}
+            2*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="2h"}
        labels:
         result: fail
 
@@ -127,9 +117,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*1*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1h"}
+            1*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1h"}
        labels:
         result: fail
      # 30m
@@ -148,9 +136,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*1*30)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="30m"}
+            30 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="30m"}
        labels:
         result: fail
      # 5m
@@ -169,9 +155,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*1*5)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="5m"}
+            5 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="5m"}
        labels:
         result: fail
 
