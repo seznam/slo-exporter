@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+- [#78](https://github.com/seznam/slo-exporter/pull/78) Upgrade dependencies mainly to avoid reported CVEs in grafana/loki
+
 ## [v6.10.0] 2021-09-17
 ### Added
 - [#69](https://github.com/seznam/slo-exporter/pull/69) *Experimental* Exemplars support for the `prometheus_exporter` module.
