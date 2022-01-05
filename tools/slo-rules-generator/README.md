@@ -1,4 +1,4 @@
-slo-rules-generator is a tool which generates Prometheus recording rules based in input defintion of SLO domain. The generated rules are necessary for SLO based alerting - error budget exhaustion and burn-rate based alerts.
+slo-rules-generator is a tool which generates Prometheus recording rules based on input defintion of SLO domain. The generated rules are necessary for SLO based alerting - error budget exhaustion and burn-rate based alerts.
 
 See [./slo-domains.yaml.example](./slo-domains.yaml.example) for commented example of input configuration.
 
