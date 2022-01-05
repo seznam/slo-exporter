@@ -18,7 +18,6 @@ userportal-reports: # domain-name
         value: 33.12
   classes:
     critical: # slo_class name
-      # availability slo_type
       availability: {slo_threshold: 0.99}
       latency90:    {
         slo_threshold: 0.90,
