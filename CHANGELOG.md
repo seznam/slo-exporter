@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - [#78](https://github.com/seznam/slo-exporter/pull/78) Upgrade dependencies mainly to avoid reported CVEs in grafana/loki
+- [#79](https://github.com/seznam/slo-exporter/pull/79) Upgrade to Go 1.17
+
 
 ## [v6.10.0] 2021-09-17
 ### Added
