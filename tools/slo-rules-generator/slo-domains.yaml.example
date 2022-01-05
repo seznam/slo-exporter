@@ -23,7 +23,7 @@ userportal-reports: # domain-name
       # latency90 slo_type
       latency90:    {
         slo_threshold: 0.90,
-        # k: v which are added as a labels to resulting slo:violation_ratio_threshold metrics
+        # labels added to resulting slo:violation_ratio_threshold metrics
         slo_threshold_metadata: {percentile: 90, le: 0.8} # The 0.8 is a maximum duration of event to be considered successfull taken from the slo_rules.yaml
       }
     low:
