@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 
 	logrusAdapter "github.com/go-kit/kit/log/logrus"
-	"github.com/grafana/loki/pkg/promtail/positions"
+	"github.com/grafana/loki/clients/pkg/promtail/positions"
 	"github.com/hpcloud/tail"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -98,7 +98,7 @@ func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 	if config.PositionFile == "" {
 		config.PositionFile = config.getDefaultPositionsFilePath()
 	}
-	pos, err = positions.New(logrusAdapter.NewLogrusLogger(logger), positions.Config{SyncPeriod: config.PositionPersistenceInterval, PositionsFile: config.PositionFile})
+	pos, err = positions.New(logrusAdapter.NewLogger(logger), positions.Config{SyncPeriod: config.PositionPersistenceInterval, PositionsFile: config.PositionFile})
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize file position persister: %+v", err)
 	}
