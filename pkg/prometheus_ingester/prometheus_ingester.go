@@ -12,10 +12,10 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -23,6 +23,8 @@ const (
 	metadataTimestampKey      = "unixTimestamp"
 	metadataHistogramMinValue = "prometheusHistogramMinValue"
 	metadataHistogramMaxValue = "prometheusHistogramMaxValue"
+
+	defaultStaleness = time.Minute * 5
 )
 
 var (
@@ -78,6 +80,7 @@ type PrometheusIngesterConfig struct {
 	RoundTripper http.RoundTripper
 	Queries      []queryOptions
 	QueryTimeout time.Duration
+	Staleness    time.Duration
 }
 
 type PrometheusIngester struct {
@@ -121,6 +124,9 @@ func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*Prom
 	config := PrometheusIngesterConfig{}
 	if err := viperAppConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+	if config.Staleness == time.Duration(0) {
+		config.Staleness = defaultStaleness
 	}
 	if config.QueryTimeout == time.Duration(0) {
 		return nil, errors.New("mandatory config field QueryTimeout is missing in PrometheusIngester configuration")
@@ -191,6 +197,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 				previousResult: queryResult{
 					metrics: make(map[model.Fingerprint]model.SamplePair),
 				},
+				staleness: initConfig.Staleness,
 			},
 		)
 	}
