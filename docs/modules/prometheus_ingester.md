@@ -1,6 +1,5 @@
 # Prometheus ingester
 
-
 |                |                         |
 |----------------|-------------------------|
 | `moduleName`   | `prometheusIngester`    |
@@ -16,6 +15,8 @@ For its usage example see [the prometheus example](/examples/prometheus).
 apiUrl: <URL>
 # Timeout for executing the query
 queryTimeout: <Go_duration>
+# Optional setting of staleness set on the queried Prometheus instance, default is 5m same as in Prometheus
+staleness: <Go_duration>
 # List of queries to be periodically executed.
 queries:
   - <query>
@@ -69,6 +70,8 @@ Please note that the query is to be provided exactly as it would be passed to in
 Mapping to resulting event(s):
 For every metric in the result:
 * If no previous sample for given metric is found, no event is generated and sample is just stored to local cache (please note that cache is not persisted upon restarts and is local to every individual instance of slo-exporter).
+* Staleness applies same as with Prometheus. Last samples are dropped after the configured time, do not set the interval
+  longer than staleness otherwise you will be loosing data.
 * If previous sample of given metric is found, difference between new sample and previous sample is computed, and a single new event is generated with the following mapping:
 ```
 event.Metadata["unixTimestamp"] - sample timestamp
@@ -101,7 +104,6 @@ bucket distribution of the queried histogram.
     dropLabels:
       - instance
 ```
-
 
 ### Terminology used
 * **Metric** - unique set of consisting of metric name and its labels. Associated with list of **Samples** forms a **Time series**.

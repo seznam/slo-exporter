@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 type MockedRoundTripper struct {
@@ -477,79 +476,47 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 
 }
 
+func promTime(ts time.Time, add time.Duration) model.Time {
+	return model.Time(ts.Add(add).Unix())
+}
+
 func Test_processMetricsIncrease(t *testing.T) {
 	type testCase struct {
-		q              *queryExecutor
+		name           string
+		staleness      time.Duration
 		ts             time.Time
-		result         []*model.SampleStream // == type Matrix
+		previousResult queryResult
+		newResult      []*model.SampleStream
 		expectedEvents []*event.Raw
 	}
 
 	x := newMetric("x", nil)
 	y := newMetric("y", nil)
 
-	ts := time.Now()
-	q := &queryExecutor{
-		Query: queryOptions{
-			Interval:         time.Second * 20,
-			Type:             counterQueryType,
-			ResultAsQuantity: newTrue(),
-		},
-		previousResult: queryResult{
-			ts.Add(time.Hour * -1),
-			map[model.Fingerprint]model.SamplePair{
-				x.Fingerprint(): {0, 0},
-				y.Fingerprint(): {0, 10},
-			},
-		},
-	}
-
+	ts := model.Time(0)
 	testCases := []testCase{
-		// monotonic value of x to 10 (in two samples)
 		{
-			q:  q,
-			ts: ts,
-			result: []*model.SampleStream{
+			name:      "continuous increase of 10 in metric x, no increase in metric y",
+			ts:        ts.Time().Add(time.Minute * 2),
+			staleness: defaultStaleness,
+			previousResult: queryResult{
+				ts.Time(),
+				map[model.Fingerprint]model.SamplePair{
+					x.Fingerprint(): {ts, 0},
+					y.Fingerprint(): {ts, 10},
+				},
+			},
+			newResult: []*model.SampleStream{
 				{
 					Metric: x,
 					Values: []model.SamplePair{
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
+							Timestamp: ts.Add(time.Minute * 1),
 							Value:     model.SampleValue(5),
 						},
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
+							Timestamp: ts.Add(time.Minute * 2),
 							Value:     model.SampleValue(10),
-						},
-					},
-				},
-			},
-			expectedEvents: []*event.Raw{
-				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 10,
-				},
-			},
-		},
-		// value with reset on x, monotonic value for y
-		{
-			q:  q,
-			ts: ts,
-			result: []*model.SampleStream{
-				{
-					Metric: x,
-					Values: []model.SamplePair{
-						{
-							Timestamp: model.Time(ts.Add(time.Hour * -3).Unix()),
-							Value:     model.SampleValue(5),
-						},
-						{
-							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
-							Value:     model.SampleValue(1),
-						},
-						{
-							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
-							Value:     model.SampleValue(5),
 						},
 					},
 				},
@@ -557,45 +524,111 @@ func Test_processMetricsIncrease(t *testing.T) {
 					Metric: y,
 					Values: []model.SamplePair{
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
-							Value:     model.SampleValue(1),
+							Timestamp: ts.Add(time.Minute * 1),
+							Value:     model.SampleValue(10),
 						},
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
-							Value:     model.SampleValue(2),
+							Timestamp: ts.Add(time.Minute * 2),
+							Value:     model.SampleValue(10),
 						},
 					},
 				},
 			},
 			expectedEvents: []*event.Raw{
 				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
+					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Add(time.Minute*2).Unix())}),
 					Quantity: 10,
 				},
+			},
+		},
+		{
+			name:      "test staleness with gap between samples, should return no increase",
+			staleness: defaultStaleness,
+			ts:        ts.Time().Add(time.Minute * 10),
+			previousResult: queryResult{
+				ts.Time(),
+				map[model.Fingerprint]model.SamplePair{
+					x.Fingerprint(): {ts, 0},
+				},
+			},
+			newResult: []*model.SampleStream{
 				{
-					Metadata: stringmap.NewFromMetric(y).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 1,
+					Metric: x,
+					Values: []model.SamplePair{
+						{
+							Timestamp: ts.Add(time.Minute),
+							Value:     model.SampleValue(1),
+						},
+					},
+				},
+			},
+			expectedEvents: []*event.Raw{},
+		},
+		{
+			name:      "test counter reset on x series",
+			staleness: defaultStaleness,
+			ts:        ts.Time().Add(time.Minute * 4),
+			previousResult: queryResult{
+				ts.Time(),
+				map[model.Fingerprint]model.SamplePair{
+					x.Fingerprint(): {ts, 0},
+				},
+			},
+			newResult: []*model.SampleStream{
+				{
+					Metric: x,
+					Values: []model.SamplePair{
+						{
+							Timestamp: ts.Add(time.Minute * 1),
+							Value:     model.SampleValue(5),
+						},
+						{
+							Timestamp: ts.Add(time.Minute * 2),
+							Value:     model.SampleValue(1),
+						},
+						{
+							Timestamp: ts.Add(time.Minute * 3),
+							Value:     model.SampleValue(5),
+						},
+					},
+				},
+			},
+			expectedEvents: []*event.Raw{
+				{
+					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Add(time.Minute*4).Unix())}),
+					Quantity: 10,
 				},
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
-		testCase.q.eventsChan = make(chan *event.Raw)
-
-		var generatedEvents []*event.Raw
-		done := make(chan struct{})
-		go func() {
-			for e := range testCase.q.eventsChan {
-				generatedEvents = append(generatedEvents, e)
+		t.Run(testCase.name, func(t *testing.T) {
+			q := &queryExecutor{
+				Query: queryOptions{
+					Interval:         time.Second * 20,
+					Type:             counterQueryType,
+					ResultAsQuantity: newTrue(),
+				},
+				staleness:      testCase.staleness,
+				previousResult: testCase.previousResult,
+				eventsChan:     make(chan *event.Raw),
 			}
-			done <- struct{}{}
-		}()
-		testCase.q.processCountersIncrease(testCase.result, testCase.ts)
-		close(testCase.q.eventsChan)
-		<-done
 
-		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+			var generatedEvents []*event.Raw
+			done := make(chan struct{})
+			go func() {
+				for e := range q.eventsChan {
+					generatedEvents = append(generatedEvents, e)
+				}
+				done <- struct{}{}
+			}()
+			q.processCountersIncrease(testCase.newResult, testCase.ts)
+			close(q.eventsChan)
+			<-done
+
+			assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+		})
 	}
 }
 
@@ -616,45 +649,45 @@ func Test_processHistogramIncrease(t *testing.T) {
 		data           []*model.SampleStream // == type Matrix
 		expectedEvents []*event.Raw
 	}
-	ts := time.Now()
-	tsStr := strconv.Itoa(int(ts.Unix()))
+	ts := model.Time(0)
+	newTs := ts.Add(time.Minute)
 
 	testCases := []testCase{
 		// monotonic value of x to 10 (in two samples)
 		{
-			ts: ts,
+			ts: ts.Time(),
 			data: []*model.SampleStream{
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "1"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(2)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(2)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "3"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(8)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(8)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "6"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(8)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(8)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "+Inf"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(10)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "0.5"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(2)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(2)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "+Inf"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(10)}},
 				},
 			},
 			expectedEvents: []*event.Raw{
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "0.5", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "0.5", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "0.5", metadataHistogramMaxValue: "+Inf", metadataValueKey: "8"}, Quantity: 8},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "0.5", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "0.5", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "+Inf", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "0.5", metadataHistogramMaxValue: "+Inf", metadataValueKey: "8"}, Quantity: 8},
 			},
 		},
 	}
@@ -677,7 +710,7 @@ func Test_processHistogramIncrease(t *testing.T) {
 			}
 			done <- struct{}{}
 		}()
-		err := q.processHistogramIncrease(testCase.data, ts)
+		err := q.processHistogramIncrease(testCase.data, ts.Time())
 		assert.NoError(t, err)
 		close(q.eventsChan)
 		<-done

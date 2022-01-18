@@ -21,6 +21,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.7.0
+	go.uber.org/atomic v1.9.0
 	golang.org/x/exp v0.0.0-20200821190819-94841d0725da
 	gonum.org/v1/gonum v0.8.2
 	google.golang.org/grpc v1.40.0
