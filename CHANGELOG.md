@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- [#77](https://github.com/seznam/slo-exporter/pull/77) *Experimental* slo-rules-generator tool
 
 ### Changed
 - [#78](https://github.com/seznam/slo-exporter/pull/78) Upgrade dependencies mainly to avoid reported CVEs in grafana/loki
