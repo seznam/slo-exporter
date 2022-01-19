@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [#78](https://github.com/seznam/slo-exporter/pull/78) Upgrade dependencies mainly to avoid reported CVEs in grafana/loki
 - [#80](https://github.com/seznam/slo-exporter/pull/80) prometheus-ingester: Add staleness support and possibility to have shorter query interval
+- [#81](https://github.com/seznam/slo-exporter/pull/81) Upgrade dependencies to avoid CVE in containerd and image-spec
 
 ## [v6.10.0] 2021-09-17
 ### Added
