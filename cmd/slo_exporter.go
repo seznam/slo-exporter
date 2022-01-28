@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/seznam/slo-exporter/pkg/elasticsearch_ingester"
 	"runtime"
 
 	"github.com/gorilla/mux"
@@ -71,6 +72,8 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 		return prometheus_ingester.NewFromViper(conf, logger)
 	case "kafkaIngester":
 		return kafka_ingester.NewFromViper(conf, logger)
+	case "elasticSearchIngester":
+		return elasticsearch_ingester.NewFromViper(conf, logger)
 	case "envoyAccessLogServer":
 		return envoy_access_log_server.NewFromViper(conf, logger)
 	case "eventMetadataRenamer":

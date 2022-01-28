@@ -194,7 +194,7 @@ func Test_ParseLineAndBuildEvent(t *testing.T) {
 	for _, test := range testTable {
 		requestLine := getRequestLine(test.lineContentMapping)
 
-		data, err := parseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
+		data, err := ParseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
 		if err != nil {
 			if test.isLineValid {
 				t.Fatalf("unable to parse request line '%s': %v", requestLine, err)
@@ -247,7 +247,7 @@ func Test_ParseLine(t *testing.T) {
 
 	for _, test := range testTable {
 		requestLine := getRequestLine(test.lineContentMapping)
-		data, err := parseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
+		data, err := ParseLine(lineParseRegexpCompiled, emptyGroupRegexpCompiled, requestLine)
 		if err != nil {
 			t.Fatalf("unable to parse request line '%s': %v", requestLine, err)
 		}
