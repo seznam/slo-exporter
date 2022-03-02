@@ -69,19 +69,25 @@ func main() {
 				os.Exit(2)
 			}
 			fname := fmt.Sprintf("%s.yaml", domainName)
-			f, err := os.OpenFile(fname, os.O_RDWR|os.O_CREATE, 0755)
+			f, err := os.Create(fname)
+			if err != nil {
+				fmt.Printf("Error while creating file %s: %v", fname, err)
+				os.Exit(1)
+			}
 			fmt.Printf("-> %s\n", fname)
 			defer f.Close()
 			_, err = f.WriteString(domainFileHeaderComment)
 			if err != nil {
 				fmt.Printf("Error while writing to %s: %v", fname, err)
+				os.Exit(1)
 			}
 			_, err = f.Write(data)
 			if err != nil {
 				fmt.Printf("Error while writing to %s: %v", fname, err)
+				os.Exit(1)
 			}
-		}
 	}
+}
 
 
 
