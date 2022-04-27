@@ -10,8 +10,7 @@ periods.
 
 ## Configuration
 
-We recommend to either build own docker image based on the upstream one with the configuration baked in or if using
-config maps, use some kind of versioning for it to allow rolling upgrades etc.
+We recommend to either building own docker image based on the upstream one with the configuration baked in or including configuration as a versioned configmap(s), in order to simplify rollbacks.
 
 In this example we use it without the versioning just for simplification.
 
