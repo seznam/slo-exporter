@@ -4,9 +4,7 @@ These serve as an example. You will probably want to use kustomize or some other
 
 ## Workload type
 
-We recommend using a StatefulSet instead of deployment to mitigate high churn in long term metrics.
-Predictable pod name which in the instance label makes it easier for Prometheus to calculate the SLO over long time
-periods.
+We recommend using a StatefulSet instead of deployment to mitigate high churn in long term metrics - statefulset' stable pod name format (which is propagated to Prometheus' instance label) makes it easier for Prometheus to calculate the SLO over long time periods.
 
 ## Configuration
 
