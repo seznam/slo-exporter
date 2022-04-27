@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: slo-exporter
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc-logging
+      port: 18090
+      protocol: TCP
+      targetPort: 18090
+  selector:
+    app: slo-exporter

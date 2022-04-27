@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-exporter-config
+labels:
+  app: slo-exporter
+  data:
+    slo_exporter.yaml: |
+      webServerListenAddress: "0.0.0.0:8001"
+      maximumGracefulShutdownDuration: "10s"
+      afterPipelineShutdownDelay: "1s"
+
+      pipeline: ["envoyAccessLogServer", "relabel", "eventKeyGenerator", "metadataClassifier", "sloEventProducer", "prometheusExporter"]
+
+      modules:
+
+        envoyAccessLogServer: {}
+
+        relabel:
+          eventRelabelConfigs:
+            # Drop events with unwanted status codes
+          - source_labels: ["responseCode"]
+            regex: "30[12]|40[045]|411|408|499"
+            action: drop
+
+        eventKeyGenerator:
+          filedSeparator: ":"
+          metadataKeys:
+            - requestMethod
+            - path
+
+        metadataClassifier:
+          sloDomainMetadataKey: http_slo-domain
+          sloClassMetadataKey: http_slo-class
+          sloAppMetadataKey: http_slo-app
+
+        sloEventProducer:
+          rulesFiles:
+            - "slo_rules.yaml"
+
+        prometheusExporter:
+          metricName: "slo_events_total"
+          labelNames:
+            result: "result"
+            sloDomain: "slo_domain"
+            sloClass: "slo_class"
+            sloApp: "slo_app"
+            eventKey: "event_key"
+
+    slo_rules.yaml: |
+      rules:
+        - slo_matcher:
+            domain: example-domain
+          failure_conditions:
+            - operator: numberIsEqualOrHigherThan
+              key: responseCode
+              value: 500
+          additional_metadata:
+            slo_type: availability
+            slo_version: 1
+            namespace: test
+
+        - slo_matcher:
+            domain: example-domain
+            class: critical
+          failure_conditions:
+            - operator: durationIsHigherThan
+              key: timeToLastDownstreamTxByte
+              value: 10ms
+          additional_metadata:
+            slo_version: 1
+            slo_type: latency90
+            percentile: 90
+            le: 0.01
+            namespace: test
+
+        - slo_matcher:
+            domain: example-domain
+            class: critical
+          failure_conditions:
+            - operator: durationIsHigherThan
+              key: timeToLastDownstreamTxByte
+              value: 50ms
+          additional_metadata:
+            slo_version: 1
+            slo_type: latency99
+            percentile: 99
+            le: 0.05
+            namespace: test

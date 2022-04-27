@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: slo-exporter
+spec:
+  replicas: 2
+  serviceName: slo-exporter
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: slo-exporter
+  template:
+    metadata:
+      labels:
+        app: slo-exporter
+      name: slo-exporter
+      annotations:
+        prometheus.metrics.scrape: "true"
+        prometheus.metrics.port: "8080"
+        prometheus.metrics.path: "/metrics"
+    spec:
+      containers:
+        - name: slo-exporter
+          image: seznam/slo-exporter:latest
+          workingDir: "/slo-exporter-config"
+          args:
+            - --config-file=slo_exporter.yaml
+          resources:
+            requests:
+              cpu: "0.1"
+              memory: "100Mi"
+            limits:
+              cpu: "0.5"
+              memory: "250Mi"
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 18090
+              protocol: TCP
+          volumeMounts:
+            - name: slo-exporter-config
+              mountPath: "/slo-exporter-config"
+      volumes:
+        - name: slo-exporter-config
+          configMap:
+            name: slo-exporter-config
