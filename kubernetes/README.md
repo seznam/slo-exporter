@@ -1,6 +1,6 @@
 # Kubernetes manifests
 
-These serve mostly as an example. You will probably want to use kustomize or some other configuration/deployment tool.
+These serve as an example. You will probably want to use kustomize or some other configuration/deployment tool.
 
 ## Workload type
 
