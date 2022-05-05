@@ -7,9 +7,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[4w:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[4w:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 4w
         slo_type: availability
@@ -26,9 +28,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[3d:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[3d:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 3d
         slo_type: availability
@@ -45,9 +49,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1d:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[1d:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 1d
         slo_type: availability
@@ -64,9 +70,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[6h:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[6h:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 6h
         slo_type: availability
@@ -83,9 +91,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[2h:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[2h:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 2h
         slo_type: availability
@@ -106,9 +116,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1h:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[1h:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 1h
         slo_type: availability
@@ -125,9 +137,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[30m:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[30m:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 30m
         slo_type: availability
@@ -144,9 +158,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[5m:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[5m:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 5m
         slo_type: availability
