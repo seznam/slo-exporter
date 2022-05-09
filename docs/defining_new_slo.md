@@ -152,7 +152,7 @@ It also does not support HA setup, so it's not advised to use this and avoid it 
 Slo-exporter documentation can be found [here](https://github.com/seznam/slo-exporter/blob/master/docs/modules/prometheus_ingester.md) and complete example with whole configuration and kubernetes manifests
 [here](https://github.com/seznam/slo-exporter/tree/master/examples/prometheus).
 
-> Warning: in this setup, the slo-exporter cannot run in multiple replicas because it would lead to duplicating the observed events. Make sure to alert on that.
+> Warning: in this setup, it is important to not duplicate observed events - for example by running slo-exporter in more instances. In is adviced to run slo-exporter with prometheus ingester module as a single global replica or to shard the queries so that each slo-exporter instance handles different subset of events. Once you decide what is going to be your deployment model, create alerts to cover this.
 
 #### From Envoy access logs
 If your service is accessed by users via Envoy proxy, you can configure it to send the access logs using gRPC to the slo-exporter.
