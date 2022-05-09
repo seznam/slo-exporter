@@ -182,7 +182,7 @@ Based on the decisions made, configure the slo-exporter according to [the docume
 and deploy it for example in kubernetes. Example k8s manifests can be found in [../kubernetes](../kubernetes).
 
 ### 3. Setting up alerts
-Slo-exporter comes with a set of prepared Prometheus recording rules and alerts to be used for the alerting. Those can be found [here](https://github.com/seznam/slo-exporter/tree/master/prometheus). Also you can use [the slo-rule-generator tool](https://github.com/seznam/slo-exporter/tree/master/tools/slo-rules-generator) to generate some of the most common recording rules for you.
+Slo-exporter comes with a set of prepared Prometheus recording rules and alerts to be used for the alerting. Those can be found [here](https://github.com/seznam/slo-exporter/tree/master/prometheus). Also you can use [the slo-rule-generator tool](https://github.com/seznam/slo-exporter/tree/master/tools/slo-rules-generator) to generate recording rules needed to activate each domain - those specify domain's ownership metadata, SLO thresholds, burn-rate alerts thresholds.
 
 ### 4. Setup Grafana dashboards
 Last thing is to set up the Grafana dashboards to visualize your SLOs, those are also [in the slo-exporter repository](https://github.com/seznam/slo-exporter/tree/master/grafana_dashboards).
