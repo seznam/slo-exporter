@@ -87,7 +87,7 @@ Latency SLI is observed in the form of percentiles such as "95% of events are se
 > Also be careful for example on user side timeouts. It might be observed in both, the latency and availability SLI type.
 
 ### Quality
-SLI describing the quality of some events. 
+SLI tracking a graceful degradation of a monitored system.
 For example if you return a search response to a client and your service is sharded and not all of your shards are available at the moment,
 your response might be degraded in quality. This should be expressed again as a % so in this example % of shards that were (un)available.
 
