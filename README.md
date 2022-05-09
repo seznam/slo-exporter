@@ -10,6 +10,8 @@ based on events coming from various data sources. It follows principles from
 With already prepared [examples](examples), [Grafana dashboards](grafana_dashboards/README.md), [Prometheus recording rules and alerts](prometheus/), you can easily
 start to alert on SLO in your infrastructure.
 
+**If you want to start with computing SLOs, make sure to check out [this guide](./docs/defining_new_slo.md)!**
+
 ## Motivation
 After more than year of experience of maintaining SLO alerting based on application metrics
 just from Prometheus, number of issues showed up which made it very difficult and unbearable.
