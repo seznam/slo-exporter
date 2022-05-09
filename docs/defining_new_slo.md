@@ -37,6 +37,8 @@ Most common use-case would be an uptime computed as percentage of the time the s
 This SLI would be computed per event of the observed phenomenon.
 Most common use-case would be observing each HTTP request result or result of some async job triggered by the user.
 
+> Event based approach if the main intended usage for slo-exporter
+
 ##### Advantages
 - Actually reflects impact of the outage on users (if an outage happens but no one uses the service no one cares)
 - Reflects the amount of the outage impact (outage in prime time affects the EB more than in low traffic periods of a day)
@@ -99,6 +101,10 @@ Definition of the SLO should be done by the product owner of the service since h
 In case you have no idea where to start we advise recommend using historical data to determine the current best effort SLO
 and iterate on that to make it better.
 
+Regardless of how you determine the initial SLO, it is crucial that its breach is actionable - in other words,
+if burning-out whole error budget results in no corrective actions, the SLO should be changed (lowered)
+as it obviously was set too high initially.
+
 ## Choosing a time window
 SLO should be measured over some longer time period. Most common would be a month meaning "We want to have a 98% availability over the last month".
 This purely depends on the service nature and possibly on the users and what they expect.
@@ -160,13 +166,6 @@ Documentation about the slo-exporter gRPC logging module is [here](https://githu
 documentation how to configure Envoy to send the access logs over gRPC can be found [here](https://www.envoyproxy.io/docs/envoy/latest/api-v3/data/accesslog/v3/accesslog.proto).
 Complete example of the setup is [here](https://github.com/seznam/slo-exporter/tree/master/examples/envoy_proxy).
 
-#### Elasticsearch
-> Currently in experimental mode
-
-In case you want to compute the SLO based on your application logs and use an ELK stack, you can hook the slo-exporter to it.
-
-> Warning: in this setup, the slo-exporter cannot run in multiple replicas because it would lead to duplicating the observed events. Make sure to be alert on that.
-
 #### Tailing file logs
 Similar to those previous but requires the slo-exporter to be running as a sidecar to each observed service instance and tail its application logs.
 slo-exporter documentation [here](https://github.com/seznam/slo-exporter/blob/master/docs/modules/tailer.md)
@@ -180,6 +179,14 @@ Full example can be found [here](https://github.com/seznam/slo-exporter/tree/mas
 ### 2. Configuring and deploying the slo-exporter
 Based on the decisions made, configure the slo-exporter according to [the documentation](https://github.com/seznam/slo-exporter/blob/master/docs/configuration.md)
 and deploy it for example in kubernetes. Example k8s manifests can be found in [../kubernetes](../kubernetes).
+
+Most common steps you will need to do in the slo-exporter pipeline are:
+  - filter out the unwanted events (e.g. [relabel module](./modules/relabel.md))
+  - normalize events' metadata (remove ids from URL etc) (e.g. [event_metadata_renamer](./modules/event_metadata_renamer.md), [relabel modules](./modules/relabel.md))
+  - build events' `event_key` (identifier used in the prometheus metrics exported by the slo-exporter for debugging) ([event_key_generator module](./modules/event_key_generator.md))
+  - classify events (in case you want to have different objectives for distinct event groups) ([metadata_classifier](./modules/metadata_classifier.md), [dynamic_classifier](./modules/dynamic_classifier.md), [statistical_classifier](./modules/statistical_classifier.md) modules)
+  - evaluate each event against given SLI thresholds - ([slo_event_producer](./modules/slo_event_producer.md) module)
+  - export events ([prometheus_exporter](./modules/prometheus_exporter.md) module)
 
 ### 3. Setting up alerts
 Slo-exporter comes with a set of prepared Prometheus recording rules and alerts to be used for the alerting. Those can be found [here](https://github.com/seznam/slo-exporter/tree/master/prometheus). Also you can use [the slo-rule-generator tool](https://github.com/seznam/slo-exporter/tree/master/tools/slo-rules-generator) to generate recording rules needed to activate each domain - those specify domain's ownership metadata, SLO thresholds, burn-rate alerts thresholds.

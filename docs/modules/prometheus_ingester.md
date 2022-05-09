@@ -9,6 +9,8 @@
 Prometheus ingester generates events based on results of provided Prometheus queries.
 For its usage example see [the prometheus example](/examples/prometheus).
 
+> Before using it better check the [documentation about possible sources of events supported by slo-exporter](../defining_new_slo.md#1-choose-source-of-the-events). 
+
 `moduleConfig`
 ```yaml
 # URL of the API for Prometheus queries such as https://foo.bar:9090
