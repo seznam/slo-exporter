@@ -27,6 +27,8 @@ There are 2 main approaches to measure the SLI
 This SLI would be based on some time interval and percentage of the time the service meets the criteria.
 Most common use-case would be an uptime computed as percentage of the time the service is operational(it might be tricky to tell what functional means).
 
+More advanced techniques of uptime SLO computation such as per-user or multi-time-window are described [this](https://www.usenix.org/conference/nsdi20/presentation/hauer) talk from Google SREs.
+
 ##### Advantages
 - Easy to calculate
 ##### Disadvantages
