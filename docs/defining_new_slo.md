@@ -137,7 +137,7 @@ projects that can help you with that such as [this SLO generator](https://promto
 #### Disadvantages
 - Limited by cardinality because of the Prometheus architecture and purpose
   (if needed for filtering of events or having more precise thresholds for some events)
-- For latency and quality SLI types need to use histograms and its buckets need to match the thresholds
+- A need to use histograms and its buckets to match the thresholds for latency and quality SLI types
 - Computing SLO based on high cardinality metrics over 4w can be enormously demanding for the Prometheus cluster
 
 ## Using slo-exporter
