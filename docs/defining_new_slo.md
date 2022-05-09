@@ -183,12 +183,12 @@ Based on the decisions made, configure the slo-exporter according to [the docume
 and deploy it for example in kubernetes. Example k8s manifests can be found in [../kubernetes](../kubernetes).
 
 Most common steps you will need to do in the slo-exporter pipeline are:
-  - filter out the unwanted events (e.g. [relabel module](./modules/relabel.md))
-  - normalize events' metadata (remove ids from URL etc) (e.g. [event_metadata_renamer](./modules/event_metadata_renamer.md), [relabel modules](./modules/relabel.md))
-  - build events' `event_key` (identifier used in the prometheus metrics exported by the slo-exporter for debugging) ([event_key_generator module](./modules/event_key_generator.md))
-  - classify events (in case you want to have different objectives for distinct event groups) ([metadata_classifier](./modules/metadata_classifier.md), [dynamic_classifier](./modules/dynamic_classifier.md), [statistical_classifier](./modules/statistical_classifier.md) modules)
-  - evaluate each event against given SLI thresholds - ([slo_event_producer](./modules/slo_event_producer.md) module)
-  - export events ([prometheus_exporter](./modules/prometheus_exporter.md) module)
+  1. filter out the unwanted events (e.g. [relabel module](./modules/relabel.md))
+  2. normalize events' metadata (remove ids from URL etc) (e.g. [event_metadata_renamer](./modules/event_metadata_renamer.md), [relabel modules](./modules/relabel.md))
+  3. build events' `event_key` (identifier used in the prometheus metrics exported by the slo-exporter for debugging) ([event_key_generator module](./modules/event_key_generator.md))
+  4. classify events (in case you want to have different objectives for distinct event groups) ([metadata_classifier](./modules/metadata_classifier.md), [dynamic_classifier](./modules/dynamic_classifier.md), [statistical_classifier](./modules/statistical_classifier.md) modules)
+  5. evaluate each event against given SLI thresholds - ([slo_event_producer](./modules/slo_event_producer.md) module)
+  6. export events ([prometheus_exporter](./modules/prometheus_exporter.md) module)
 
 ### 3. Setting up alerts
 Slo-exporter comes with a set of prepared Prometheus recording rules and alerts to be used for the alerting. Those can be found [here](https://github.com/seznam/slo-exporter/tree/master/prometheus). Also you can use [the slo-rule-generator tool](https://github.com/seznam/slo-exporter/tree/master/tools/slo-rules-generator) to generate recording rules needed to activate each domain - those specify domain's ownership metadata, SLO thresholds, burn-rate alerts thresholds.
