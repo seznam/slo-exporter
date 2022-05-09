@@ -59,7 +59,7 @@ For more inspiration see https://sre.google/workbook/implementing-slos/#slis-for
 Also, often referred to as an _uptime_, a ratio of the time when the service is up to the time it is down.
 You should be careful what actually means the service _is down_.
 Mostly suitable for some continuously running computations or in cases when the event based SLI is hard
-or even impossible to evaluate reliably for example SLO for relational databases(latency od success of the event depends on the user query).
+or even impossible to evaluate reliably.
 
 #### Event based
 Probably most common SLI used mainly for web services computed as a ratio of failed/successful requests served by the service.
