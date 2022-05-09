@@ -80,7 +80,7 @@ Sticking to the example of REST API we would observe how long it takes to serve 
 Latency SLI is observed in the form of percentiles such as "95% of events take longer than 1.2s".
 
 > Keep in mind that a failed event might take way less time than a successful one. So you should consider if the failed events should be counted into your latency SLI or not.
-> Also, for example HTTP status 499 means the client gave up the waiting. Be careful if this is observed by the latency SLI or by the availability type.
+> Also be careful for example on user side timeouts. It might be observed in both, the latency and availability SLI type.
 
 ### Quality
 Again event based SLI describing the quality of some events. 
