@@ -77,7 +77,7 @@ The Simplest example could be expressed as a PromQL `http_request_duration_secon
 Similar to the availability SLI type, but instead of a success or failure we measure a latency of the event.
 Sticking to the example of REST API we would observe how long it takes to serve the request.
 
-Latency SLI is observed in the form of percentiles such as "95% of events take longer than 1.2s".
+Latency SLI is observed in the form of percentiles such as "95% of events are served within 1.2s".
 
 > Keep in mind that a failed event might take way less time than a successful one. So you should consider if the failed events should be counted into your latency SLI or not.
 > Also be careful for example on user side timeouts. It might be observed in both, the latency and availability SLI type.
