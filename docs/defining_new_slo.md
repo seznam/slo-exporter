@@ -90,7 +90,7 @@ your response might be degraded in quality. This should be expressed again as a 
 ### Freshness
 Should detect if served data is not outdated. 
 #### Time based
-ratio of time the data was outdated.
+Ratio of time the data was outdated.
 #### Event based
 Ratio of events affected by the outdated events.
 
