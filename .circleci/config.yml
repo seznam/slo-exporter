@@ -17,7 +17,7 @@ jobs:
       - checkout
       - run: |
          make format
-         git diff --color --exit-code -- go.mod go.sum
+         git diff --color --exit-code
 
   test:
     <<: *defaults

@@ -6,8 +6,8 @@ package dynamic_classifier
 import (
 	"bytes"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"

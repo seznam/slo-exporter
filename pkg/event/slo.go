@@ -45,12 +45,12 @@ func (s *Slo) String() string {
 
 func (s Slo) Copy() Slo {
 	return Slo{
-		Key:      s.Key,
-		Result:   s.Result,
-		Domain:   s.Domain,
-		Class:    s.Class,
-		App:      s.App,
-		Metadata: s.Metadata.Copy(),
+		Key:           s.Key,
+		Result:        s.Result,
+		Domain:        s.Domain,
+		Class:         s.Class,
+		App:           s.App,
+		Metadata:      s.Metadata.Copy(),
 		OriginalEvent: s.OriginalEvent,
 	}
 }

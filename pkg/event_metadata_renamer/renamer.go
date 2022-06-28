@@ -42,6 +42,7 @@ func NewFromConfig(config []renamerConfig, logger logrus.FieldLogger) (*eventMet
 	}
 	return &relabelManager, nil
 }
+
 type renamerConfig struct {
 	Source, Destination string
 }
