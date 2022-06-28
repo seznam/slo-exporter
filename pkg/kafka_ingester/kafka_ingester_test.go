@@ -132,7 +132,7 @@ func Test_processMessage(t *testing.T) {
 			event, err := processMessage(test.KafkaMessage)
 			if err != nil {
 				if !test.ErrExpected {
-					t.Errorf("Unexpected error while processing kafka message: %w", err)
+					t.Errorf("Unexpected error while processing kafka message: %v", err)
 				}
 			}
 			if test.ErrExpected && err == nil {
