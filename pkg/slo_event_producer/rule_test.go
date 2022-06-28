@@ -54,7 +54,7 @@ func TestEvaluateEvent(t *testing.T) {
 				Metadata:          stringmap.StringMap{"statusCode": "502"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			}},
-			ok:             true,
+			ok: true,
 		},
 		{
 			name: "event is unclassified -> error reported",
@@ -118,7 +118,7 @@ func TestEvaluateEvent(t *testing.T) {
 				Metadata:          stringmap.StringMap{"statusCode": "200", "key": "value"},
 				SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"},
 			}},
-			ok:             true,
+			ok: true,
 		},
 	}
 

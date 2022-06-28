@@ -35,6 +35,7 @@ all: format lint test-and-coverage build
 .PHONY: format
 format:
 	go mod tidy
+	go fmt ./...
 
 .PHONY: lint
 lint: revive

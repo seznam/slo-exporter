@@ -4,8 +4,8 @@ package slo_event_producer
 //revive:enable:var-naming
 
 import (
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 

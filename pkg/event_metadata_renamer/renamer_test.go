@@ -30,7 +30,7 @@ var testCases = []testCase{
 	{
 		name:        "Destination metadata key already exist (collision)",
 		inputEvent:  &event.Raw{Metadata: map[string]string{"destination": "destinationCollisionNotOverriden"}},
-		outputEvent:  &event.Raw{Metadata: map[string]string{"destination": "destinationCollisionNotOverriden"}},
+		outputEvent: &event.Raw{Metadata: map[string]string{"destination": "destinationCollisionNotOverriden"}},
 	},
 	{
 		name:        "valid rename of metadata key",

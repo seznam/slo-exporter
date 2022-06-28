@@ -3,10 +3,10 @@ package metadata_classifier
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"time"
 )
 
