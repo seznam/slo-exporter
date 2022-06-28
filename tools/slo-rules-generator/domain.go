@@ -63,14 +63,17 @@ func (d Domain) commonLabels(domainName string) Labels {
 }
 
 func (d Domain) stableVersionRule(domainName string) rulefmt.RuleNode {
+	labels := Labels{
+		teamLabel:    d.Alerting.Team,
+		enabledLabel: fmt.Sprint(d.Enabled),
+	}
+	if d.Alerting.Escalate != "" {
+		labels[escalateLabel] = d.Alerting.Escalate
+	}
 	return rulefmt.RuleNode{
-		Record:      yamlStr("slo:stable_version"),
-		Expr:        yamlStr("1"),
-		Labels: d.commonLabels(domainName).Merge(Labels{
-			teamLabel: d.Alerting.Team,
-			escalateLabel: d.Alerting.Escalate,
-			enabledLabel: fmt.Sprint(d.Enabled),
-		}),
+		Record: yamlStr("slo:stable_version"),
+		Expr:   yamlStr("1"),
+		Labels: d.commonLabels(domainName).Merge(labels),
 	}
 }
 

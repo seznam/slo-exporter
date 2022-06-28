@@ -54,6 +54,35 @@ func TestDomainASRuleGroup(t *testing.T) {
 			},
 		},
 		{
+			"Domain without classes and without alerting.escalate",
+			`domain-without-escalate:
+  enabled: false
+  namespace: production
+  version: 1
+  alerting:
+    team: team.a@company.org`,
+			[]rulefmt.RuleGroup{
+				{
+					Name:     "slo_v1_slo_exporter_domain-without-escalate",
+					Interval: model.Duration(4 * time.Minute),
+					Rules: []rulefmt.RuleNode{
+						{
+							Record: yamlStr("slo:stable_version"),
+							Expr:   yamlStr("1"),
+							Labels: Labels{
+								"slo_domain":  "domain-without-escalate",
+								"namespace":   "production",
+								"team":        "team.a@company.org",
+								// note: no "escalate" here
+								"enabled":     "false",
+								"slo_version": "1",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			"Domain with single class and type - no burn rate alerting override",
 			`test-domain:
   enabled: false
