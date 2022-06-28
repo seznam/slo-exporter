@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Fixed
+- [#88](https://github.com/seznam/slo-exporter/pull/88) slo-rules-generator does not output empty `escalate` label
 - [#87](https://github.com/seznam/slo-exporter/pull/87) slo-exporter's SLO recording rule for uptime success events
 
 ## [v6.11.0] 2022-01-19
