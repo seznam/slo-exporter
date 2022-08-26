@@ -3,8 +3,6 @@ package prometheus_ingester
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"go.uber.org/atomic"
 	"math"
 	"sort"
 	"strconv"
@@ -12,6 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+	"go.uber.org/atomic"
+
+	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/seznam/slo-exporter/pkg/event"
@@ -24,6 +26,7 @@ type queryExecutor struct {
 	queryTimeout      time.Duration
 	eventsChan        chan *event.Raw
 	logger            logrus.FieldLogger
+	client            api.Client
 	api               v1.API
 	queryInProgress   atomic.Bool
 	previousResult    queryResult
@@ -96,7 +99,7 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 		return nil, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
 	}
 	start := time.Now()
-	result, warnings, err = q.api.Query(timeoutCtx, query, ts)
+	result, warnings, err = q.queryPrometheus(timeoutCtx, query, ts)
 	duration := time.Since(start)
 	prometheusQueryDuration.WithLabelValues(string(q.Query.Type)).Observe(duration.Seconds())
 	q.logger.WithField("query", query).WithField("timestamp", ts).WithField("duration", duration).Debug("executed query")
@@ -150,8 +153,8 @@ func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 			}
 			return nil
 		default:
-			unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
-			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
+			unsupportedQueryResultType.WithLabelValues(result.String()).Inc()
+			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.String(), q.Query.Type)
 		}
 	case counterQueryType:
 		switch result.(type) {

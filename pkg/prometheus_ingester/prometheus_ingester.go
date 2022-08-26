@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 	"github.com/seznam/slo-exporter/pkg/event"
@@ -87,7 +86,6 @@ type PrometheusIngester struct {
 	queryExecutors  *[]queryExecutor
 	queryTimeout    time.Duration
 	client          api.Client
-	api             v1.API
 	shutdownChannel chan struct{}
 	outputChannel   chan *event.Raw
 	logger          logrus.FieldLogger
@@ -165,7 +163,6 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		queryExecutors:  &queryExecutors,
 		queryTimeout:    initConfig.QueryTimeout,
 		client:          client,
-		api:             v1.NewAPI(client),
 		outputChannel:   make(chan *event.Raw),
 		done:            false,
 		shutdownChannel: make(chan struct{}),
@@ -192,7 +189,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 				Query:        q,
 				queryTimeout: ingester.queryTimeout,
 				eventsChan:   ingester.outputChannel,
-				api:          ingester.api,
+				client:       client,
 				logger:       ingester.logger,
 				previousResult: queryResult{
 					metrics: make(map[model.Fingerprint]model.SamplePair),
