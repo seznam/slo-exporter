@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 type MockedRoundTripper struct {
@@ -716,5 +718,67 @@ func Test_processHistogramIncrease(t *testing.T) {
 		<-done
 
 		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+	}
+}
+
+func TestPrometheusIngesterHttpHeader_UnmarshalYAML(t *testing.T) {
+	const envName = "ENVNAME"
+	const envValue = "envValue"
+
+	if err := os.Setenv(envName, envValue); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name          string
+		goldenfile    string
+		expectedValue string
+		wantErr       bool
+	}{
+		{
+			name:          "value from string",
+			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal1.yaml",
+			expectedValue: "stringValue",
+			wantErr:       false,
+		},
+		{
+			name:          "value from env",
+			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal2.yaml",
+			expectedValue: envValue,
+			wantErr:       false,
+		},
+		{
+			name:          "both valueFromString and valueFromEnv is set",
+			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal3.yaml",
+			expectedValue: "",
+			wantErr:       true,
+		},
+		{
+			name:          "none of valueFromString or valueFromEnv is set",
+			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal4.yaml",
+			expectedValue: "",
+			wantErr:       true,
+		},
+		{
+			name:          "non existing environment variable with name valueFromEnv",
+			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal5.yaml",
+			expectedValue: "",
+			wantErr:       true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			goldenFile, err := ioutil.ReadFile(tt.goldenfile)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			h := PrometheusIngesterHttpHeader{}
+			if err := yaml.Unmarshal(goldenFile, &h); (err != nil) != tt.wantErr {
+				t.Errorf("PrometheusIngesterHttpHeader.UnmarshalYAML() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			assert.Equal(t, tt.expectedValue, h.Value)
+		})
 	}
 }

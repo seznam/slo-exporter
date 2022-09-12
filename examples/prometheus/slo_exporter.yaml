@@ -5,7 +5,9 @@ pipeline: ["prometheusIngester", "relabel", "eventKeyGenerator", "dynamicClassif
 modules:
 
   prometheusIngester:
-    apiUrl: "http://demo.robustperception.io:9090"
+    httpHeaders:
+      - name: X-Scope-OrgID
+        valueFromString: "myOrganization"
     queryTimeout: 30s
     queries:
       # Generate events from counter for every HTTP request with status code for availability SLO.
