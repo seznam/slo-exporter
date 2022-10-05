@@ -31,11 +31,19 @@ queries:
 ```yaml
 # name of http header
 name: <string>
-# exactly one of valueFromString or valueFromEnv MUST be set
+# exactly one of value or valueFromEnv MUST be set
 # string value of http header
-valueFromString: <string>
-# name of env variable to use as value of http header, throw error if value of environment variable is empty
-valueFromEnv: <string>
+value: <string>
+# get value from environment variable
+valueFromEnv: <http_header_value_from_env>
+```
+
+`http_header_value_from_env`
+```yaml
+# environment variable name
+name: <string>
+# add prefix to value of environment value, e.g. `Bearer `
+valuePrefix: <string>
 ```
 
 `query`
