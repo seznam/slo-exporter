@@ -723,62 +723,87 @@ func Test_processHistogramIncrease(t *testing.T) {
 
 func TestPrometheusIngesterHttpHeader_UnmarshalYAML(t *testing.T) {
 	const envName = "ENVNAME"
-	const envValue = "envValue"
+	var expectedValue = "value"
+	var expectedValueWithPrefix = "xxxvalue"
 
-	if err := os.Setenv(envName, envValue); err != nil {
+	if err := os.Setenv(envName, expectedValue); err != nil {
 		t.Fatal(err)
 	}
 
 	tests := []struct {
 		name          string
-		goldenfile    string
-		expectedValue string
+		data          []byte
+		expectedValue *string
 		wantErr       bool
 	}{
 		{
-			name:          "value from string",
-			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal1.yaml",
-			expectedValue: "stringValue",
-			wantErr:       false,
+			name: "value from string",
+			data: []byte(`
+name: name
+value: value
+`),
+			expectedValue: &expectedValue,
 		},
 		{
-			name:          "value from env",
-			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal2.yaml",
-			expectedValue: envValue,
-			wantErr:       false,
+			name: "value from env",
+			data: []byte(`
+name: name
+valueFromEnv:
+  name: ENVNAME
+`),
+			expectedValue: &expectedValue,
 		},
 		{
-			name:          "both valueFromString and valueFromEnv is set",
-			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal3.yaml",
-			expectedValue: "",
-			wantErr:       true,
+			name: "value from env with valuePrefix",
+			data: []byte(`
+name: name
+valueFromEnv:
+  name: ENVNAME
+  valuePrefix: xxx
+`),
+			expectedValue: &expectedValueWithPrefix,
 		},
 		{
-			name:          "none of valueFromString or valueFromEnv is set",
-			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal4.yaml",
-			expectedValue: "",
-			wantErr:       true,
+			name: "both valueFromString and valueFromEnv is set",
+			data: []byte(`
+name: name
+valueFromEnv: 
+  name: ENVNAME
+value: value
+`),
+			wantErr: true,
 		},
 		{
-			name:          "non existing environment variable with name valueFromEnv",
-			goldenfile:    "goldenfiles/prometheus_ingester_httpheader_unmarshal5.yaml",
-			expectedValue: "",
-			wantErr:       true,
+			name:    "none of valueFromString or valueFromEnv is set",
+			data:    []byte("name: name"),
+			wantErr: true,
+		},
+		{
+			name:    "none of valueFromString or valueFromEnv is set",
+			data:    []byte("value: value"),
+			wantErr: true,
+		},
+		{
+			name: "non existing environment variable with name valueFromEnv",
+			data: []byte(`
+name: name
+valueFromEnv:
+  name: NON_EXISTING_ENV_NAME
+`),
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			goldenFile, err := ioutil.ReadFile(tt.goldenfile)
-			if err != nil {
-				t.Fatal(err)
-			}
 
 			h := PrometheusIngesterHttpHeader{}
-			if err := yaml.Unmarshal(goldenFile, &h); (err != nil) != tt.wantErr {
+			err := yaml.Unmarshal(tt.data, &h)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("PrometheusIngesterHttpHeader.UnmarshalYAML() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
-			assert.Equal(t, tt.expectedValue, h.Value)
+			if err == nil {
+				assert.EqualValues(t, tt.expectedValue, h.Value)
+			}
 		})
 	}
 }

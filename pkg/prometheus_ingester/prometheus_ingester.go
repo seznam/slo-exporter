@@ -76,17 +76,22 @@ type queryOptions struct {
 	ResultAsQuantity *bool
 }
 
+type PrometheusIngesterHttpHeaderValueFromEnv struct {
+	Name        string `yaml:"name"`
+	ValuePrefix string `yaml:"valuePrefix"`
+}
+
 type PrometheusIngesterHttpHeader struct {
-	Name            string
-	ValueFromString string `yaml:"valueFromString"`
-	ValueFromEnv    string `yaml:"valueFromEnv"`
-	Value           string `yaml:"-"`
+	Name         string
+	ValueFromEnv *PrometheusIngesterHttpHeaderValueFromEnv `yaml:"valueFromEnv"`
+	Value        *string                                   `yaml:"value"`
 }
 
 func (h *PrometheusIngesterHttpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// we have to declare new type in order to avoid infinit recursion when using unmarshal function
 	type PrometheusIngesterHttpHeaderCustom PrometheusIngesterHttpHeader
 
-	out := PrometheusIngesterHttpHeaderCustom{}
+	out := PrometheusIngesterHttpHeaderCustom{ValueFromEnv: &PrometheusIngesterHttpHeaderValueFromEnv{}}
 
 	if err := unmarshal(&out); err != nil {
 		return err
@@ -94,20 +99,24 @@ func (h *PrometheusIngesterHttpHeader) UnmarshalYAML(unmarshal func(interface{})
 
 	*h = PrometheusIngesterHttpHeader(out)
 
-	if (h.ValueFromEnv == "") == (h.ValueFromString == "") {
-		return fmt.Errorf("exactly one of 'ValueFromString' or 'ValueFromEnv' must be set %+v", h)
+	if h.Name == "" {
+		return fmt.Errorf("header name must be set")
 	}
 
-	if h.ValueFromString != "" {
-		h.Value = h.ValueFromString
+	if (h.ValueFromEnv.Name == "") == (h.Value == nil) {
+		return fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set %+v", h)
 	}
 
-	if h.ValueFromEnv != "" {
-		value, ok := os.LookupEnv(h.ValueFromEnv)
+	fmt.Printf("%+v\n", h)
+	fmt.Printf("%+v\n", h.ValueFromEnv)
+
+	if h.ValueFromEnv.Name != "" {
+		value, ok := os.LookupEnv(h.ValueFromEnv.Name)
 		if !ok {
-			return fmt.Errorf("value of environment variable '%s' is empty", h.ValueFromEnv)
+			return fmt.Errorf("environment variable '%s' is not set", h.ValueFromEnv.Name)
 		}
-		h.Value = value
+		value = h.ValueFromEnv.ValuePrefix + value
+		h.Value = &value
 	}
 
 	return nil
@@ -198,7 +207,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 
 	httpHeaders := map[string]string{}
 	for _, h := range initConfig.HttpHeaders {
-		httpHeaders[h.Name] = h.Value
+		httpHeaders[h.Name] = *h.Value
 	}
 
 	client, err := api.NewClient(api.Config{
