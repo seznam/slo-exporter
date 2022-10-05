@@ -93,7 +93,7 @@ func Test_httpHeadersRoundTripper_RoundTrip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rt := httpHeadersRoundTripper{
 				headers: tt.appendedHeaders,
-				rt: &testHttpHeaderRoundTripper{
+				roudTripper: &testHttpHeaderRoundTripper{
 					expectedHeaders: testHttpHeaderRoundTripperMapToHeaders(tt.expectedHeaders),
 					t:               t,
 				},

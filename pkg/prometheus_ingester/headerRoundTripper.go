@@ -3,8 +3,8 @@ package prometheus_ingester
 import "net/http"
 
 type httpHeadersRoundTripper struct {
-	headers map[string]string
-	rt      http.RoundTripper
+	headers     map[string]string
+	roudTripper http.RoundTripper
 }
 
 // RoundTrip implements the http.RoundTripper interface.
@@ -14,10 +14,10 @@ func (h httpHeadersRoundTripper) RoundTrip(r *http.Request) (*http.Response, err
 	// modified. https://pkg.go.dev/net/http#RoundTripper
 	r2 := new(http.Request)
 	*r2 = *r
-	r2.Header = make(http.Header)
+	r2.Header = make(http.Header, len(r.Header)+len(h.headers))
 	// copy existing headers
-	for k, s := range r.Header {
-		r2.Header[k] = s
+	for k, v := range r.Header {
+		r2.Header[k] = v
 	}
 
 	// add new headers
@@ -26,5 +26,5 @@ func (h httpHeadersRoundTripper) RoundTrip(r *http.Request) (*http.Response, err
 	}
 
 	r = r2
-	return h.rt.RoundTrip(r)
+	return h.roudTripper.RoundTrip(r)
 }

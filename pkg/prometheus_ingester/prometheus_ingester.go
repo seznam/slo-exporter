@@ -204,8 +204,8 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 	client, err := api.NewClient(api.Config{
 		Address: initConfig.ApiUrl,
 		RoundTripper: httpHeadersRoundTripper{
-			rt:      initConfig.RoundTripper,
-			headers: httpHeaders,
+			roudTripper: initConfig.RoundTripper,
+			headers:     httpHeaders,
 		},
 	})
 	if err != nil {
