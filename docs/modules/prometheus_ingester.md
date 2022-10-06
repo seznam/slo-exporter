@@ -15,6 +15,9 @@ For its usage example see [the prometheus example](/examples/prometheus).
 ```yaml
 # URL of the API for Prometheus queries such as https://foo.bar:9090
 apiUrl: <URL>
+# HTTP headers to send to the API server (in case of conflicting header names, the later has precedence)
+httpHeaders:
+- <http_header>
 # Timeout for executing the query
 queryTimeout: <Go_duration>
 # Optional setting of staleness set on the queried Prometheus instance, default is 5m same as in Prometheus
@@ -22,6 +25,25 @@ staleness: <Go_duration>
 # List of queries to be periodically executed.
 queries:
   - <query>
+```
+
+`http_header`
+```yaml
+# name of http header
+name: <string>
+# exactly one of value or valueFromEnv MUST be set
+# string value of http header
+value: <string>
+# get value from environment variable
+valueFromEnv: <http_header_value_from_env>
+```
+
+`http_header_value_from_env`
+```yaml
+# environment variable name
+name: <string>
+# add prefix to value of environment value, e.g. `Bearer `
+valuePrefix: <string>
 ```
 
 `query`

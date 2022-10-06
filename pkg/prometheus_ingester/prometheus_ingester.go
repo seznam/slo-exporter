@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -75,9 +76,67 @@ type queryOptions struct {
 	ResultAsQuantity *bool
 }
 
+type httpHeaderValueFromEnv struct {
+	Name        string `yaml:"name"`
+	ValuePrefix string `yaml:"valuePrefix"`
+}
+
+type httpHeader struct {
+	Name         string                  `yaml:"name"`
+	ValueFromEnv *httpHeaderValueFromEnv `yaml:"valueFromEnv"`
+	Value        *string                 `yaml:"value"`
+}
+
+func (h *httpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// we have to declare new type in order to avoid infinite recursion when using unmarshal function
+	type httpHeaderCustom httpHeader
+	var out httpHeaderCustom
+
+	if err := unmarshal(&out); err != nil {
+		return err
+	}
+
+	*h = httpHeader(out)
+
+	if h.Name == "" {
+		return fmt.Errorf("header name must be set")
+	}
+
+	if (h.ValueFromEnv == nil) == (h.Value == nil) {
+		return fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set")
+	}
+
+	if h.ValueFromEnv != nil {
+		if h.ValueFromEnv.Name == "" {
+			return fmt.Errorf("environment variable name is not set")
+		}
+		value, ok := os.LookupEnv(h.ValueFromEnv.Name)
+		if !ok {
+			return fmt.Errorf("environment variable '%s' is not set", h.ValueFromEnv.Name)
+		}
+		value = h.ValueFromEnv.ValuePrefix + value
+		h.Value = &value
+	}
+
+	return nil
+
+}
+
+type httpHeaders []httpHeader
+
+func (hs httpHeaders) toMap() map[string]string {
+	httpHeaders := map[string]string{}
+	for _, h := range hs {
+		httpHeaders[h.Name] = *h.Value
+	}
+
+	return httpHeaders
+}
+
 type PrometheusIngesterConfig struct {
 	ApiUrl       string
 	RoundTripper http.RoundTripper
+	HttpHeaders  httpHeaders
 	Queries      []queryOptions
 	QueryTimeout time.Duration
 	Staleness    time.Duration
@@ -134,6 +193,9 @@ func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*Prom
 	if config.ApiUrl == "" {
 		return nil, errors.New("mandatory config field ApiUrl is missing in PrometheusIngester configuration")
 	}
+
+	config.RoundTripper = api.DefaultRoundTripper
+
 	return New(config, logger)
 }
 
@@ -154,8 +216,11 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 	)
 
 	client, err := api.NewClient(api.Config{
-		Address:      initConfig.ApiUrl,
-		RoundTripper: initConfig.RoundTripper,
+		Address: initConfig.ApiUrl,
+		RoundTripper: httpHeadersRoundTripper{
+			roudTripper: initConfig.RoundTripper,
+			headers:     initConfig.HttpHeaders.toMap(),
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating Prometheus client: %w", err)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 type MockedRoundTripper struct {
@@ -716,5 +718,136 @@ func Test_processHistogramIncrease(t *testing.T) {
 		<-done
 
 		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+	}
+}
+
+func TestPrometheusIngesterHttpHeader_UnmarshalYAML(t *testing.T) {
+	const envName = "ENVNAME"
+	var expectedValue = "value"
+	var expectedValueWithPrefix = "xxxvalue"
+
+	if err := os.Unsetenv("NON_EXISTING_ENV_NAME"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Setenv(envName, expectedValue); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name          string
+		data          []byte
+		expectedValue *string
+		wantErr       bool
+	}{
+		{
+			name: "value from string",
+			data: []byte(`
+name: name
+value: value
+`),
+			expectedValue: &expectedValue,
+		},
+		{
+			name: "value from env",
+			data: []byte(`
+name: name
+valueFromEnv:
+  name: ENVNAME
+`),
+			expectedValue: &expectedValue,
+		},
+		{
+			name: "value from env with no env name",
+			data: []byte(`
+name: name
+valueFromEnv: {}
+`),
+			wantErr: true,
+		},
+		{
+			name: "value from env with valuePrefix",
+			data: []byte(`
+name: name
+valueFromEnv:
+  name: ENVNAME
+  valuePrefix: xxx
+`),
+			expectedValue: &expectedValueWithPrefix,
+		},
+		{
+			name: "both valueFromString and valueFromEnv is set",
+			data: []byte(`
+name: name
+valueFromEnv: 
+  name: ENVNAME
+value: value
+`),
+			wantErr: true,
+		},
+		{
+			name:    "none of valueFromString or valueFromEnv is set",
+			data:    []byte("name: name"),
+			wantErr: true,
+		},
+		{
+			name:    "none of valueFromString or valueFromEnv is set",
+			data:    []byte("value: value"),
+			wantErr: true,
+		},
+		{
+			name: "non existing environment variable with name valueFromEnv",
+			data: []byte(`
+name: name
+valueFromEnv:
+  name: NON_EXISTING_ENV_NAME
+`),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			h := httpHeader{}
+			err := yaml.Unmarshal(tt.data, &h)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("PrometheusIngesterHttpHeader.UnmarshalYAML() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err == nil {
+				assert.EqualValues(t, tt.expectedValue, h.Value)
+			}
+		})
+	}
+}
+
+func Test_httpHeaders_toMap(t *testing.T) {
+	var headerValue = "value"
+	var headerValue2 = "value2"
+
+	tests := []struct {
+		name string
+		hs   httpHeaders
+		want map[string]string
+	}{
+		{
+			name: "empty headers",
+			hs:   httpHeaders{},
+			want: map[string]string{},
+		},
+		{
+			name: "multiple headers",
+			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}},
+			want: map[string]string{"header1": headerValue, "header2": headerValue2},
+		},
+		{
+			name: "headers overwrite",
+			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}, {Name: "header1", Value: &headerValue2}},
+			want: map[string]string{"header1": headerValue2, "header2": headerValue2},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.hs.toMap())
+		})
 	}
 }
