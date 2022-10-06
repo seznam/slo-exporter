@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
-- prometheusIngester now can send custom headers to prometheus api server
+- [#94](https://github.com/seznam/slo-exporter/pull/94) prometheusIngester now can send custom headers to prometheus api server
 
 ## [v6.11.1] 2022-06-28
 ### Fixed
