@@ -15,7 +15,7 @@ For its usage example see [the prometheus example](/examples/prometheus).
 ```yaml
 # URL of the API for Prometheus queries such as https://foo.bar:9090
 apiUrl: <URL>
-# HTTP headers to send to API server
+# HTTP headers to send to the API server (in case of conflicting header names, the later has precedence)
 httpHeaders:
 - <http_header>
 # Timeout for executing the query

@@ -796,7 +796,7 @@ valueFromEnv:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			h := PrometheusIngesterHttpHeader{}
+			h := httpHeader{}
 			err := yaml.Unmarshal(tt.data, &h)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PrometheusIngesterHttpHeader.UnmarshalYAML() error = %v, wantErr %v", err, tt.wantErr)
@@ -804,6 +804,38 @@ valueFromEnv:
 			if err == nil {
 				assert.EqualValues(t, tt.expectedValue, h.Value)
 			}
+		})
+	}
+}
+
+func Test_httpHeaders_toMap(t *testing.T) {
+	var headerValue = "value"
+	var headerValue2 = "value2"
+
+	tests := []struct {
+		name string
+		hs   httpHeaders
+		want map[string]string
+	}{
+		{
+			name: "empty headers",
+			hs:   httpHeaders{},
+			want: map[string]string{},
+		},
+		{
+			name: "multiple headers",
+			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue}},
+			want: map[string]string{"header1": headerValue, "header2": headerValue},
+		},
+		{
+			name: "headers overwrite",
+			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue}, {Name: "header1", Value: &headerValue2}},
+			want: map[string]string{"header1": headerValue2, "header2": headerValue},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.EqualValues(t, tt.want, tt.hs.toMap())
 		})
 	}
 }

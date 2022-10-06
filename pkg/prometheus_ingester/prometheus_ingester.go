@@ -76,28 +76,28 @@ type queryOptions struct {
 	ResultAsQuantity *bool
 }
 
-type PrometheusIngesterHttpHeaderValueFromEnv struct {
+type httpHeaderValueFromEnv struct {
 	Name        string `yaml:"name"`
 	ValuePrefix string `yaml:"valuePrefix"`
 }
 
-type PrometheusIngesterHttpHeader struct {
+type httpHeader struct {
 	Name         string
-	ValueFromEnv *PrometheusIngesterHttpHeaderValueFromEnv `yaml:"valueFromEnv"`
-	Value        *string                                   `yaml:"value"`
+	ValueFromEnv *httpHeaderValueFromEnv `yaml:"valueFromEnv"`
+	Value        *string                 `yaml:"value"`
 }
 
-func (h *PrometheusIngesterHttpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (h *httpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// we have to declare new type in order to avoid infinit recursion when using unmarshal function
-	type PrometheusIngesterHttpHeaderCustom PrometheusIngesterHttpHeader
+	type httpHeaderCustom httpHeader
 
-	out := PrometheusIngesterHttpHeaderCustom{ValueFromEnv: &PrometheusIngesterHttpHeaderValueFromEnv{}}
+	out := httpHeaderCustom{ValueFromEnv: &httpHeaderValueFromEnv{}}
 
 	if err := unmarshal(&out); err != nil {
 		return err
 	}
 
-	*h = PrometheusIngesterHttpHeader(out)
+	*h = httpHeader(out)
 
 	if h.Name == "" {
 		return fmt.Errorf("header name must be set")
@@ -106,9 +106,6 @@ func (h *PrometheusIngesterHttpHeader) UnmarshalYAML(unmarshal func(interface{})
 	if (h.ValueFromEnv.Name == "") == (h.Value == nil) {
 		return fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set %+v", h)
 	}
-
-	fmt.Printf("%+v\n", h)
-	fmt.Printf("%+v\n", h.ValueFromEnv)
 
 	if h.ValueFromEnv.Name != "" {
 		value, ok := os.LookupEnv(h.ValueFromEnv.Name)
@@ -123,10 +120,21 @@ func (h *PrometheusIngesterHttpHeader) UnmarshalYAML(unmarshal func(interface{})
 
 }
 
+type httpHeaders []httpHeader
+
+func (hs httpHeaders) toMap() map[string]string {
+	httpHeaders := map[string]string{}
+	for _, h := range hs {
+		httpHeaders[h.Name] = *h.Value
+	}
+
+	return httpHeaders
+}
+
 type PrometheusIngesterConfig struct {
 	ApiUrl       string
 	RoundTripper http.RoundTripper
-	HttpHeaders  []PrometheusIngesterHttpHeader
+	HttpHeaders  httpHeaders
 	Queries      []queryOptions
 	QueryTimeout time.Duration
 	Staleness    time.Duration
@@ -205,16 +213,11 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		ingester       = PrometheusIngester{}
 	)
 
-	httpHeaders := map[string]string{}
-	for _, h := range initConfig.HttpHeaders {
-		httpHeaders[h.Name] = *h.Value
-	}
-
 	client, err := api.NewClient(api.Config{
 		Address: initConfig.ApiUrl,
 		RoundTripper: httpHeadersRoundTripper{
 			roudTripper: initConfig.RoundTripper,
-			headers:     httpHeaders,
+			headers:     initConfig.HttpHeaders.toMap(),
 		},
 	})
 	if err != nil {

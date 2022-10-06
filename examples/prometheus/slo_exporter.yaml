@@ -11,7 +11,7 @@ modules:
       - name: Authorization
         valueFromEnv:
           name: "SLO_EXPORTER_AUTH_TOKEN"
-          prefi: "Bearer "
+          valuePrefix: "Bearer "
     queryTimeout: 30s
     queries:
       # Generate events from counter for every HTTP request with status code for availability SLO.
