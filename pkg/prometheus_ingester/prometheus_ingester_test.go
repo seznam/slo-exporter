@@ -726,7 +726,7 @@ func TestPrometheusIngesterHttpHeader_UnmarshalYAML(t *testing.T) {
 	var expectedValue = "value"
 	var expectedValueWithPrefix = "xxxvalue"
 
-	if err := os.Unsetenv(envName); err != nil {
+	if err := os.Unsetenv("NON_EXISTING_ENV_NAME"); err != nil {
 		t.Fatal(err)
 	}
 
