@@ -726,6 +726,10 @@ func TestPrometheusIngesterHttpHeader_UnmarshalYAML(t *testing.T) {
 	var expectedValue = "value"
 	var expectedValueWithPrefix = "xxxvalue"
 
+	if err := os.Unsetenv(envName); err != nil {
+		t.Fatal(err)
+	}
+
 	if err := os.Setenv(envName, expectedValue); err != nil {
 		t.Fatal(err)
 	}
@@ -752,6 +756,14 @@ valueFromEnv:
   name: ENVNAME
 `),
 			expectedValue: &expectedValue,
+		},
+		{
+			name: "value from env with no env name",
+			data: []byte(`
+name: name
+valueFromEnv: {}
+`),
+			wantErr: true,
 		},
 		{
 			name: "value from env with valuePrefix",
@@ -824,18 +836,18 @@ func Test_httpHeaders_toMap(t *testing.T) {
 		},
 		{
 			name: "multiple headers",
-			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue}},
-			want: map[string]string{"header1": headerValue, "header2": headerValue},
+			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}},
+			want: map[string]string{"header1": headerValue, "header2": headerValue2},
 		},
 		{
 			name: "headers overwrite",
-			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue}, {Name: "header1", Value: &headerValue2}},
-			want: map[string]string{"header1": headerValue2, "header2": headerValue},
+			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}, {Name: "header1", Value: &headerValue2}},
+			want: map[string]string{"header1": headerValue2, "header2": headerValue2},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.EqualValues(t, tt.want, tt.hs.toMap())
+			assert.Equal(t, tt.want, tt.hs.toMap())
 		})
 	}
 }

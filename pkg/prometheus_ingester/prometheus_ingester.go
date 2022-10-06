@@ -82,16 +82,15 @@ type httpHeaderValueFromEnv struct {
 }
 
 type httpHeader struct {
-	Name         string
+	Name         string                  `yaml:"name"`
 	ValueFromEnv *httpHeaderValueFromEnv `yaml:"valueFromEnv"`
 	Value        *string                 `yaml:"value"`
 }
 
 func (h *httpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	// we have to declare new type in order to avoid infinit recursion when using unmarshal function
+	// we have to declare new type in order to avoid infinite recursion when using unmarshal function
 	type httpHeaderCustom httpHeader
-
-	out := httpHeaderCustom{ValueFromEnv: &httpHeaderValueFromEnv{}}
+	var out httpHeaderCustom
 
 	if err := unmarshal(&out); err != nil {
 		return err
@@ -103,11 +102,14 @@ func (h *httpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("header name must be set")
 	}
 
-	if (h.ValueFromEnv.Name == "") == (h.Value == nil) {
-		return fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set %+v", h)
+	if (h.ValueFromEnv == nil) == (h.Value == nil) {
+		return fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set")
 	}
 
-	if h.ValueFromEnv.Name != "" {
+	if h.ValueFromEnv != nil {
+		if h.ValueFromEnv.Name == "" {
+			return fmt.Errorf("environment variable name is not set")
+		}
 		value, ok := os.LookupEnv(h.ValueFromEnv.Name)
 		if !ok {
 			return fmt.Errorf("environment variable '%s' is not set", h.ValueFromEnv.Name)
