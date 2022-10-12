@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - [#96](https://github.com/seznam/slo-exporter/pull/96) prometheusIngester headers from environment value now works
 
+## [v6.12.1] 2022-10-12
+### Added
+- [#95](https://github.com/seznam/slo-exporter/pull/95) prometheusIngester sends user-agent header
+
 ## [v6.12.0] 2022-10-06
 ### Added
 - [#94](https://github.com/seznam/slo-exporter/pull/94) prometheusIngester now can send custom headers to prometheus api server
