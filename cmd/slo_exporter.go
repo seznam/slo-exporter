@@ -68,7 +68,7 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 	case "tailer":
 		return tailer.NewFromViper(conf, logger)
 	case "prometheusIngester":
-		return prometheus_ingester.NewFromViper(conf, logger)
+		return prometheus_ingester.NewFromViper(conf, logger, version)
 	case "kafkaIngester":
 		return kafka_ingester.NewFromViper(conf, logger)
 	case "envoyAccessLogServer":
