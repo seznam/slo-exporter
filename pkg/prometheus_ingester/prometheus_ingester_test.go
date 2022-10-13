@@ -763,38 +763,6 @@ func Test_httpHeaders_toMap(t *testing.T) {
 	}
 }
 
-func Test_httpHeader_validate(t *testing.T) {
-	var headerValue = "value"
-	type fields struct {
-		Name         string
-		ValueFromEnv *httpHeaderValueFromEnv
-		Value        *string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		{name: "header name not set", fields: fields{Name: "", Value: &headerValue}, wantErr: true},
-		{name: "no value neither valueFromEnv set", fields: fields{Name: "headerName"}, wantErr: true},
-		{name: "value", fields: fields{Name: "headerName", Value: &headerValue}, wantErr: false},
-		{name: "valueFromEnv", fields: fields{Name: "headerName", ValueFromEnv: &httpHeaderValueFromEnv{Name: "envName"}}, wantErr: false},
-		{name: "value and valueFromEnv", fields: fields{Name: "headerName", ValueFromEnv: &httpHeaderValueFromEnv{}, Value: &headerValue}, wantErr: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := &httpHeader{
-				Name:         tt.fields.Name,
-				ValueFromEnv: tt.fields.ValueFromEnv,
-				Value:        tt.fields.Value,
-			}
-			if err := h.validate(); (err != nil) != tt.wantErr {
-				t.Errorf("httpHeader.validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func Test_httpHeader_getValue(t *testing.T) {
 	var headerName = "headerName"
 	var headerValue = "headerValue"
@@ -832,6 +800,9 @@ func Test_httpHeader_getValue(t *testing.T) {
 			want: headerValueFromEnvPrefix + headerValueFromEnvValue},
 		{name: "valueFromEnv non existing env", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{Name: nonExistingEnv}}, wantErr: true},
 		{name: "valueFromEnv no env name set", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{}}, wantErr: true},
+		{name: "header name not set", fields: fields{Name: "", Value: &headerValue}, wantErr: true},
+		{name: "no value neither valueFromEnv set", fields: fields{Name: headerName}, wantErr: true},
+		{name: "value and valueFromEnv", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{}, Value: &headerValue}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -845,9 +816,7 @@ func Test_httpHeader_getValue(t *testing.T) {
 				t.Errorf("httpHeader.getValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("httpHeader.getValue() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

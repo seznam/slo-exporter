@@ -87,21 +87,13 @@ type httpHeader struct {
 	Value        *string
 }
 
-func (h *httpHeader) validate() error {
+func (h *httpHeader) getValue() (string, error) {
 	if h.Name == "" {
-		return fmt.Errorf("header name must be set")
+		return "", fmt.Errorf("header name must be set")
 	}
 
 	if (h.ValueFromEnv == nil) == (h.Value == nil) {
-		return fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set")
-	}
-
-	return nil
-}
-
-func (h *httpHeader) getValue() (string, error) {
-	if err := h.validate(); err != nil {
-		return "", err
+		return "", fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set")
 	}
 
 	if h.ValueFromEnv != nil {
@@ -121,16 +113,16 @@ func (h *httpHeader) getValue() (string, error) {
 type httpHeaders []httpHeader
 
 func (hs httpHeaders) toMap() (map[string]string, error) {
-	httpHeaders := map[string]string{}
+	headersMap := map[string]string{}
 	for _, h := range hs {
 		value, err := h.getValue()
 		if err != nil {
 			return nil, err
 		}
-		httpHeaders[h.Name] = value
+		headersMap[h.Name] = value
 	}
 
-	return httpHeaders, nil
+	return headersMap, nil
 }
 
 type PrometheusIngesterConfig struct {
