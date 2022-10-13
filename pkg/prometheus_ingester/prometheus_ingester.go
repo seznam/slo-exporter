@@ -77,27 +77,17 @@ type queryOptions struct {
 }
 
 type httpHeaderValueFromEnv struct {
-	Name        string `yaml:"name"`
-	ValuePrefix string `yaml:"valuePrefix"`
+	Name        string
+	ValuePrefix string
 }
 
 type httpHeader struct {
-	Name         string                  `yaml:"name"`
-	ValueFromEnv *httpHeaderValueFromEnv `yaml:"valueFromEnv"`
-	Value        *string                 `yaml:"value"`
+	Name         string
+	ValueFromEnv *httpHeaderValueFromEnv
+	Value        *string
 }
 
-func (h *httpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	// we have to declare new type in order to avoid infinite recursion when using unmarshal function
-	type httpHeaderCustom httpHeader
-	var out httpHeaderCustom
-
-	if err := unmarshal(&out); err != nil {
-		return err
-	}
-
-	*h = httpHeader(out)
-
+func (h *httpHeader) validate() error {
 	if h.Name == "" {
 		return fmt.Errorf("header name must be set")
 	}
@@ -106,31 +96,41 @@ func (h *httpHeader) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set")
 	}
 
+	return nil
+}
+
+func (h *httpHeader) getValue() (string, error) {
+	if err := h.validate(); err != nil {
+		return "", err
+	}
+
 	if h.ValueFromEnv != nil {
 		if h.ValueFromEnv.Name == "" {
-			return fmt.Errorf("environment variable name is not set")
+			return "", fmt.Errorf("environment variable name is not set")
 		}
 		value, ok := os.LookupEnv(h.ValueFromEnv.Name)
 		if !ok {
-			return fmt.Errorf("environment variable '%s' is not set", h.ValueFromEnv.Name)
+			return "", fmt.Errorf("environment variable '%s' is not set", h.ValueFromEnv.Name)
 		}
-		value = h.ValueFromEnv.ValuePrefix + value
-		h.Value = &value
+		return h.ValueFromEnv.ValuePrefix + value, nil
 	}
 
-	return nil
-
+	return *h.Value, nil
 }
 
 type httpHeaders []httpHeader
 
-func (hs httpHeaders) toMap() map[string]string {
+func (hs httpHeaders) toMap() (map[string]string, error) {
 	httpHeaders := map[string]string{}
 	for _, h := range hs {
-		httpHeaders[h.Name] = *h.Value
+		value, err := h.getValue()
+		if err != nil {
+			return nil, err
+		}
+		httpHeaders[h.Name] = value
 	}
 
-	return httpHeaders
+	return httpHeaders, nil
 }
 
 type PrometheusIngesterConfig struct {
@@ -215,11 +215,16 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		ingester       = PrometheusIngester{}
 	)
 
+	headers, err := initConfig.HttpHeaders.toMap()
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := api.NewClient(api.Config{
 		Address: initConfig.ApiUrl,
 		RoundTripper: httpHeadersRoundTripper{
 			roudTripper: initConfig.RoundTripper,
-			headers:     initConfig.HttpHeaders.toMap(),
+			headers:     headers,
 		},
 	})
 	if err != nil {
