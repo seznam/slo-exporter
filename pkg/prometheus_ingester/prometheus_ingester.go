@@ -171,11 +171,19 @@ func (i *PrometheusIngester) OutputChannel() chan *event.Raw {
 	return i.outputChannel
 }
 
-func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*PrometheusIngester, error) {
+func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger, appVersion string) (*PrometheusIngester, error) {
 	config := PrometheusIngesterConfig{}
+
 	if err := viperAppConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
+
+	userAgent := "slo-exporter/" + appVersion
+	config.HttpHeaders = append(config.HttpHeaders, httpHeader{
+		Name:  "user-agent",
+		Value: &userAgent,
+	})
+
 	if config.Staleness == time.Duration(0) {
 		config.Staleness = defaultStaleness
 	}
