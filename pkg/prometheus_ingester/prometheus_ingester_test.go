@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,8 +16,8 @@ import (
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
 )
 
 type MockedRoundTripper struct {
@@ -721,133 +722,133 @@ func Test_processHistogramIncrease(t *testing.T) {
 	}
 }
 
-func TestPrometheusIngesterHttpHeader_UnmarshalYAML(t *testing.T) {
-	const envName = "ENVNAME"
-	var expectedValue = "value"
-	var expectedValueWithPrefix = "xxxvalue"
-
-	if err := os.Unsetenv("NON_EXISTING_ENV_NAME"); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := os.Setenv(envName, expectedValue); err != nil {
-		t.Fatal(err)
-	}
-
-	tests := []struct {
-		name          string
-		data          []byte
-		expectedValue *string
-		wantErr       bool
-	}{
-		{
-			name: "value from string",
-			data: []byte(`
-name: name
-value: value
-`),
-			expectedValue: &expectedValue,
-		},
-		{
-			name: "value from env",
-			data: []byte(`
-name: name
-valueFromEnv:
-  name: ENVNAME
-`),
-			expectedValue: &expectedValue,
-		},
-		{
-			name: "value from env with no env name",
-			data: []byte(`
-name: name
-valueFromEnv: {}
-`),
-			wantErr: true,
-		},
-		{
-			name: "value from env with valuePrefix",
-			data: []byte(`
-name: name
-valueFromEnv:
-  name: ENVNAME
-  valuePrefix: xxx
-`),
-			expectedValue: &expectedValueWithPrefix,
-		},
-		{
-			name: "both valueFromString and valueFromEnv is set",
-			data: []byte(`
-name: name
-valueFromEnv: 
-  name: ENVNAME
-value: value
-`),
-			wantErr: true,
-		},
-		{
-			name:    "none of valueFromString or valueFromEnv is set",
-			data:    []byte("name: name"),
-			wantErr: true,
-		},
-		{
-			name:    "none of valueFromString or valueFromEnv is set",
-			data:    []byte("value: value"),
-			wantErr: true,
-		},
-		{
-			name: "non existing environment variable with name valueFromEnv",
-			data: []byte(`
-name: name
-valueFromEnv:
-  name: NON_EXISTING_ENV_NAME
-`),
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			h := httpHeader{}
-			err := yaml.Unmarshal(tt.data, &h)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("PrometheusIngesterHttpHeader.UnmarshalYAML() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if err == nil {
-				assert.EqualValues(t, tt.expectedValue, h.Value)
-			}
-		})
-	}
-}
-
 func Test_httpHeaders_toMap(t *testing.T) {
 	var headerValue = "value"
 	var headerValue2 = "value2"
 
 	tests := []struct {
-		name string
-		hs   httpHeaders
-		want map[string]string
+		name    string
+		data    string
+		want    map[string]string
+		wantErr bool
 	}{
 		{
 			name: "empty headers",
-			hs:   httpHeaders{},
+			data: `httpHeaders: []`,
 			want: map[string]string{},
 		},
 		{
 			name: "multiple headers",
-			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}},
+			data: `
+httpHeaders:
+- name: header1
+  value: value
+- name: header2
+  value: value2
+`,
 			want: map[string]string{"header1": headerValue, "header2": headerValue2},
 		},
 		{
 			name: "headers overwrite",
-			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}, {Name: "header1", Value: &headerValue2}},
+			data: `
+httpHeaders:
+- name: header1
+  value: value
+- name: header2
+  value: value2
+- name: header1
+  value: value2
+`,
 			want: map[string]string{"header1": headerValue2, "header2": headerValue2},
+		},
+		{
+			name: "validate fail - no header name",
+			data: `
+httpHeaders:
+- value: value
+`,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.hs.toMap())
+
+			var headers struct {
+				HttpHeaders httpHeaders
+			}
+			v := viper.New()
+			v.SetConfigType("yaml")
+			if err := v.ReadConfig(strings.NewReader(tt.data)); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.UnmarshalExact(&headers); err != nil {
+				t.Fatal(err)
+			}
+
+			got, err := headers.HttpHeaders.toMap()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("httpHeader.getValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_httpHeader_getValue(t *testing.T) {
+	var headerName = "headerName"
+	var headerValue = "headerValue"
+	var headerValueFromEnvValue = "headerValueFromEnv"
+	var headerValueFromEnvPrefix = "Prefix"
+	var envName = "envName"
+	var nonExistingEnv = "NON_EXISTING_ENV_NAME"
+
+	if err := os.Unsetenv(nonExistingEnv); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Setenv(envName, headerValueFromEnvValue); err != nil {
+		t.Fatal(err)
+	}
+
+	type fields struct {
+		Name         string
+		ValueFromEnv *httpHeaderValueFromEnv
+		Value        *string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    string
+		wantErr bool
+	}{
+		{name: "value", fields: fields{Name: headerName, Value: &headerValue}, want: headerValue},
+		{name: "valueFromEnv", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{Name: envName}}, want: headerValueFromEnvValue},
+		{
+			name: "valueFromEnv with prefix",
+			fields: fields{
+				Name:         headerName,
+				ValueFromEnv: &httpHeaderValueFromEnv{Name: envName, ValuePrefix: headerValueFromEnvPrefix}},
+			want: headerValueFromEnvPrefix + headerValueFromEnvValue},
+		{name: "valueFromEnv non existing env", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{Name: nonExistingEnv}}, wantErr: true},
+		{name: "valueFromEnv no env name set", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{}}, wantErr: true},
+		{name: "header name not set", fields: fields{Name: "", Value: &headerValue}, wantErr: true},
+		{name: "no value neither valueFromEnv set", fields: fields{Name: headerName}, wantErr: true},
+		{name: "value and valueFromEnv", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{}, Value: &headerValue}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &httpHeader{
+				Name:         tt.fields.Name,
+				ValueFromEnv: tt.fields.ValueFromEnv,
+				Value:        tt.fields.Value,
+			}
+			got, err := h.getValue()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("httpHeader.getValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
