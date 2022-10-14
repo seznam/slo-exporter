@@ -5,12 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
-### Fixed
-- [#96](https://github.com/seznam/slo-exporter/pull/96) prometheusIngester headers from environment value now works
 
-## [v6.12.1] 2022-10-12
+## [v6.12.1] 2022-10-14
 ### Added
 - [#95](https://github.com/seznam/slo-exporter/pull/95) prometheusIngester sends user-agent header
+
+### Fixed
+- [#96](https://github.com/seznam/slo-exporter/pull/96) prometheusIngester headers from environment value now works
 
 ## [v6.12.0] 2022-10-06
 ### Added
