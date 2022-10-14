@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -726,34 +728,64 @@ func Test_httpHeaders_toMap(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		hs      httpHeaders
+		data    string
 		want    map[string]string
 		wantErr bool
 	}{
 		{
 			name: "empty headers",
-			hs:   httpHeaders{},
+			data: `httpHeaders: []`,
 			want: map[string]string{},
 		},
 		{
 			name: "multiple headers",
-			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}},
+			data: `
+httpHeaders:
+- name: header1
+  value: value
+- name: header2
+  value: value2
+`,
 			want: map[string]string{"header1": headerValue, "header2": headerValue2},
 		},
 		{
 			name: "headers overwrite",
-			hs:   httpHeaders{{Name: "header1", Value: &headerValue}, {Name: "header2", Value: &headerValue2}, {Name: "header1", Value: &headerValue2}},
+			data: `
+httpHeaders:
+- name: header1
+  value: value
+- name: header2
+  value: value2
+- name: header1
+  value: value2
+`,
 			want: map[string]string{"header1": headerValue2, "header2": headerValue2},
 		},
 		{
-			name:    "validate fail - no header name",
-			hs:      httpHeaders{{Name: "", Value: &headerValue}},
+			name: "validate fail - no header name",
+			data: `
+httpHeaders:
+- value: value
+`,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.hs.toMap()
+
+			var headers struct {
+				HttpHeaders httpHeaders
+			}
+			v := viper.New()
+			v.SetConfigType("yaml")
+			if err := v.ReadConfig(strings.NewReader(tt.data)); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.UnmarshalExact(&headers); err != nil {
+				t.Fatal(err)
+			}
+
+			got, err := headers.HttpHeaders.toMap()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("httpHeader.getValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
