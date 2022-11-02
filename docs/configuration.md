@@ -5,7 +5,7 @@ Additional configuration files might be needed by some modules
 depending on their needs and if they are used in the pipeline at all.
 
 #### ENV variables
-Every configuration option in the base YAML file can be overridden by using ENV variable.
+Every configuration option in the base YAML file can be overridden(the configuration MUST be present in the yaml config for the ENV to be loaded, it can be even empty string) by using ENV variable.
 The schema of ENV variable naming is `SLO_EXPORTER_` prefix and than in uppercase any key of the YAML
 structure in uppercase without any underscores. Underscores are used for separating nested structures.
 Example: `SLO_EXPORTER_WEBSERVERLISTENADDRESS=0.0.0.0:8080` or for module configuration `SLO_EXPORTER_TAILER_TAILEDFILE=access.log`
