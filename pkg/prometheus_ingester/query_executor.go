@@ -3,14 +3,15 @@ package prometheus_ingester
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"go.uber.org/atomic"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"go.uber.org/atomic"
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -218,11 +219,35 @@ type metricIncrease struct {
 	metric   model.Metric
 }
 
+func checkHistogramMatrixConsistency(matrix model.Matrix) error {
+	if len(matrix) == 0 {
+		return nil
+	}
+	times := map[string]model.Time{}
+	for _, s := range matrix {
+		labels := stringmap.NewFromMetric(s.Metric).Without([]string{"le"}).String()
+		ts := s.Values[len(s.Values)-1].Timestamp
+		previousTs, ok := times[labels]
+		if !ok {
+			times[labels] = ts
+			previousTs = ts
+		}
+		if previousTs != ts {
+			return fmt.Errorf("matrix has inconsistent last timestamps: %s and %s", ts, previousTs)
+		}
+	}
+	return nil
+}
+
 func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Time) error {
 	metricBucketIncreases := make(map[string]map[float64]metricIncrease)
 	var (
 		errors error
 	)
+	if err := checkHistogramMatrixConsistency(matrix); err != nil {
+		inconsistentHistogram.Inc()
+		return fmt.Errorf("inconsistent histogram metrics: %w", err)
+	}
 	for increase := range q.processMatrixResultAsIncrease(matrix, ts) {
 		bucket, ok := increase.metric["le"]
 		if !ok {
@@ -246,7 +271,7 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 	for _, metric := range metricBucketIncreases {
 		metricBuckets := make([]float64, len(metric))
 		i := 0
-		for bucket, _ := range metric {
+		for bucket := range metric {
 			metricBuckets[i] = bucket
 			i++
 		}

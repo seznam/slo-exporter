@@ -463,7 +463,7 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 				},
 				previousResult: queryResult{timestamp: ts.Add(time.Hour * -1),
 					metrics: map[model.Fingerprint]model.SamplePair{
-						model.Fingerprint(0): {model.Time(0), 0},
+						model.Fingerprint(0): {Timestamp: model.Time(0), Value: 0},
 					},
 				},
 			},
@@ -505,8 +505,8 @@ func Test_processMetricsIncrease(t *testing.T) {
 			previousResult: queryResult{
 				ts.Time(),
 				map[model.Fingerprint]model.SamplePair{
-					x.Fingerprint(): {ts, 0},
-					y.Fingerprint(): {ts, 10},
+					x.Fingerprint(): {Timestamp: ts, Value: 0},
+					y.Fingerprint(): {Timestamp: ts, Value: 10},
 				},
 			},
 			newResult: []*model.SampleStream{
@@ -551,7 +551,7 @@ func Test_processMetricsIncrease(t *testing.T) {
 			previousResult: queryResult{
 				ts.Time(),
 				map[model.Fingerprint]model.SamplePair{
-					x.Fingerprint(): {ts, 0},
+					x.Fingerprint(): {Timestamp: ts, Value: 0},
 				},
 			},
 			newResult: []*model.SampleStream{
@@ -574,7 +574,7 @@ func Test_processMetricsIncrease(t *testing.T) {
 			previousResult: queryResult{
 				ts.Time(),
 				map[model.Fingerprint]model.SamplePair{
-					x.Fingerprint(): {ts, 0},
+					x.Fingerprint(): {Timestamp: ts, Value: 0},
 				},
 			},
 			newResult: []*model.SampleStream{
@@ -849,6 +849,244 @@ func Test_httpHeader_getValue(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_processHistogramIncrease_inconsistency(t *testing.T) {
+	staleness := time.Minute
+	type (
+		metric struct {
+			le    string
+			value int
+			ts    model.Time
+		}
+		metricsSlice struct {
+			ts          model.Time
+			metrics     []metric
+			expectError bool
+		}
+		expectedEvent struct {
+			le       string
+			ts       model.Time
+			minValue string
+			maxValue string
+			quantity int
+		}
+		testCases []struct {
+			name           string
+			expectedEvents []expectedEvent
+			timeSeries     []metricsSlice
+		}
+	)
+
+	var (
+		sliceToMatrix = func(slice metricsSlice) []*model.SampleStream {
+			matrix := []*model.SampleStream{}
+			for _, s := range slice.metrics {
+				ts := slice.ts
+				if s.ts != 0 {
+					ts = s.ts
+				}
+				matrix = append(matrix, &model.SampleStream{
+					Metric: newMetric("histogram_bucket", stringmap.StringMap{"le": s.le}),
+					Values: []model.SamplePair{{Timestamp: ts, Value: model.SampleValue(s.value)}},
+				})
+			}
+			return matrix
+		}
+		resultsToEvents = func(e []expectedEvent) []*event.Raw {
+			res := []*event.Raw{}
+			for _, ev := range e {
+				res = append(res, &event.Raw{
+					Metadata: stringmap.StringMap{
+						"__name__":                "histogram_bucket",
+						"le":                      ev.le,
+						metadataTimestampKey:      ev.ts.String(),
+						metadataHistogramMinValue: ev.minValue,
+						metadataHistogramMaxValue: ev.maxValue,
+						metadataValueKey:          fmt.Sprint(ev.quantity),
+					},
+					Quantity: float64(ev.quantity),
+				})
+			}
+			return res
+		}
+	)
+
+	ts := model.Time(0)
+	testData := testCases{
+		{
+			name: "Initial data increase is ignored and another scrape emits event",
+			timeSeries: []metricsSlice{
+				{
+					ts: ts,
+					metrics: []metric{
+						{le: "1", value: 1},
+					},
+				},
+				{
+					ts: ts.Add(20 * time.Second),
+					metrics: []metric{
+						{le: "1", value: 2},
+					},
+				},
+			},
+			expectedEvents: []expectedEvent{
+				{le: "1", ts: ts.Add(20 * time.Second), minValue: "-Inf", maxValue: "1", quantity: 1},
+			},
+		},
+		{
+			name: "Staleness causes the increase to be ignored",
+			timeSeries: []metricsSlice{
+				{
+					ts: ts,
+					metrics: []metric{
+						{le: "1", value: 1},
+					},
+				},
+				{
+					ts: ts.Add(staleness).Add(time.Second),
+					metrics: []metric{
+						{le: "1", value: 2},
+					},
+				},
+			},
+			expectedEvents: []expectedEvent{},
+		},
+		{
+			name: "More complex valid histogram increase",
+			timeSeries: []metricsSlice{
+				{
+					ts: ts,
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 0},
+						{le: "2", value: 0},
+						{le: "3", value: 0},
+						{le: "+Inf", value: 0},
+					},
+				},
+				{
+					ts: ts.Add(20 * time.Second),
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 2},
+						{le: "2", value: 2},
+						{le: "3", value: 3},
+						{le: "+Inf", value: 4},
+					},
+				},
+			},
+			expectedEvents: []expectedEvent{
+				{le: "1", ts: ts.Add(20 * time.Second), minValue: "0", maxValue: "1", quantity: 2},
+				{le: "3", ts: ts.Add(20 * time.Second), minValue: "2", maxValue: "3", quantity: 1},
+				{le: "+Inf", ts: ts.Add(20 * time.Second), minValue: "3", maxValue: "+Inf", quantity: 1},
+			},
+		},
+		{
+			name: "Inconsistent histogram does not produce events",
+			timeSeries: []metricsSlice{
+				{
+					ts: ts,
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 0},
+						{le: "2", value: 0},
+						{le: "3", value: 0},
+						{le: "+Inf", value: 0},
+					},
+				},
+				{
+					ts: ts.Add(20 * time.Second),
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 2},
+						{le: "2", value: 6, ts: ts.Add(25 * time.Second)}, // Inconsistent sample from new scrape
+						{le: "3", value: 3},
+						{le: "+Inf", value: 4},
+					},
+					expectError: true,
+				},
+			},
+			expectedEvents: []expectedEvent{},
+		},
+		{
+			name: "Inconsistent histogram slice is ignored and accounted by subsequent valid slice",
+			timeSeries: []metricsSlice{
+				{
+					ts: ts,
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 0},
+						{le: "2", value: 0},
+						{le: "3", value: 0},
+						{le: "+Inf", value: 0},
+					},
+				},
+				{
+					ts: ts.Add(20 * time.Second),
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 2},
+						{le: "2", value: 6, ts: ts.Add(40 * time.Second)}, // Inconsistent sample from new scrape
+						{le: "3", value: 3},
+						{le: "+Inf", value: 4},
+					},
+					expectError: true,
+				},
+				{
+					ts: ts.Add(40 * time.Second),
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 6},
+						{le: "2", value: 6},
+						{le: "3", value: 6},
+						{le: "+Inf", value: 7},
+					},
+					expectError: false,
+				},
+			},
+			expectedEvents: []expectedEvent{
+				{le: "1", ts: ts.Add(40 * time.Second), minValue: "0", maxValue: "1", quantity: 6},
+				{le: "+Inf", ts: ts.Add(40 * time.Second), minValue: "3", maxValue: "+Inf", quantity: 1},
+			},
+		},
+	}
+
+	for _, tc := range testData {
+		t.Run(tc.name, func(t *testing.T) {
+			q := &queryExecutor{
+				eventsChan: make(chan *event.Raw),
+				Query: queryOptions{
+					Type:             histogramQueryType,
+					ResultAsQuantity: newTrue(),
+				},
+				previousResult: queryResult{
+					timestamp: time.Time{},
+					metrics:   map[model.Fingerprint]model.SamplePair{},
+				},
+				staleness: staleness,
+			}
+			var generatedEvents []*event.Raw
+			done := make(chan struct{})
+			go func() {
+				for e := range q.eventsChan {
+					generatedEvents = append(generatedEvents, e)
+				}
+				done <- struct{}{}
+			}()
+			for _, slice := range tc.timeSeries {
+				err := q.processHistogramIncrease(sliceToMatrix(slice), slice.ts.Time())
+				if slice.expectError {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+				}
+			}
+			close(q.eventsChan)
+			<-done
+			assert.ElementsMatch(t, resultsToEvents(tc.expectedEvents), generatedEvents)
 		})
 	}
 }

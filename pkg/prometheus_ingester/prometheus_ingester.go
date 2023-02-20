@@ -42,6 +42,10 @@ var (
 		Help:    "Duration of queries on the Prometheus API.",
 		Buckets: prometheus.ExponentialBuckets(0.05, 3, 5),
 	}, []string{"query_type"})
+	inconsistentHistogram = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "inconsistent_histogram_results_total",
+		Help: "Encountered inconsistent data in histogram result.",
+	})
 )
 
 type queryType string
@@ -135,7 +139,7 @@ type PrometheusIngesterConfig struct {
 }
 
 type PrometheusIngester struct {
-	queryExecutors  *[]queryExecutor
+	queryExecutors  []*queryExecutor
 	queryTimeout    time.Duration
 	client          api.Client
 	api             v1.API
@@ -150,7 +154,7 @@ func (i *PrometheusIngester) String() string {
 }
 
 func (i *PrometheusIngester) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
-	toRegister := []prometheus.Collector{unsupportedQueryResultType, prometheusQueryFail, prometheusQueryDuration}
+	toRegister := []prometheus.Collector{unsupportedQueryResultType, prometheusQueryFail, prometheusQueryDuration, inconsistentHistogram}
 	for _, metric := range toRegister {
 		if err := wrappedRegistry.Register(metric); err != nil {
 			return err
@@ -211,7 +215,7 @@ func newFalse() *bool {
 
 func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*PrometheusIngester, error) {
 	var (
-		queryExecutors = []queryExecutor{}
+		queryExecutors = []*queryExecutor{}
 		ingester       = PrometheusIngester{}
 	)
 
@@ -232,7 +236,6 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 	}
 
 	ingester = PrometheusIngester{
-		queryExecutors:  &queryExecutors,
 		queryTimeout:    initConfig.QueryTimeout,
 		client:          client,
 		api:             v1.NewAPI(client),
@@ -258,7 +261,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 		}
 		queryExecutors = append(
 			queryExecutors,
-			queryExecutor{
+			&queryExecutor{
 				Query:        q,
 				queryTimeout: ingester.queryTimeout,
 				eventsChan:   ingester.outputChannel,
@@ -271,6 +274,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 			},
 		)
 	}
+	ingester.queryExecutors = queryExecutors
 
 	return &ingester, nil
 }
@@ -285,7 +289,7 @@ func (i *PrometheusIngester) Run() {
 
 		var wg sync.WaitGroup
 		// Start all queries
-		for _, queryExecutor := range *i.queryExecutors {
+		for _, queryExecutor := range i.queryExecutors {
 			wg.Add(1)
 			// declare local scope variable to prevent shadowing by the next iterations
 			qe := queryExecutor
