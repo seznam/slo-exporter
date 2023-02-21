@@ -1012,6 +1012,33 @@ func Test_processHistogramIncrease_inconsistency(t *testing.T) {
 			expectedEvents: []expectedEvent{},
 		},
 		{
+			name: "Inconsistent histogram by values does not produce events",
+			timeSeries: []metricsSlice{
+				{
+					ts: ts,
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 0},
+						{le: "2", value: 0},
+						{le: "3", value: 0},
+						{le: "+Inf", value: 0},
+					},
+				},
+				{
+					ts: ts.Add(20 * time.Second),
+					metrics: []metric{
+						{le: "0", value: 0},
+						{le: "1", value: 2},
+						{le: "2", value: 6}, // Inconsistent sample from new scrape
+						{le: "3", value: 3},
+						{le: "+Inf", value: 4},
+					},
+					expectError: true,
+				},
+			},
+			expectedEvents: []expectedEvent{},
+		},
+		{
 			name: "Inconsistent histogram slice is ignored and accounted by subsequent valid slice",
 			timeSeries: []metricsSlice{
 				{

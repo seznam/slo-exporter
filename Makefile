@@ -46,7 +46,7 @@ SLO_EXPORTER_BIN ?= slo_exporter
 build:
 	GOOS=$(OS) GOARCH=$(ARCH) CGO_ENABLED=0 go build -o $(SLO_EXPORTER_BIN) -a $(SRC_DIR)/cmd/slo_exporter.go
 
-.PHONY: docker-build
+.PHONY: docker
 docker: build
 	docker build -t slo_exporter .
 

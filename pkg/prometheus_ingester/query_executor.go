@@ -220,20 +220,61 @@ type metricIncrease struct {
 }
 
 func checkHistogramMatrixConsistency(matrix model.Matrix) error {
-	if len(matrix) == 0 {
+	type (
+		lastValue struct {
+			ts    model.Time
+			value float64
+		}
+		histogram struct {
+			bucketValues map[float64]lastValue
+		}
+	)
+	if len(matrix) <= 1 {
 		return nil
 	}
-	times := map[string]model.Time{}
-	for _, s := range matrix {
-		labels := stringmap.NewFromMetric(s.Metric).Without([]string{"le"}).String()
-		ts := s.Values[len(s.Values)-1].Timestamp
-		previousTs, ok := times[labels]
+	histogramMetrics := map[string]histogram{}
+	for _, stream := range matrix {
+		leVal, ok := stream.Metric["le"]
 		if !ok {
-			times[labels] = ts
-			previousTs = ts
+			continue
 		}
-		if previousTs != ts {
-			return fmt.Errorf("matrix has inconsistent last timestamps: %s and %s", ts, previousTs)
+		le, err := strconv.ParseFloat(string(leVal), 64)
+		if err != nil {
+			return fmt.Errorf("invalid le label value %s: %w", leVal, err)
+		}
+		metricSignature := stringmap.NewFromMetric(stream.Metric).Without([]string{"le"}).String()
+		if _, ok := histogramMetrics[metricSignature]; !ok {
+			histogramMetrics[metricSignature] = histogram{bucketValues: map[float64]lastValue{}}
+		}
+		if _, ok := histogramMetrics[metricSignature].bucketValues[le]; ok {
+			return fmt.Errorf("duplicate le %s bucket for metric %s", leVal, metricSignature)
+		}
+		last := stream.Values[len(stream.Values)-1]
+		histogramMetrics[metricSignature].bucketValues[le] = lastValue{ts: last.Timestamp, value: float64(last.Value)}
+	}
+
+	for _, h := range histogramMetrics {
+		if len(h.bucketValues) <= 1 {
+			continue
+		}
+		buckets := []float64{}
+		for b := range h.bucketValues {
+			buckets = append(buckets, b)
+		}
+		sort.Float64s(buckets)
+
+		previousTs := h.bucketValues[buckets[0]].ts
+		previousValue := h.bucketValues[buckets[0]].value
+		for _, b := range buckets {
+			val := h.bucketValues[b]
+			if previousTs != val.ts {
+				return fmt.Errorf("error inconsistent histogram metrics, mixed timestamps %s and %s", previousTs, val.ts)
+			}
+			if previousValue > val.value {
+				return fmt.Errorf("error inconsistent histogram metrics, higher bucket %f : %f has lower value than previous bucket value %f", b, val.value, previousValue)
+			}
+			previousValue = val.value
+			previousTs = val.ts
 		}
 	}
 	return nil
