@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -21,8 +22,9 @@ import (
 )
 
 type MockedRoundTripper struct {
-	t      *testing.T
-	result model.Value
+	t                 *testing.T
+	result            model.Value
+	expectedTimestamp string
 }
 
 func (m *MockedRoundTripper) resultFabricator() string {
@@ -45,6 +47,12 @@ func (m *MockedRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 	if _, err := buf.ReadFrom(req.Body); err != nil {
 		m.t.Error(err)
 		return nil, err
+	}
+	vals, err := url.ParseQuery(buf.String())
+	assert.NoError(m.t, err)
+
+	if m.expectedTimestamp != "" {
+		assert.Equal(m.t, m.expectedTimestamp, vals.Get("time"))
 	}
 
 	response := m.resultFabricator()
@@ -209,7 +217,7 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 		}
 
 		// Prepare the string interpretation of the actual results
-		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", HttpRequestsToString(actualEventResult))
+		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesn't match expected events", "actual", HttpRequestsToString(actualEventResult))
 	}
 }
 
@@ -849,6 +857,44 @@ func Test_httpHeader_getValue(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_queryOffset(t *testing.T) {
+	type testCase struct {
+		name        string
+		queryOpts   queryOptions
+		expectError bool
+	}
+
+	cases := []testCase{
+		{name: "no offset expected", queryOpts: queryOptions{Query: "up", Interval: time.Second, Type: "simple"}},
+		{name: "offset expected", queryOpts: queryOptions{Query: "up", Interval: time.Second, Type: "simple", Offset: time.Minute}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := model.Now()
+			roundTripper := &MockedRoundTripper{
+				t:                 t,
+				expectedTimestamp: ts.Add(-tc.queryOpts.Offset).String(),
+				result:            &model.Scalar{Value: 1, Timestamp: 0},
+			}
+
+			ingester, err := New(PrometheusIngesterConfig{
+				RoundTripper: roundTripper,
+				QueryTimeout: 400 * time.Millisecond,
+				Queries: []queryOptions{
+					tc.queryOpts,
+				},
+			}, logrus.New())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			_, _, err = ingester.queryExecutors[0].execute(ts.Time())
+			assert.NoError(t, err)
 		})
 	}
 }

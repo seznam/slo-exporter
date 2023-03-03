@@ -3,14 +3,15 @@ package prometheus_ingester
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"go.uber.org/atomic"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"go.uber.org/atomic"
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -74,7 +75,8 @@ func (q *queryExecutor) withRangeSelector(ts time.Time) string {
 }
 
 // execute query at provided timestamp ts
-func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
+func (q *queryExecutor) execute(ts time.Time) (model.Value, time.Time, error) {
+	ts = ts.Add(-q.Query.Offset)
 	q.queryInProgress.Store(true)
 	defer q.queryInProgress.Store(false)
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), q.queryTimeout)
@@ -93,7 +95,7 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 	case simpleQueryType:
 		query = q.Query.Query
 	default:
-		return nil, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
+		return nil, ts, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
 	}
 	start := time.Now()
 	result, warnings, err = q.api.Query(timeoutCtx, query, ts)
@@ -104,7 +106,7 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 		q.logger.WithField("query", query).Warnf("warnings in query execution: %+v", warnings)
 	}
 
-	return result, err
+	return result, ts, err
 }
 
 func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
@@ -123,14 +125,13 @@ func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 				q.logger.Warn("skipping query execution, previous query still in progress...")
 				continue
 			}
-			ts := time.Now()
-			result, err := q.execute(ts)
+			result, queryTs, err := q.execute(time.Now())
 			if err != nil {
 				prometheusQueryFail.WithLabelValues(string(q.Query.Type)).Inc()
 				q.logger.WithField("query", q.Query.Query).Errorf("failed querying Prometheus: '%+v'", err)
 				continue
 			}
-			err = q.ProcessResult(result, ts)
+			err = q.ProcessResult(result, queryTs)
 			if err != nil {
 				q.logger.WithField("query", q.Query.Query).Errorf("failed processing the query result: '%+v'", err)
 			}
@@ -246,7 +247,7 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 	for _, metric := range metricBucketIncreases {
 		metricBuckets := make([]float64, len(metric))
 		i := 0
-		for bucket, _ := range metric {
+		for bucket := range metric {
 			metricBuckets[i] = bucket
 			i++
 		}
