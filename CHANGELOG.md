@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v6.13.0] 2023-03-03
 ### Added
-- []() prometheusIngester add `offset` option to query, allowing to query bit older data to ensure consistency on prometheus compatible systems using remote write.
+- [#101](https://github.com/seznam/slo-exporter/pull/101) prometheusIngester add `offset` option to query, allowing to query bit older data to ensure consistency on prometheus compatible systems using remote write.
 
 ## [v6.12.1] 2022-10-14
 ### Added
