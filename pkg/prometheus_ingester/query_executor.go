@@ -74,7 +74,7 @@ func (q *queryExecutor) withRangeSelector(ts time.Time) string {
 	return q.Query.Query + fmt.Sprintf("[%ds]", int64(rangeSelector.Seconds()))
 }
 
-// execute query at provided timestamp ts
+// execute query at provided timestamp ts taking the configured query offser into account. Returns the actual timestamp with offset applied.
 func (q *queryExecutor) execute(ts time.Time) (model.Value, time.Time, error) {
 	ts = ts.Add(-q.Query.Offset)
 	q.queryInProgress.Store(true)
