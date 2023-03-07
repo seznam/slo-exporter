@@ -70,6 +70,7 @@ func validateQueryType(queryType queryType) error {
 type queryOptions struct {
 	Query            string
 	Interval         time.Duration
+	Offset           time.Duration
 	DropLabels       []string
 	AdditionalLabels stringmap.StringMap
 	Type             queryType
@@ -135,7 +136,7 @@ type PrometheusIngesterConfig struct {
 }
 
 type PrometheusIngester struct {
-	queryExecutors  *[]queryExecutor
+	queryExecutors  []*queryExecutor
 	queryTimeout    time.Duration
 	client          api.Client
 	api             v1.API
@@ -210,10 +211,7 @@ func newFalse() *bool {
 }
 
 func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*PrometheusIngester, error) {
-	var (
-		queryExecutors = []queryExecutor{}
-		ingester       = PrometheusIngester{}
-	)
+	var ingester = PrometheusIngester{}
 
 	headers, err := initConfig.HttpHeaders.toMap()
 	if err != nil {
@@ -232,7 +230,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 	}
 
 	ingester = PrometheusIngester{
-		queryExecutors:  &queryExecutors,
+		queryExecutors:  []*queryExecutor{},
 		queryTimeout:    initConfig.QueryTimeout,
 		client:          client,
 		api:             v1.NewAPI(client),
@@ -256,9 +254,9 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 				q.ResultAsQuantity = newFalse()
 			}
 		}
-		queryExecutors = append(
-			queryExecutors,
-			queryExecutor{
+		ingester.queryExecutors = append(
+			ingester.queryExecutors,
+			&queryExecutor{
 				Query:        q,
 				queryTimeout: ingester.queryTimeout,
 				eventsChan:   ingester.outputChannel,
@@ -285,11 +283,9 @@ func (i *PrometheusIngester) Run() {
 
 		var wg sync.WaitGroup
 		// Start all queries
-		for _, queryExecutor := range *i.queryExecutors {
+		for _, queryExecutor := range i.queryExecutors {
 			wg.Add(1)
-			// declare local scope variable to prevent shadowing by the next iterations
-			qe := queryExecutor
-			go qe.run(queriesContext, &wg)
+			go queryExecutor.run(queriesContext, &wg)
 		}
 
 		<-i.shutdownChannel

@@ -1,10 +1,10 @@
 # Prometheus ingester
 
-|                |                         |
-|----------------|-------------------------|
-| `moduleName`   | `prometheusIngester`    |
-| Module type    | `producer`              |
-| Output event   | `raw`                   |
+|              |                      |
+| ------------ | -------------------- |
+| `moduleName` | `prometheusIngester` |
+| Module type  | `producer`           |
+| Output event | `raw`                |
 
 Prometheus ingester generates events based on results of provided Prometheus queries.
 For its usage example see [the prometheus example](/examples/prometheus).
@@ -56,6 +56,8 @@ type: '<query_type>'
 resultAsQuantity: false
 # How often to execute the query.
 interval: <go_duration>
+# Query data with given offset. Useful to ensure consistency when querying data coming from remote write.
+offset: <go_duration>
 # Names of the labels that should be dropped from the result.
 dropLabels:
   - <label_name>
