@@ -56,7 +56,7 @@ func main() {
 	}
 	for configName, domainConf := range conf {
 		if errs := domainConf.IsValid(); len(errs) > 0 {
-			fmt.Printf("Error while validation '%s' configuration:\n%v", configName, errs)
+			fmt.Printf("Error while validating '%s' configuration:\n%v", configName, errs)
 			os.Exit(2)
 		}
 		domainGroups := rulefmt.RuleGroups{
