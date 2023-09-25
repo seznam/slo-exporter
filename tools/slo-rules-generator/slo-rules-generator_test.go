@@ -86,6 +86,36 @@ func TestDomainASRuleGroup(t *testing.T) {
 			},
 		},
 		{
+			"Domain with without explicit name fallback to config name",
+			`domain-implicit:
+  enabled: false
+  namespace: production
+  version: 1
+  alerting:
+    team: team.a@company.org
+    escalate: team.sre@company.org`,
+			[]rulefmt.RuleGroup{
+				{
+					Name:     "slo_v1_slo_exporter_domain-implicit",
+					Interval: model.Duration(4 * time.Minute),
+					Rules: []rulefmt.RuleNode{
+						{
+							Record: yamlStr("slo:stable_version"),
+							Expr:   yamlStr("1"),
+							Labels: Labels{
+								"slo_domain":  "domain-implicit",
+								"namespace":   "production",
+								"team":        "team.a@company.org",
+								"escalate":    "team.sre@company.org",
+								"enabled":     "false",
+								"slo_version": "1",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			"Domain without classes and without alerting.escalate",
 			`domain-without-escalate:
   enabled: false
@@ -290,11 +320,11 @@ func TestDomainASRuleGroup(t *testing.T) {
 				t.Errorf("Unable to unmarshal input data: %v", err)
 			}
 			outputRuleGroups := []rulefmt.RuleGroup{}
-			for _, domainConfig := range data {
+			for configName, domainConfig := range data {
 				if errs := domainConfig.IsValid(); len(errs) > 0 {
 					t.Error(errs)
 				}
-				outputRuleGroups = append(outputRuleGroups, domainConfig.AsRuleGroups()...)
+				outputRuleGroups = append(outputRuleGroups, domainConfig.AsRuleGroups(configName)...)
 			}
 			if err != nil {
 				t.Error(err)

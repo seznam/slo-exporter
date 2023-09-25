@@ -26,26 +26,34 @@ type Domain struct {
 	Classes   Classes
 }
 
-func (d Domain) AsRuleGroups() []rulefmt.RuleGroup {
+func (d Domain) DomainName(configName string) string {
+	if d.Name != "" {
+		return d.Name
+	} else {
+		return configName
+	}
+}
+
+func (d Domain) AsRuleGroups(configName string) []rulefmt.RuleGroup {
 	domainRulegroup := rulefmt.RuleGroup{
-		Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s", d.Version, d.Name),
+		Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s", d.Version, d.DomainName(configName)),
 		Interval: model.Duration(4 * time.Minute),
 		Rules:    []rulefmt.RuleNode{},
 	}
-	domainRulegroup.Rules = append(domainRulegroup.Rules, d.stableVersionRule(d.Name))
+	domainRulegroup.Rules = append(domainRulegroup.Rules, d.stableVersionRule(d.DomainName(configName)))
 	out := []rulefmt.RuleGroup{
 		domainRulegroup,
 	}
 
 	for _, className := range d.Classes.Names() {
 		domainClassRulegroup := rulefmt.RuleGroup{
-			Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s_%s", d.Version, d.Name, className),
+			Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s_%s", d.Version, d.DomainName(configName), className),
 			Interval: model.Duration(4 * time.Minute),
 			Rules:    []rulefmt.RuleNode{},
 		}
 		domainClassRulegroup.Rules = append(
 			domainClassRulegroup.Rules,
-			d.Classes[className].AsRules(className, d.commonLabels(d.Name), d.Alerting.BurnRateThresholds)...,
+			d.Classes[className].AsRules(className, d.commonLabels(d.DomainName(configName)), d.Alerting.BurnRateThresholds)...,
 		)
 		out = append(out, domainClassRulegroup)
 	}
@@ -72,7 +80,7 @@ func (d Domain) stableVersionRule(domainName string) rulefmt.RuleNode {
 	return rulefmt.RuleNode{
 		Record: yamlStr("slo:stable_version"),
 		Expr:   yamlStr("1"),
-		Labels: d.commonLabels(d.Name).Merge(labels),
+		Labels: d.commonLabels(domainName).Merge(labels),
 	}
 }
 

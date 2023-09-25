@@ -60,7 +60,7 @@ func main() {
 			os.Exit(2)
 		}
 		domainGroups := rulefmt.RuleGroups{
-			Groups: domainConf.AsRuleGroups(),
+			Groups: domainConf.AsRuleGroups(configName),
 		}
 		data, err := yaml.Marshal(domainGroups)
 		if err != nil {
