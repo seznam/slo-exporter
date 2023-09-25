@@ -27,6 +27,7 @@ func TestDomainASRuleGroup(t *testing.T) {
 			"Domain without classes",
 			`domain-without-classes:
   enabled: false
+  domain: domain-without-classes
   namespace: production
   version: 1
   alerting:
@@ -54,11 +55,43 @@ func TestDomainASRuleGroup(t *testing.T) {
 			},
 		},
 		{
+			"Domain with different domain name than config name",
+			`domain-v1:
+  enabled: false
+  domain: domain
+  namespace: production
+  version: 1
+  alerting:
+    team: team.a@company.org
+    escalate: team.sre@company.org`,
+			[]rulefmt.RuleGroup{
+				{
+					Name:     "slo_v1_slo_exporter_domain",
+					Interval: model.Duration(4 * time.Minute),
+					Rules: []rulefmt.RuleNode{
+						{
+							Record: yamlStr("slo:stable_version"),
+							Expr:   yamlStr("1"),
+							Labels: Labels{
+								"slo_domain":  "domain",
+								"namespace":   "production",
+								"team":        "team.a@company.org",
+								"escalate":    "team.sre@company.org",
+								"enabled":     "false",
+								"slo_version": "1",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			"Domain without classes and without alerting.escalate",
 			`domain-without-escalate:
   enabled: false
   namespace: production
   version: 1
+  domain: domain-without-escalate
   alerting:
     team: team.a@company.org`,
 			[]rulefmt.RuleGroup{
@@ -70,9 +103,9 @@ func TestDomainASRuleGroup(t *testing.T) {
 							Record: yamlStr("slo:stable_version"),
 							Expr:   yamlStr("1"),
 							Labels: Labels{
-								"slo_domain":  "domain-without-escalate",
-								"namespace":   "production",
-								"team":        "team.a@company.org",
+								"slo_domain": "domain-without-escalate",
+								"namespace":  "production",
+								"team":       "team.a@company.org",
 								// note: no "escalate" here
 								"enabled":     "false",
 								"slo_version": "1",
@@ -86,6 +119,7 @@ func TestDomainASRuleGroup(t *testing.T) {
 			"Domain with single class and type - no burn rate alerting override",
 			`test-domain:
   enabled: false
+  domain: test-domain
   namespace: production
   version: 1
   alerting:
@@ -186,6 +220,7 @@ func TestDomainASRuleGroup(t *testing.T) {
   enabled: false
   namespace: production
   version: 1
+  domain: test-domain
   alerting:
     team: team.a@company.org
     escalate: team.sre@company.org
@@ -255,11 +290,11 @@ func TestDomainASRuleGroup(t *testing.T) {
 				t.Errorf("Unable to unmarshal input data: %v", err)
 			}
 			outputRuleGroups := []rulefmt.RuleGroup{}
-			for domainName, domainConfig := range data {
+			for _, domainConfig := range data {
 				if errs := domainConfig.IsValid(); len(errs) > 0 {
 					t.Error(errs)
 				}
-				outputRuleGroups = append(outputRuleGroups, domainConfig.AsRuleGroups(domainName)...)
+				outputRuleGroups = append(outputRuleGroups, domainConfig.AsRuleGroups()...)
 			}
 			if err != nil {
 				t.Error(err)

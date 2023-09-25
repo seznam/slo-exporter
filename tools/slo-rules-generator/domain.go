@@ -9,55 +9,54 @@ import (
 )
 
 const (
-	domainLabel = "slo_domain"
+	domainLabel    = "slo_domain"
 	namespaceLabel = "namespace"
-	versionLabel = "slo_version"
-	enabledLabel = "enabled"
-	teamLabel = "team"
-	escalateLabel = "escalate"
+	versionLabel   = "slo_version"
+	enabledLabel   = "enabled"
+	teamLabel      = "team"
+	escalateLabel  = "escalate"
 )
 
 type Domain struct {
+	Name      string `yaml:"domain"`
 	Namespace string
 	Enabled   bool
 	Version   int
-	Alerting Alerting
+	Alerting  Alerting
 	Classes   Classes
 }
 
-func (d Domain) AsRuleGroups(domainName string) []rulefmt.RuleGroup{
+func (d Domain) AsRuleGroups() []rulefmt.RuleGroup {
 	domainRulegroup := rulefmt.RuleGroup{
-		Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s", d.Version, domainName),
+		Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s", d.Version, d.Name),
 		Interval: model.Duration(4 * time.Minute),
 		Rules:    []rulefmt.RuleNode{},
 	}
-	domainRulegroup.Rules = append(domainRulegroup.Rules, d.stableVersionRule(domainName))
+	domainRulegroup.Rules = append(domainRulegroup.Rules, d.stableVersionRule(d.Name))
 	out := []rulefmt.RuleGroup{
 		domainRulegroup,
 	}
 
 	for _, className := range d.Classes.Names() {
 		domainClassRulegroup := rulefmt.RuleGroup{
-			Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s_%s", d.Version, domainName, className),
+			Name:     fmt.Sprintf("slo_v%d_slo_exporter_%s_%s", d.Version, d.Name, className),
 			Interval: model.Duration(4 * time.Minute),
 			Rules:    []rulefmt.RuleNode{},
 		}
 		domainClassRulegroup.Rules = append(
 			domainClassRulegroup.Rules,
-			d.Classes[className].AsRules(className, d.commonLabels(domainName), d.Alerting.BurnRateThresholds)...
+			d.Classes[className].AsRules(className, d.commonLabels(d.Name), d.Alerting.BurnRateThresholds)...,
 		)
 		out = append(out, domainClassRulegroup)
 	}
-
-
 
 	return out
 }
 
 func (d Domain) commonLabels(domainName string) Labels {
 	return Labels{
-		domainLabel: domainName,
-		versionLabel: fmt.Sprint(d.Version),
+		domainLabel:    domainName,
+		versionLabel:   fmt.Sprint(d.Version),
 		namespaceLabel: fmt.Sprint(d.Namespace),
 	}
 }
@@ -73,7 +72,7 @@ func (d Domain) stableVersionRule(domainName string) rulefmt.RuleNode {
 	return rulefmt.RuleNode{
 		Record: yamlStr("slo:stable_version"),
 		Expr:   yamlStr("1"),
-		Labels: d.commonLabels(domainName).Merge(labels),
+		Labels: d.commonLabels(d.Name).Merge(labels),
 	}
 }
 
@@ -84,7 +83,7 @@ func (d Domain) IsValid() []error {
 	}
 	for className, classConf := range d.Classes {
 		if err := classConf.IsValid(); len(err) > 0 {
-			errs = append(errs, fmt.Errorf("class '%s' validation failed: %v",className, err))
+			errs = append(errs, fmt.Errorf("class '%s' validation failed: %v", className, err))
 		}
 	}
 	return append(errs, d.validateReferences()...)
