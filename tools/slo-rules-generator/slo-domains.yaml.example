@@ -1,4 +1,5 @@
-userportal-reports: # domain-name
+userportal-reports-v6: # config-name
+  domain: userportal-reports # fallbacks to config-name if not specified
   enabled: true
   namespace: production
   version: 6
