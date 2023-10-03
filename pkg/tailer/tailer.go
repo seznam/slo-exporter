@@ -275,10 +275,10 @@ func (t *Tailer) markOffsetPosition() error {
 	return nil
 }
 
-// parseLine parses the given line, producing a RequestEvent instance
+// ParseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
 // - if content of any of the matched named groups matches emptyGroupRegexp, it is replaced by an empty string ""
-func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, line string) (map[string]string, error) {
+func ParseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, line string) (map[string]string, error) {
 	lineData := make(map[string]string)
 
 	match := lineParseRegexp.FindStringSubmatch(line)
@@ -296,7 +296,7 @@ func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, 
 }
 
 func (t *Tailer) processLine(line string) (*event.Raw, error) {
-	lineData, err := parseLine(t.lineParseRegexp, t.emptyGroupRegexp, line)
+	lineData, err := ParseLine(t.lineParseRegexp, t.emptyGroupRegexp, line)
 	if err != nil {
 		return nil, err
 	}
