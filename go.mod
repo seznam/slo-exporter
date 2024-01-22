@@ -71,7 +71,3 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
-
-// Without this, it attempts to upgrade to v0.18.x which has some conflicts with upstream Prometheus.
-// Also, v0.17.5 is chosen to be consistent with Thanos and more clear than using a commit hash.
-replace k8s.io/client-go => k8s.io/client-go v0.17.5
