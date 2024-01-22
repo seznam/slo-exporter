@@ -115,7 +115,7 @@ func (m StringMap) Matches(other StringMap) bool {
 	return true
 }
 
-//String returns ordered key-value list separated with comma.
+// String returns ordered key-value list separated with comma.
 func (m StringMap) String() string {
 	items := make([]string, len(m))
 	for i, key := range m.SortedKeys() {
