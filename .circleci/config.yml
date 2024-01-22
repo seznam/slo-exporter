@@ -1,6 +1,6 @@
 defaults: &defaults
   docker:
-    - image: circleci/golang:1.16
+    - image: circleci/golang:1.21
   resource_class: small
 
 version: 2
