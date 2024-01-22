@@ -1,6 +1,6 @@
 defaults: &defaults
   docker:
-    - image: cimg/golang:1.21
+    - image: cimg/go:1.21
   resource_class: small
 
 version: 2
