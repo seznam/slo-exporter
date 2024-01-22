@@ -5,6 +5,9 @@ TMP_BIN_DIR ?= $(TMP_DIR)/bin
 
 GORELEASER_VERSION ?= v0.140.1
 
+.PHONY: all
+all: format lint test-and-coverage build
+
 $(TMP_DIR):
 	mkdir -p $(TMP_DIR)
 
@@ -27,10 +30,6 @@ $(RELEASE_NOTES): $(TMP_DIR)
 revive:
 	@echo "Downloading linter revive..."
 	go install github.com/mgechev/revive@v1.0.7
-
-.PHONY: all
-all: format lint test-and-coverage build
-
 
 .PHONY: format
 format:
