@@ -1,12 +1,16 @@
 package relabel
 
 import (
+	"bytes"
+	"testing"
+
 	"github.com/prometheus/prometheus/pkg/relabel"
+	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/seznam/slo-exporter/pkg/event"
 	"gopkg.in/yaml.v2"
-	"testing"
+
+	"github.com/spf13/viper"
 )
 
 type testCase struct {
@@ -83,4 +87,22 @@ func TestRelabel_Run(t *testing.T) {
 			assert.Equal(t, testCase.outputEvent, mgr.relabelEvent(testCase.inputEvent))
 		})
 	}
+}
+
+func TestRlabel_NewFromViper(t *testing.T) {
+	t.Run("returns error when yaml config contains unknown keys", func(t *testing.T) {
+		config := []byte(`
+eventRelabelConfigs:
+  eventRelabelConfigs:
+  - source_labels: ["url"]
+    regexP: ".*operationName=(.*)(&.*)?$"
+    target_label: operation_name
+    replacement: "$1" `)
+		viper.SetConfigType("yaml")
+		err := viper.ReadConfig(bytes.NewBuffer(config))
+		assert.Nilf(t, err, "Unexpected error occured: %s", err)
+		vc := viper.Sub("EventRelabelConfigs")
+		_, err = NewFromViper(vc, logrus.New())
+		assert.NotNilf(t, err, "Expected error but no one occured")
+	})
 }

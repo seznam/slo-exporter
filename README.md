@@ -10,6 +10,8 @@ based on events coming from various data sources. It follows principles from
 With already prepared [examples](examples), [Grafana dashboards](grafana_dashboards/README.md), [Prometheus recording rules and alerts](prometheus/), you can easily
 start to alert on SLO in your infrastructure.
 
+**If you want to start with computing SLOs, make sure to check out [this guide](./docs/defining_new_slo.md)!**
+
 ## Motivation
 After more than year of experience of maintaining SLO alerting based on application metrics
 just from Prometheus, number of issues showed up which made it very difficult and unbearable.
@@ -21,6 +23,10 @@ Few among others:
 
  This lead us to decision that we need to process the events separately and in
  Prometheus do just the final computation and alerting.
+
+ We describe our journey towards SLO based alerting more in detail in the two articles:
+ - [Implementing SRE workbook alerting with Prometheus only](https://medium.com/@sklik.devops/our-journey-towards-slo-based-alerting-bd8bbe23c1d6)
+ - [Advanced SLO infrastructure based on slo-exporter](https://medium.com/@sklik.devops/our-journey-towards-slo-based-alerting-d23d4f6f620e)
 
 ## How it works
 Every ingested event has metadata which are used to classify it to specific SLO domain and class
@@ -54,4 +60,11 @@ Detailed configuration documentation you can find here [docs/configuration](docs
 To see some real use-cases and examples you can look at the [examples/](examples).
 
 ## Operating
-Some advices on operating the slo-exporter, debugging and profiling can be found here [docs/operating.md](docs/operating.md)
+Some advices on operating the slo-exporter, debugging and profiling can be found here [docs/operating.md](docs/operating.md).
+
+Please note that features marked as *Experimental* are not considered stable and may be removed or changed even in [minor or patch release](https://semver.org/).
+
+## Community
+* Slack: [#slo-exporter](https://join.slack.com/t/slo-exporter/shared_invite/zt-mnqxqv1s-1zaJtDiYbuVoOCCAMQi4Kg)
+* User mailing list: [slo-exporter](https://groups.google.com/g/slo-exporter)
+* Issue Tracker: [GitHub Issues](https://github.com/seznam/slo-exporter/issues)

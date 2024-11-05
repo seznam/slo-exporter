@@ -1,23 +1,38 @@
 webServerListenAddress: "0.0.0.0:8080"
 
-pipeline: ["prometheusIngester", "relabel", "eventKeyGenerator", "dynamicClassifier", "sloEventProducer", "prometheusExporter"]
+pipeline:
+  [
+    "prometheusIngester",
+    "relabel",
+    "eventKeyGenerator",
+    "dynamicClassifier",
+    "sloEventProducer",
+    "prometheusExporter",
+  ]
 
 modules:
-
   prometheusIngester:
     apiUrl: "http://demo.robustperception.io:9090"
+    httpHeaders:
+      - name: X-Scope-OrgID
+        value: "myOrganization"
+      # - name: Authorization
+      #   valueFromEnv:
+      #     name: "SLO_EXPORTER_AUTH_TOKEN"
+      #     valuePrefix: "Bearer "
     queryTimeout: 30s
     queries:
       # Generate events from counter for every HTTP request with status code for availability SLO.
       - type: counter_increase
-        query: 'prometheus_http_requests_total'
+        query: "prometheus_http_requests_total"
         interval: 30s
+        offset: 5m
         additionalLabels:
           event_type: http_request_result
 
       # Generate events from histogram for every HTTP request for latency SLO.
       - type: histogram_increase
-        query: 'prometheus_http_request_duration_seconds_bucket'
+        query: "prometheus_http_request_duration_seconds_bucket"
         interval: 30s
         additionalLabels:
           event_type: http_request_latency

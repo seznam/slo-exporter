@@ -7,20 +7,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
+	"net/url"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 type MockedRoundTripper struct {
-	t      *testing.T
-	result model.Value
+	t                 *testing.T
+	result            model.Value
+	expectedTimestamp string
 }
 
 func (m *MockedRoundTripper) resultFabricator() string {
@@ -43,6 +47,12 @@ func (m *MockedRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 	if _, err := buf.ReadFrom(req.Body); err != nil {
 		m.t.Error(err)
 		return nil, err
+	}
+	vals, err := url.ParseQuery(buf.String())
+	assert.NoError(m.t, err)
+
+	if m.expectedTimestamp != "" {
+		assert.Equal(m.t, m.expectedTimestamp, vals.Get("time"))
 	}
 
 	response := m.resultFabricator()
@@ -207,7 +217,7 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 		}
 
 		// Prepare the string interpretation of the actual results
-		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", HttpRequestsToString(actualEventResult))
+		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesn't match expected events", "actual", HttpRequestsToString(actualEventResult))
 	}
 }
 
@@ -477,79 +487,47 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 
 }
 
+func promTime(ts time.Time, add time.Duration) model.Time {
+	return model.Time(ts.Add(add).Unix())
+}
+
 func Test_processMetricsIncrease(t *testing.T) {
 	type testCase struct {
-		q              *queryExecutor
+		name           string
+		staleness      time.Duration
 		ts             time.Time
-		result         []*model.SampleStream // == type Matrix
+		previousResult queryResult
+		newResult      []*model.SampleStream
 		expectedEvents []*event.Raw
 	}
 
 	x := newMetric("x", nil)
 	y := newMetric("y", nil)
 
-	ts := time.Now()
-	q := &queryExecutor{
-		Query: queryOptions{
-			Interval:         time.Second * 20,
-			Type:             counterQueryType,
-			ResultAsQuantity: newTrue(),
-		},
-		previousResult: queryResult{
-			ts.Add(time.Hour * -1),
-			map[model.Fingerprint]model.SamplePair{
-				x.Fingerprint(): {0, 0},
-				y.Fingerprint(): {0, 10},
-			},
-		},
-	}
-
+	ts := model.Time(0)
 	testCases := []testCase{
-		// monotonic value of x to 10 (in two samples)
 		{
-			q:  q,
-			ts: ts,
-			result: []*model.SampleStream{
+			name:      "continuous increase of 10 in metric x, no increase in metric y",
+			ts:        ts.Time().Add(time.Minute * 2),
+			staleness: defaultStaleness,
+			previousResult: queryResult{
+				ts.Time(),
+				map[model.Fingerprint]model.SamplePair{
+					x.Fingerprint(): {ts, 0},
+					y.Fingerprint(): {ts, 10},
+				},
+			},
+			newResult: []*model.SampleStream{
 				{
 					Metric: x,
 					Values: []model.SamplePair{
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
+							Timestamp: ts.Add(time.Minute * 1),
 							Value:     model.SampleValue(5),
 						},
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
+							Timestamp: ts.Add(time.Minute * 2),
 							Value:     model.SampleValue(10),
-						},
-					},
-				},
-			},
-			expectedEvents: []*event.Raw{
-				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 10,
-				},
-			},
-		},
-		// value with reset on x, monotonic value for y
-		{
-			q:  q,
-			ts: ts,
-			result: []*model.SampleStream{
-				{
-					Metric: x,
-					Values: []model.SamplePair{
-						{
-							Timestamp: model.Time(ts.Add(time.Hour * -3).Unix()),
-							Value:     model.SampleValue(5),
-						},
-						{
-							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
-							Value:     model.SampleValue(1),
-						},
-						{
-							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
-							Value:     model.SampleValue(5),
 						},
 					},
 				},
@@ -557,45 +535,111 @@ func Test_processMetricsIncrease(t *testing.T) {
 					Metric: y,
 					Values: []model.SamplePair{
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -2).Unix()),
-							Value:     model.SampleValue(1),
+							Timestamp: ts.Add(time.Minute * 1),
+							Value:     model.SampleValue(10),
 						},
 						{
-							Timestamp: model.Time(ts.Add(time.Hour * -1).Unix()),
-							Value:     model.SampleValue(2),
+							Timestamp: ts.Add(time.Minute * 2),
+							Value:     model.SampleValue(10),
 						},
 					},
 				},
 			},
 			expectedEvents: []*event.Raw{
 				{
-					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
+					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Add(time.Minute*2).Unix())}),
 					Quantity: 10,
 				},
+			},
+		},
+		{
+			name:      "test staleness with gap between samples, should return no increase",
+			staleness: defaultStaleness,
+			ts:        ts.Time().Add(time.Minute * 10),
+			previousResult: queryResult{
+				ts.Time(),
+				map[model.Fingerprint]model.SamplePair{
+					x.Fingerprint(): {ts, 0},
+				},
+			},
+			newResult: []*model.SampleStream{
 				{
-					Metadata: stringmap.NewFromMetric(y).Merge(stringmap.StringMap{metadataValueKey: "1", metadataTimestampKey: fmt.Sprintf("%d", ts.Unix())}),
-					Quantity: 1,
+					Metric: x,
+					Values: []model.SamplePair{
+						{
+							Timestamp: ts.Add(time.Minute),
+							Value:     model.SampleValue(1),
+						},
+					},
+				},
+			},
+			expectedEvents: []*event.Raw{},
+		},
+		{
+			name:      "test counter reset on x series",
+			staleness: defaultStaleness,
+			ts:        ts.Time().Add(time.Minute * 4),
+			previousResult: queryResult{
+				ts.Time(),
+				map[model.Fingerprint]model.SamplePair{
+					x.Fingerprint(): {ts, 0},
+				},
+			},
+			newResult: []*model.SampleStream{
+				{
+					Metric: x,
+					Values: []model.SamplePair{
+						{
+							Timestamp: ts.Add(time.Minute * 1),
+							Value:     model.SampleValue(5),
+						},
+						{
+							Timestamp: ts.Add(time.Minute * 2),
+							Value:     model.SampleValue(1),
+						},
+						{
+							Timestamp: ts.Add(time.Minute * 3),
+							Value:     model.SampleValue(5),
+						},
+					},
+				},
+			},
+			expectedEvents: []*event.Raw{
+				{
+					Metadata: stringmap.NewFromMetric(x).Merge(stringmap.StringMap{metadataValueKey: "10", metadataTimestampKey: fmt.Sprintf("%d", ts.Add(time.Minute*4).Unix())}),
+					Quantity: 10,
 				},
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
-		testCase.q.eventsChan = make(chan *event.Raw)
-
-		var generatedEvents []*event.Raw
-		done := make(chan struct{})
-		go func() {
-			for e := range testCase.q.eventsChan {
-				generatedEvents = append(generatedEvents, e)
+		t.Run(testCase.name, func(t *testing.T) {
+			q := &queryExecutor{
+				Query: queryOptions{
+					Interval:         time.Second * 20,
+					Type:             counterQueryType,
+					ResultAsQuantity: newTrue(),
+				},
+				staleness:      testCase.staleness,
+				previousResult: testCase.previousResult,
+				eventsChan:     make(chan *event.Raw),
 			}
-			done <- struct{}{}
-		}()
-		testCase.q.processCountersIncrease(testCase.result, testCase.ts)
-		close(testCase.q.eventsChan)
-		<-done
 
-		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+			var generatedEvents []*event.Raw
+			done := make(chan struct{})
+			go func() {
+				for e := range q.eventsChan {
+					generatedEvents = append(generatedEvents, e)
+				}
+				done <- struct{}{}
+			}()
+			q.processCountersIncrease(testCase.newResult, testCase.ts)
+			close(q.eventsChan)
+			<-done
+
+			assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+		})
 	}
 }
 
@@ -616,45 +660,45 @@ func Test_processHistogramIncrease(t *testing.T) {
 		data           []*model.SampleStream // == type Matrix
 		expectedEvents []*event.Raw
 	}
-	ts := time.Now()
-	tsStr := strconv.Itoa(int(ts.Unix()))
+	ts := model.Time(0)
+	newTs := ts.Add(time.Minute)
 
 	testCases := []testCase{
 		// monotonic value of x to 10 (in two samples)
 		{
-			ts: ts,
+			ts: ts.Time(),
 			data: []*model.SampleStream{
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "1"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(2)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(2)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "3"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(8)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(8)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "6"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(8)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(8)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "+Inf"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(10)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "0.5"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(2)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(2)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "+Inf"}),
-					Values: []model.SamplePair{{Timestamp: 10, Value: model.SampleValue(10)}},
+					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(10)}},
 				},
 			},
 			expectedEvents: []*event.Raw{
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: tsStr, metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "0.5", metadataTimestampKey: tsStr, metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "0.5", metadataValueKey: "2"}, Quantity: 2},
-				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "+Inf", metadataTimestampKey: tsStr, metadataHistogramMinValue: "0.5", metadataHistogramMaxValue: "+Inf", metadataValueKey: "8"}, Quantity: 8},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "1", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "1", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "3", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "1", metadataHistogramMaxValue: "3", metadataValueKey: "6"}, Quantity: 6},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "bar", "le": "+Inf", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "6", metadataHistogramMaxValue: "+Inf", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "0.5", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "-Inf", metadataHistogramMaxValue: "0.5", metadataValueKey: "2"}, Quantity: 2},
+				{Metadata: stringmap.StringMap{"__name__": "histogram_bucket", "foo": "xxx", "le": "+Inf", metadataTimestampKey: ts.String(), metadataHistogramMinValue: "0.5", metadataHistogramMaxValue: "+Inf", metadataValueKey: "8"}, Quantity: 8},
 			},
 		},
 	}
@@ -677,11 +721,180 @@ func Test_processHistogramIncrease(t *testing.T) {
 			}
 			done <- struct{}{}
 		}()
-		err := q.processHistogramIncrease(testCase.data, ts)
+		err := q.processHistogramIncrease(testCase.data, ts.Time())
 		assert.NoError(t, err)
 		close(q.eventsChan)
 		<-done
 
 		assert.ElementsMatchf(t, testCase.expectedEvents, generatedEvents, "expected events:\n%s\n\nresult:\n%s", testCase.expectedEvents, generatedEvents)
+	}
+}
+
+func Test_httpHeaders_toMap(t *testing.T) {
+	var headerValue = "value"
+	var headerValue2 = "value2"
+
+	tests := []struct {
+		name    string
+		data    string
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			name: "empty headers",
+			data: `httpHeaders: []`,
+			want: map[string]string{},
+		},
+		{
+			name: "multiple headers",
+			data: `
+httpHeaders:
+- name: header1
+  value: value
+- name: header2
+  value: value2
+`,
+			want: map[string]string{"header1": headerValue, "header2": headerValue2},
+		},
+		{
+			name: "headers overwrite",
+			data: `
+httpHeaders:
+- name: header1
+  value: value
+- name: header2
+  value: value2
+- name: header1
+  value: value2
+`,
+			want: map[string]string{"header1": headerValue2, "header2": headerValue2},
+		},
+		{
+			name: "validate fail - no header name",
+			data: `
+httpHeaders:
+- value: value
+`,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			var headers struct {
+				HttpHeaders httpHeaders
+			}
+			v := viper.New()
+			v.SetConfigType("yaml")
+			if err := v.ReadConfig(strings.NewReader(tt.data)); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.UnmarshalExact(&headers); err != nil {
+				t.Fatal(err)
+			}
+
+			got, err := headers.HttpHeaders.toMap()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("httpHeader.getValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_httpHeader_getValue(t *testing.T) {
+	var headerName = "headerName"
+	var headerValue = "headerValue"
+	var headerValueFromEnvValue = "headerValueFromEnv"
+	var headerValueFromEnvPrefix = "Prefix"
+	var envName = "envName"
+	var nonExistingEnv = "NON_EXISTING_ENV_NAME"
+
+	if err := os.Unsetenv(nonExistingEnv); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Setenv(envName, headerValueFromEnvValue); err != nil {
+		t.Fatal(err)
+	}
+
+	type fields struct {
+		Name         string
+		ValueFromEnv *httpHeaderValueFromEnv
+		Value        *string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    string
+		wantErr bool
+	}{
+		{name: "value", fields: fields{Name: headerName, Value: &headerValue}, want: headerValue},
+		{name: "valueFromEnv", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{Name: envName}}, want: headerValueFromEnvValue},
+		{
+			name: "valueFromEnv with prefix",
+			fields: fields{
+				Name:         headerName,
+				ValueFromEnv: &httpHeaderValueFromEnv{Name: envName, ValuePrefix: headerValueFromEnvPrefix}},
+			want: headerValueFromEnvPrefix + headerValueFromEnvValue},
+		{name: "valueFromEnv non existing env", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{Name: nonExistingEnv}}, wantErr: true},
+		{name: "valueFromEnv no env name set", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{}}, wantErr: true},
+		{name: "header name not set", fields: fields{Name: "", Value: &headerValue}, wantErr: true},
+		{name: "no value neither valueFromEnv set", fields: fields{Name: headerName}, wantErr: true},
+		{name: "value and valueFromEnv", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{}, Value: &headerValue}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &httpHeader{
+				Name:         tt.fields.Name,
+				ValueFromEnv: tt.fields.ValueFromEnv,
+				Value:        tt.fields.Value,
+			}
+			got, err := h.getValue()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("httpHeader.getValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_queryOffset(t *testing.T) {
+	type testCase struct {
+		name        string
+		queryOpts   queryOptions
+		expectError bool
+	}
+
+	cases := []testCase{
+		{name: "no offset expected", queryOpts: queryOptions{Query: "up", Interval: time.Second, Type: "simple"}},
+		{name: "offset expected", queryOpts: queryOptions{Query: "up", Interval: time.Second, Type: "simple", Offset: time.Minute}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := model.Now()
+			roundTripper := &MockedRoundTripper{
+				t:                 t,
+				expectedTimestamp: ts.Add(-tc.queryOpts.Offset).String(),
+				result:            &model.Scalar{Value: 1, Timestamp: 0},
+			}
+
+			ingester, err := New(PrometheusIngesterConfig{
+				RoundTripper: roundTripper,
+				QueryTimeout: 400 * time.Millisecond,
+				Queries: []queryOptions{
+					tc.queryOpts,
+				},
+			}, logrus.New())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			_, _, err = ingester.queryExecutors[0].execute(ts.Time())
+			assert.NoError(t, err)
+		})
 	}
 }

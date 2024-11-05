@@ -4,9 +4,9 @@ package dynamic_classifier
 //revive:enable:var-naming
 
 import (
+	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/seznam/slo-exporter/pkg/event"
 	"path/filepath"
 	"reflect"
 	"regexp"

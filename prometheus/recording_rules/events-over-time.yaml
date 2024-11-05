@@ -1,14 +1,40 @@
 groups:
-- name: slo-events-over-time--interval-3m
+- name: slo-events-over-time-4w--interval-3m
   interval: 3m
   rules:
      - record: slo:events_over_time
+       expr: last_over_time(slo:events_over_time:sparse{slo_time_range="4w"}[30m])
+
+#
+# 4w aggregation may be quite resource-intensive for the monitoring stack, so we evaluate it just once every 15 minutes.
+# This causes slo:events_over_time:sparse timeseries to be discontinuous making it most probably useless to be used directly unless last_over_time is applied.
+#
+# Sharded into 2 queries based on namespace to lower computational intensity
+- name: slo-events-over-time-4w--interval-15m-production
+  interval: 15m
+  rules:
+     - record: slo:events_over_time:sparse
        labels:
          slo_time_range: 4w
        expr:
             sum(
-                increase(slo_domain_slo_class:slo_events_total[4w])
+                increase(slo_domain_slo_class:slo_events_total{namespace="production"}[4w])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+- name: slo-events-over-time-4w--interval-15m-not-production
+  interval: 15m
+  rules:
+     - record: slo:events_over_time:sparse
+       labels:
+         slo_time_range: 4w
+       expr:
+            sum(
+                increase(slo_domain_slo_class:slo_events_total{namespace!="production"}[4w])
+            ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+
+- name: slo-events-over-time-3d--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 3d
@@ -16,6 +42,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[3d])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+- name: slo-events-over-time-1d--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 1d
@@ -23,6 +53,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[1d])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+- name: slo-events-over-time-6h--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 6h
@@ -30,6 +64,10 @@ groups:
             sum(
                 increase(slo_domain_slo_class:slo_events_total[6h])
             ) by (slo_class, slo_domain, slo_version, slo_type, result, namespace)
+
+- name: slo-events-over-time-2h--interval-3m
+  interval: 3m
+  rules:
      - record: slo:events_over_time
        labels:
          slo_time_range: 2h

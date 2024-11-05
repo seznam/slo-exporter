@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -12,10 +13,10 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -23,6 +24,8 @@ const (
 	metadataTimestampKey      = "unixTimestamp"
 	metadataHistogramMinValue = "prometheusHistogramMinValue"
 	metadataHistogramMaxValue = "prometheusHistogramMaxValue"
+
+	defaultStaleness = time.Minute * 5
 )
 
 var (
@@ -67,21 +70,73 @@ func validateQueryType(queryType queryType) error {
 type queryOptions struct {
 	Query            string
 	Interval         time.Duration
+	Offset           time.Duration
 	DropLabels       []string
 	AdditionalLabels stringmap.StringMap
 	Type             queryType
 	ResultAsQuantity *bool
 }
 
+type httpHeaderValueFromEnv struct {
+	Name        string
+	ValuePrefix string
+}
+
+type httpHeader struct {
+	Name         string
+	ValueFromEnv *httpHeaderValueFromEnv
+	Value        *string
+}
+
+func (h *httpHeader) getValue() (string, error) {
+	if h.Name == "" {
+		return "", fmt.Errorf("header name must be set")
+	}
+
+	if (h.ValueFromEnv == nil) == (h.Value == nil) {
+		return "", fmt.Errorf("exactly one of 'Value' or 'ValueFromEnv' must be set")
+	}
+
+	if h.ValueFromEnv != nil {
+		if h.ValueFromEnv.Name == "" {
+			return "", fmt.Errorf("environment variable name is not set")
+		}
+		value, ok := os.LookupEnv(h.ValueFromEnv.Name)
+		if !ok {
+			return "", fmt.Errorf("environment variable '%s' is not set", h.ValueFromEnv.Name)
+		}
+		return h.ValueFromEnv.ValuePrefix + value, nil
+	}
+
+	return *h.Value, nil
+}
+
+type httpHeaders []httpHeader
+
+func (hs httpHeaders) toMap() (map[string]string, error) {
+	headersMap := map[string]string{}
+	for _, h := range hs {
+		value, err := h.getValue()
+		if err != nil {
+			return nil, err
+		}
+		headersMap[h.Name] = value
+	}
+
+	return headersMap, nil
+}
+
 type PrometheusIngesterConfig struct {
 	ApiUrl       string
 	RoundTripper http.RoundTripper
+	HttpHeaders  httpHeaders
 	Queries      []queryOptions
 	QueryTimeout time.Duration
+	Staleness    time.Duration
 }
 
 type PrometheusIngester struct {
-	queryExecutors  *[]queryExecutor
+	queryExecutors  []*queryExecutor
 	queryTimeout    time.Duration
 	client          api.Client
 	api             v1.API
@@ -117,10 +172,21 @@ func (i *PrometheusIngester) OutputChannel() chan *event.Raw {
 	return i.outputChannel
 }
 
-func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*PrometheusIngester, error) {
+func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger, appVersion string) (*PrometheusIngester, error) {
 	config := PrometheusIngesterConfig{}
+
 	if err := viperAppConfig.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	userAgent := "slo-exporter/" + appVersion
+	config.HttpHeaders = append(config.HttpHeaders, httpHeader{
+		Name:  "user-agent",
+		Value: &userAgent,
+	})
+
+	if config.Staleness == time.Duration(0) {
+		config.Staleness = defaultStaleness
 	}
 	if config.QueryTimeout == time.Duration(0) {
 		return nil, errors.New("mandatory config field QueryTimeout is missing in PrometheusIngester configuration")
@@ -128,6 +194,9 @@ func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger) (*Prom
 	if config.ApiUrl == "" {
 		return nil, errors.New("mandatory config field ApiUrl is missing in PrometheusIngester configuration")
 	}
+
+	config.RoundTripper = api.DefaultRoundTripper
+
 	return New(config, logger)
 }
 
@@ -142,21 +211,26 @@ func newFalse() *bool {
 }
 
 func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*PrometheusIngester, error) {
-	var (
-		queryExecutors = []queryExecutor{}
-		ingester       = PrometheusIngester{}
-	)
+	var ingester = PrometheusIngester{}
+
+	headers, err := initConfig.HttpHeaders.toMap()
+	if err != nil {
+		return nil, err
+	}
 
 	client, err := api.NewClient(api.Config{
-		Address:      initConfig.ApiUrl,
-		RoundTripper: initConfig.RoundTripper,
+		Address: initConfig.ApiUrl,
+		RoundTripper: httpHeadersRoundTripper{
+			roudTripper: initConfig.RoundTripper,
+			headers:     headers,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating Prometheus client: %w", err)
 	}
 
 	ingester = PrometheusIngester{
-		queryExecutors:  &queryExecutors,
+		queryExecutors:  []*queryExecutor{},
 		queryTimeout:    initConfig.QueryTimeout,
 		client:          client,
 		api:             v1.NewAPI(client),
@@ -180,9 +254,9 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 				q.ResultAsQuantity = newFalse()
 			}
 		}
-		queryExecutors = append(
-			queryExecutors,
-			queryExecutor{
+		ingester.queryExecutors = append(
+			ingester.queryExecutors,
+			&queryExecutor{
 				Query:        q,
 				queryTimeout: ingester.queryTimeout,
 				eventsChan:   ingester.outputChannel,
@@ -191,6 +265,7 @@ func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*Prome
 				previousResult: queryResult{
 					metrics: make(map[model.Fingerprint]model.SamplePair),
 				},
+				staleness: initConfig.Staleness,
 			},
 		)
 	}
@@ -208,11 +283,9 @@ func (i *PrometheusIngester) Run() {
 
 		var wg sync.WaitGroup
 		// Start all queries
-		for _, queryExecutor := range *i.queryExecutors {
+		for _, queryExecutor := range i.queryExecutors {
 			wg.Add(1)
-			// declare local scope variable to prevent shadowing by the next iterations
-			qe := queryExecutor
-			go qe.run(queriesContext, &wg)
+			go queryExecutor.run(queriesContext, &wg)
 		}
 
 		<-i.shutdownChannel

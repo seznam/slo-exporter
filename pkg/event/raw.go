@@ -57,5 +57,5 @@ func (r Raw) GetSloClassification() *SloClassification {
 }
 
 func (r Raw) String() string {
-	return fmt.Sprintf("key: %s, metadata: %s, classification: %s", r.EventKey(), r.Metadata, r.GetSloMetadata())
+	return fmt.Sprintf("key: %s, quantity: %f, metadata: %s, classification: %s", r.EventKey(), r.Quantity, r.Metadata, r.GetSloMetadata())
 }

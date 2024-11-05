@@ -1,9 +1,9 @@
 package event_key_generator
 
 import (
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"testing"
 )
 

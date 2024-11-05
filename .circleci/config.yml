@@ -1,6 +1,6 @@
 defaults: &defaults
   docker:
-    - image: circleci/golang:1.15
+    - image: cimg/go:1.21
   resource_class: small
 
 version: 2
@@ -10,6 +10,14 @@ jobs:
     steps:
       - checkout
       - run: make lint
+
+  check_format:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: |
+         make format
+         git diff --color --exit-code
 
   test:
     <<: *defaults
@@ -32,7 +40,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 17.07.0-ce
+          version: '20.10.23'
       - attach_workspace:
           at: .
       - run: make docker
@@ -42,7 +50,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 17.07.0-ce
+          version: '20.10.23'
       - run: |
           echo "${DOCKERHUB_PASSWORD}" | docker login -u="${DOCKERHUB_USER}" --password-stdin
           make release
@@ -52,6 +60,7 @@ workflows:
   slo-exporter:
     jobs:
       - lint
+      - check_format
       - test
       - build:
           filters:

@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - [#111](https://github.com/seznam/slo-exporter/pull/111) Add JSON logging support
 
+## [v6.14.0] 2024-01-22
+### Changed
+- [#106](https://github.com/seznam/slo-exporter/pull/106) Upgraded Go to 1.21
+- [#107](https://github.com/seznam/slo-exporter/pull/107) Upgraded all deps to latest versions
+
+## [v6.13.0] 2023-03-07
+### Added
+- [#101](https://github.com/seznam/slo-exporter/pull/101) prometheusIngester add `offset` option to query, allowing to query bit older data to ensure consistency on prometheus compatible systems using remote write.
+
+## [v6.12.1] 2022-10-14
+### Added
+- [#95](https://github.com/seznam/slo-exporter/pull/95) prometheusIngester sends user-agent header
+
+### Fixed
+- [#96](https://github.com/seznam/slo-exporter/pull/96) prometheusIngester headers from environment value now works
+
+## [v6.12.0] 2022-10-06
+### Added
+- [#94](https://github.com/seznam/slo-exporter/pull/94) prometheusIngester now can send custom headers to prometheus api server
+
+## [v6.11.1] 2022-06-28
+### Fixed
+- [#88](https://github.com/seznam/slo-exporter/pull/88) slo-rules-generator does not output empty `escalate` label
+- [#87](https://github.com/seznam/slo-exporter/pull/87) slo-exporter's SLO recording rule for uptime success events
+- slo-rules-generator now properly truncates files when overwriting them
+
+## [v6.11.0] 2022-01-19
+### Added
+- [#77](https://github.com/seznam/slo-exporter/pull/77) *Experimental* slo-rules-generator tool
+
+### Changed
+- [#78](https://github.com/seznam/slo-exporter/pull/78) Upgrade dependencies mainly to avoid reported CVEs in grafana/loki
+- [#80](https://github.com/seznam/slo-exporter/pull/80) prometheus-ingester: Add staleness support and possibility to have shorter query interval
+- [#81](https://github.com/seznam/slo-exporter/pull/81) Upgrade dependencies to avoid CVE in containerd and image-spec
+
+## [v6.10.0] 2021-09-17
+### Added
+- [#69](https://github.com/seznam/slo-exporter/pull/69) *Experimental* Exemplars support for the `prometheus_exporter` module.
+
+### Fixed
+- [#71](https://github.com/seznam/slo-exporter/pull/71) Fix corner cases in StringMap.Merge(), StringMap.Without()
+
+## [v6.9.0] 2021-07-14
+### Added
+- [#60](https://github.com/seznam/slo-exporter/pull/60) New module eventMetadataRenamer
+
+### Changed
+- [#54](https://github.com/seznam/slo-exporter/pull/54) Use strict unmarshal in relabel module
+- [#57](https://github.com/seznam/slo-exporter/pull/57) Upgrade to Go 1.16
+
+## [v6.8.0] 2021-03-24
+### Added
+- [#48](https://github.com/seznam/slo-exporter/pull/48) New ingester module [`kafkaIngester`](docs/modules/kafka_ingester.md)
+
 ## [v6.7.1] 2021-02-15
 ### Fixed
 - [#44](https://github.com/seznam/slo-exporter/issues/44) Install missing ca-certificates to docker base image

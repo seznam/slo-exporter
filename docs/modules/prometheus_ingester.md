@@ -1,24 +1,49 @@
 # Prometheus ingester
 
-
-|                |                         |
-|----------------|-------------------------|
-| `moduleName`   | `prometheusIngester`    |
-| Module type    | `producer`              |
-| Output event   | `raw`                   |
+|              |                      |
+| ------------ | -------------------- |
+| `moduleName` | `prometheusIngester` |
+| Module type  | `producer`           |
+| Output event | `raw`                |
 
 Prometheus ingester generates events based on results of provided Prometheus queries.
 For its usage example see [the prometheus example](/examples/prometheus).
+
+> Before using it better check the [documentation about possible sources of events supported by slo-exporter](../defining_new_slo.md#1-choose-source-of-the-events). 
 
 `moduleConfig`
 ```yaml
 # URL of the API for Prometheus queries such as https://foo.bar:9090
 apiUrl: <URL>
+# HTTP headers to send to the API server (in case of conflicting header names, the later has precedence)
+httpHeaders:
+- <http_header>
 # Timeout for executing the query
 queryTimeout: <Go_duration>
+# Optional setting of staleness set on the queried Prometheus instance, default is 5m same as in Prometheus
+staleness: <Go_duration>
 # List of queries to be periodically executed.
 queries:
   - <query>
+```
+
+`http_header`
+```yaml
+# name of http header
+name: <string>
+# exactly one of value or valueFromEnv MUST be set
+# string value of http header
+value: <string>
+# get value from environment variable
+valueFromEnv: <http_header_value_from_env>
+```
+
+`http_header_value_from_env`
+```yaml
+# environment variable name
+name: <string>
+# add prefix to value of environment value, e.g. `Bearer `
+valuePrefix: <string>
 ```
 
 `query`
@@ -31,6 +56,8 @@ type: '<query_type>'
 resultAsQuantity: false
 # How often to execute the query.
 interval: <go_duration>
+# Query data with given offset. Useful to ensure consistency when querying data coming from remote write.
+offset: <go_duration>
 # Names of the labels that should be dropped from the result.
 dropLabels:
   - <label_name>
@@ -69,6 +96,8 @@ Please note that the query is to be provided exactly as it would be passed to in
 Mapping to resulting event(s):
 For every metric in the result:
 * If no previous sample for given metric is found, no event is generated and sample is just stored to local cache (please note that cache is not persisted upon restarts and is local to every individual instance of slo-exporter).
+* Staleness applies same as with Prometheus. Last samples are dropped after the configured time, do not set the interval
+  longer than staleness otherwise you will be loosing data.
 * If previous sample of given metric is found, difference between new sample and previous sample is computed, and a single new event is generated with the following mapping:
 ```
 event.Metadata["unixTimestamp"] - sample timestamp
@@ -101,7 +130,6 @@ bucket distribution of the queried histogram.
     dropLabels:
       - instance
 ```
-
 
 ### Terminology used
 * **Metric** - unique set of consisting of metric name and its labels. Associated with list of **Samples** forms a **Time series**.

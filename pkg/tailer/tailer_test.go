@@ -2,8 +2,8 @@ package tailer
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -319,7 +319,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 	for i := 0; i < t.during; i++ {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	tailer.Stop()
 	eventsCount := <-eventCount
@@ -343,7 +343,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 		f.WriteString(getRequestLine(requestLineFormatMapValid) + "\n")
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	tailer.Stop()
 	eventsCount = <-eventCount

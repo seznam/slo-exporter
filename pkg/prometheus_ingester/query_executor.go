@@ -3,18 +3,21 @@ package prometheus_ingester
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
 	"math"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+	"go.uber.org/atomic"
+
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/sirupsen/logrus"
 )
 
 type queryExecutor struct {
@@ -23,8 +26,10 @@ type queryExecutor struct {
 	eventsChan        chan *event.Raw
 	logger            logrus.FieldLogger
 	api               v1.API
+	queryInProgress   atomic.Bool
 	previousResult    queryResult
 	previousResultMtx sync.RWMutex
+	staleness         time.Duration
 }
 
 type queryResult struct {
@@ -32,6 +37,29 @@ type queryResult struct {
 	timestamp time.Time
 	// metric: <most recent sample>
 	metrics map[model.Fingerprint]model.SamplePair
+}
+
+func (r *queryResult) String() string {
+	var res []string
+	for k, v := range r.metrics {
+		res = append(res, fmt.Sprintln(v.Timestamp, k, v.Value))
+	}
+	return strings.Join(res, ",")
+}
+
+func (r *queryResult) dropStaleResults(staleness time.Duration, moment time.Time) {
+	for m, s := range r.metrics {
+		if moment.Sub(s.Timestamp.Time()) > staleness {
+			delete(r.metrics, m)
+		}
+	}
+}
+
+func (r *queryResult) update(new queryResult) {
+	r.timestamp = new.timestamp
+	for m, s := range new.metrics {
+		r.metrics[m] = s
+	}
 }
 
 // withRangeSelector returns q.query concatenated with desired range selector
@@ -46,8 +74,11 @@ func (q *queryExecutor) withRangeSelector(ts time.Time) string {
 	return q.Query.Query + fmt.Sprintf("[%ds]", int64(rangeSelector.Seconds()))
 }
 
-// execute query at provided timestamp ts
-func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
+// execute query at provided timestamp ts taking the configured query offser into account. Returns the actual timestamp with offset applied.
+func (q *queryExecutor) execute(ts time.Time) (model.Value, time.Time, error) {
+	ts = ts.Add(-q.Query.Offset)
+	q.queryInProgress.Store(true)
+	defer q.queryInProgress.Store(false)
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), q.queryTimeout)
 	defer cancel()
 	var (
@@ -64,7 +95,7 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 	case simpleQueryType:
 		query = q.Query.Query
 	default:
-		return nil, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
+		return nil, ts, fmt.Errorf("unknown query type: '%s'", q.Query.Type)
 	}
 	start := time.Now()
 	result, warnings, err = q.api.Query(timeoutCtx, query, ts)
@@ -75,7 +106,7 @@ func (q *queryExecutor) execute(ts time.Time) (model.Value, error) {
 		q.logger.WithField("query", query).Warnf("warnings in query execution: %+v", warnings)
 	}
 
-	return result, err
+	return result, ts, err
 }
 
 func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
@@ -90,14 +121,17 @@ func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 		select {
 		// Wait for the tick
 		case <-ticker.C:
-			ts := time.Now()
-			result, err := q.execute(ts)
+			if q.queryInProgress.Load() {
+				q.logger.Warn("skipping query execution, previous query still in progress...")
+				continue
+			}
+			result, queryTs, err := q.execute(time.Now())
 			if err != nil {
 				prometheusQueryFail.WithLabelValues(string(q.Query.Type)).Inc()
 				q.logger.WithField("query", q.Query.Query).Errorf("failed querying Prometheus: '%+v'", err)
 				continue
 			}
-			err = q.ProcessResult(result, ts)
+			err = q.ProcessResult(result, queryTs)
 			if err != nil {
 				q.logger.WithField("query", q.Query.Query).Errorf("failed processing the query result: '%+v'", err)
 			}
@@ -213,7 +247,7 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 	for _, metric := range metricBucketIncreases {
 		metricBuckets := make([]float64, len(metric))
 		i := 0
-		for bucket, _ := range metric {
+		for bucket := range metric {
 			metricBuckets[i] = bucket
 			i++
 		}
@@ -247,6 +281,8 @@ func (q *queryExecutor) processCountersIncrease(matrix model.Matrix, ts time.Tim
 }
 
 func (q *queryExecutor) processMatrixResultAsIncrease(matrix model.Matrix, ts time.Time) chan metricIncrease {
+	// Drop outdated samples from previous result same as prometheus does see https://prometheus.io/docs/prometheus/latest/querying/basics/#staleness
+	q.previousResult.dropStaleResults(q.staleness, ts)
 	outChan := make(chan metricIncrease)
 	go func() {
 		defer close(outChan)
@@ -282,7 +318,7 @@ func (q *queryExecutor) processMatrixResultAsIncrease(matrix model.Matrix, ts ti
 				metric:   singleMetricSampleStream.Metric,
 			}
 		}
-		q.previousResult = currentResult
+		q.previousResult.update(currentResult)
 	}()
 	return outChan
 }

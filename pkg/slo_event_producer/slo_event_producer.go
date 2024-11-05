@@ -6,9 +6,9 @@ package slo_event_producer
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/spf13/viper"
 	"time"
 
 	"github.com/sirupsen/logrus"

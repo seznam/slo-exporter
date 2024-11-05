@@ -18,15 +18,19 @@ See a minimal example on how to configure envoy to send access_logs to an slo-ex
 ```yaml
 static_resources:
   listeners:
+  - name: listener_0
     address:
       socket_address:
         address: 0.0.0.0
         port_value: 8080
     filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           stat_prefix: ingress_http
           access_log:
+          - name: envoy.access_loggers.http_grpc
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.access_loggers.grpc.v3.HttpGrpcAccessLogConfig
               common_config:
@@ -38,20 +42,25 @@ static_resources:
                 log_name: accesslogv3
                 transport_api_version: V3 # needed to ensure that v3.AccessLogService is used
               additional_request_headers_to_log: ['slo-result', 'slo-class', 'slo-app', 'slo-endpoint']
-          http_filters: [...]
+[...]
   clusters:
-    connect_timeout: 6s
-    type: LOGICAL_DNS
-    load_assignment:
-      cluster_name: service_accesslog
-      endpoints:
-            address:
-              socket_address:
-                address: localhost
-                port_value: 18090
-    http2_protocol_options: {}
-    ...
+    - name: service_accesslog
+      connect_timeout: 6s
+      type: LOGICAL_DNS
+      load_assignment:
+        cluster_name: service_accesslog
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: localhost # exporter host
+                      port_value: 18090  # exporter port
+      http2_protocol_options: {}
+[...]
 ```
+
+Full working example is available here: [`/examples/envoy_proxy/envoy/envoy.yaml`](/examples/envoy_proxy/envoy/envoy.yaml).
 
 ### Resulting event metadata
 Please note that some of the keys may not be present	|

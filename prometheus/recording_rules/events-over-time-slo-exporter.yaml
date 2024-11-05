@@ -7,9 +7,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[4w:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[4w:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 4w
         slo_type: availability
@@ -18,9 +20,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (28*24*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="4w"}
+            28*24*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="4w"}
        labels:
         result: fail
      # 3d
@@ -28,9 +28,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[3d:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[3d:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 3d
         slo_type: availability
@@ -39,9 +41,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (3*24*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="3d"}
+            3*24*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="3d"}
        labels:
         result: fail
      # 1d
@@ -49,9 +49,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1d:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[1d:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 1d
         slo_type: availability
@@ -60,9 +62,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*24*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1d"}
+            1*24*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1d"}
        labels:
         result: fail
      # 6h
@@ -70,9 +70,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[6h:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[6h:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 6h
         slo_type: availability
@@ -81,9 +83,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*6*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="6h"}
+            6*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="6h"}
        labels:
         result: fail
      # 2h
@@ -91,9 +91,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[2h:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[2h:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 2h
         slo_type: availability
@@ -102,9 +104,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*2*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="2h"}
+            2*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="2h"}
        labels:
         result: fail
 
@@ -116,9 +116,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[1h:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[1h:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 1h
         slo_type: availability
@@ -127,9 +129,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*1*60)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1h"}
+            1*60 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="1h"}
        labels:
         result: fail
      # 30m
@@ -137,9 +137,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[30m:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[30m:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 30m
         slo_type: availability
@@ -148,9 +150,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*1*30)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="30m"}
+            30 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="30m"}
        labels:
         result: fail
      # 5m
@@ -158,9 +158,11 @@ groups:
        expr:
             label_replace(
               count_over_time(
-                sum(up{app_label=~"slo-exporter.+"} == 1) by (app_label, namespace)[5m:1m]
+                (sum(up{app_label=~"slo-exporter.+"}) by (app_label, namespace) == 1)[5m:1m]
               ), "slo_domain", "$1", "app_label", "^(slo-exporter.+)$"
             )
+            or on (namespace, slo_domain)
+            (0 * group by (namespace, slo_domain) (slo:violation_ratio_threshold{slo_domain=~"slo-exporter.+", slo_class="uptime"}))
        labels:
         slo_time_range: 5m
         slo_type: availability
@@ -169,9 +171,7 @@ groups:
         result: success
      - record: slo:events_over_time
        expr:
-            (1*1*5)
-            - on() group_right()
-            slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="5m"}
+            5 - slo:events_over_time{slo_domain=~"slo-exporter.+", result="success", slo_type="availability", slo_class="uptime", slo_time_range="5m"}
        labels:
         result: fail
 

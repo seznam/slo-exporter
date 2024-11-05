@@ -3,12 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
+	"runtime"
+
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/viper"
+
 	"github.com/seznam/slo-exporter/pkg/config"
 	"github.com/seznam/slo-exporter/pkg/dynamic_classifier"
 	"github.com/seznam/slo-exporter/pkg/envoy_access_log_server"
 	"github.com/seznam/slo-exporter/pkg/event_key_generator"
+	"github.com/seznam/slo-exporter/pkg/event_metadata_renamer"
+	"github.com/seznam/slo-exporter/pkg/kafka_ingester"
 	"github.com/seznam/slo-exporter/pkg/metadata_classifier"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/prometheus_exporter"
@@ -17,8 +23,6 @@ import (
 	"github.com/seznam/slo-exporter/pkg/slo_event_producer"
 	"github.com/seznam/slo-exporter/pkg/statistical_classifier"
 	"github.com/seznam/slo-exporter/pkg/tailer"
-	"github.com/spf13/viper"
-	"runtime"
 
 	"log"
 	"net/http"
@@ -28,9 +32,10 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/seznam/slo-exporter/pkg/prober"
 	"github.com/sirupsen/logrus"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/seznam/slo-exporter/pkg/prober"
 
 	_ "net/http/pprof"
 )
@@ -63,9 +68,13 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 	case "tailer":
 		return tailer.NewFromViper(conf, logger)
 	case "prometheusIngester":
-		return prometheus_ingester.NewFromViper(conf, logger)
+		return prometheus_ingester.NewFromViper(conf, logger, version)
+	case "kafkaIngester":
+		return kafka_ingester.NewFromViper(conf, logger)
 	case "envoyAccessLogServer":
 		return envoy_access_log_server.NewFromViper(conf, logger)
+	case "eventMetadataRenamer":
+		return event_metadata_renamer.NewFromViper(conf, logger)
 	case "relabel":
 		return relabel.NewFromViper(conf, logger)
 	case "eventKeyGenerator":
@@ -130,8 +139,13 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 		_, _ = w.Write([]byte("current logging level is: " + logger.Level.String()))
 	}
 
+	promHandler := promhttp.InstrumentMetricHandler(
+		prometheus.DefaultRegisterer,
+		promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{EnableOpenMetrics: true}),
+	)
+
 	router := mux.NewRouter()
-	router.Handle("/metrics", promhttp.Handler())
+	router.Handle("/metrics", promHandler)
 	router.HandleFunc("/liveness", liveness.HandleFunc)
 	router.HandleFunc("/readiness", readiness.HandleFunc)
 	router.HandleFunc("/logging", dynamicLoggingHandler)

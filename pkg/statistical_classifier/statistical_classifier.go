@@ -6,13 +6,13 @@ package statistical_classifier
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/spf13/viper"
 )
 
 const (

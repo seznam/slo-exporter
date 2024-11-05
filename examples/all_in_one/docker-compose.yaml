@@ -59,7 +59,7 @@ services:
       - ./prometheus/alerts:/prometheus/alerts
 
   grafana:
-    image: grafana/grafana:7.3.0
+    image: grafana/grafana:8.3.3
     depends_on:
       - prometheus
     ports:

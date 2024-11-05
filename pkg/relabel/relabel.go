@@ -2,13 +2,14 @@ package relabel
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
-	"time"
 
 	"github.com/prometheus/prometheus/pkg/relabel"
 	"github.com/sirupsen/logrus"
@@ -30,7 +31,7 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventRe
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	if err := yaml.Unmarshal(marshalledConfig, &relabelConf); err != nil {
+	if err := yaml.UnmarshalStrict(marshalledConfig, &relabelConf); err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 	return NewFromConfig(relabelConf, logger)

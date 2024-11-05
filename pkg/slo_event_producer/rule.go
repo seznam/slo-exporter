@@ -58,21 +58,21 @@ func newEvaluationRule(opts ruleOptions, logger logrus.FieldLogger) (*evaluation
 	if opts.SloMatcher.DomainRegexp != "" {
 		r, err := regexp.Compile(opts.SloMatcher.DomainRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("invalid domain matcher regexp: %w",err)
+			return nil, fmt.Errorf("invalid domain matcher regexp: %w", err)
 		}
 		sloMatcher.domainRegexp = r
 	}
 	if opts.SloMatcher.ClassRegexp != "" {
 		r, err := regexp.Compile(opts.SloMatcher.ClassRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("invalid class matcher regexp: %w",err)
+			return nil, fmt.Errorf("invalid class matcher regexp: %w", err)
 		}
 		sloMatcher.classRegexp = r
 	}
 	if opts.SloMatcher.AppRegexp != "" {
 		r, err := regexp.Compile(opts.SloMatcher.AppRegexp)
 		if err != nil {
-			return nil, fmt.Errorf("invalid app matcher regexp: %w",err)
+			return nil, fmt.Errorf("invalid app matcher regexp: %w", err)
 		}
 		sloMatcher.appRegexp = r
 	}
@@ -145,12 +145,13 @@ func (er *evaluationRule) processEvent(newEvent *event.Raw) (*event.Slo, bool) {
 	failed := er.evaluateEvent(newEvent)
 
 	newSloEvent := &event.Slo{
-		Key:      newEvent.EventKey(),
-		Domain:   eventSloClassification.Domain,
-		Class:    eventSloClassification.Class,
-		App:      eventSloClassification.App,
-		Metadata: er.additionalMetadata,
-		Quantity: newEvent.Quantity,
+		Key:           newEvent.EventKey(),
+		Domain:        eventSloClassification.Domain,
+		Class:         eventSloClassification.Class,
+		App:           eventSloClassification.App,
+		Metadata:      er.additionalMetadata,
+		Quantity:      newEvent.Quantity,
+		OriginalEvent: *newEvent,
 	}
 	er.markEventResult(failed, newSloEvent)
 	er.logger.WithField("event", newSloEvent).Debug("generated new slo event")
