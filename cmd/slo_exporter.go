@@ -100,9 +100,10 @@ func setupLogger(logLevel string, logFormat string) (*logrus.Logger, error) {
 		return nil, err
 	}
 
-	if logFormat != "json" && logFormat != "text" {
-		logFormat = "text"
-		logrus.Warningf("invalid log format '%s', using 'text' instead", logFormat)
+	switch logFormat {
+	case "json", "text":
+	default:
+		return nil, fmt.Errorf("invalid log format '%s', must be 'json' or 'text'", logFormat)
 	}
 
 	newLogger := logrus.New()
