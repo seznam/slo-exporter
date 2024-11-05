@@ -155,7 +155,7 @@ func main() {
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)
 
-	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
+	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").ExistingFile()
 	logLevel := kingpin.Flag("log-level", "Log level.").Envar("SLO_EXPORTER_LOGLEVEL").Default("info").Enum("error", "warn", "info", "debug", "trace")
 	logFormat := kingpin.Flag("log-format", "Log format (text, json).").Envar("SLO_EXPORTER_LOGFORMAT").Default("text").Enum("json", "text")
 	checkConfig := kingpin.Flag("check-config", "Only check config file and exit with 0 if ok and other status code if not.").Default("false").Bool()
