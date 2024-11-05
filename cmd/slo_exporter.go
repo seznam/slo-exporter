@@ -97,7 +97,7 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 func setupLogger(logLevel string, logFormat string) (*logrus.Logger, error) {
 	lvl, err := logrus.ParseLevel(logLevel)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid log level '%s', must be one of 'error', 'warn', 'info', 'debug', 'trace'", logLevel)
 	}
 
 	newLogger := logrus.New()
@@ -155,9 +155,9 @@ func main() {
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)
 
-	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").ExistingFile()
-	logLevel := kingpin.Flag("log-level", "Log level (error, warn, info, debug,trace).").Default("info").String()
-	logFormat := kingpin.Flag("log-format", "Log format (text, json).").Default("text").String()
+	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").Required().ExistingFile()
+	logLevel := kingpin.Flag("log-level", "Log level.").Envar("SLO_EXPORTER_LOGLEVEL").Default("info").Enum("error", "warn", "info", "debug", "trace")
+	logFormat := kingpin.Flag("log-format", "Log format (text, json).").Envar("SLO_EXPORTER_LOGFORMAT").Default("text").Enum("json", "text")
 	checkConfig := kingpin.Flag("check-config", "Only check config file and exit with 0 if ok and other status code if not.").Default("false").Bool()
 	versionFlag := kingpin.Flag("version", "Display version.").Default("false").Bool()
 	kingpin.Parse()
@@ -168,24 +168,15 @@ func main() {
 		return
 	}
 
+	// Not using .Required() to allow for version flag to be used
 	if *configFilePath == "" {
 		fmt.Fprintln(os.Stderr, "error: required flag --config-file not provided, try --help")
 		os.Exit(1)
 	}
 
-	envLogLevel, ok := syscall.Getenv("SLO_EXPORTER_LOGLEVEL")
-	if ok {
-		logLevel = &envLogLevel
-	}
-
-	envLogFormat, ok := syscall.Getenv("SLO_EXPORTER_LOGFORMAT")
-	if ok {
-		logFormat = &envLogFormat
-	}
-
 	logger, err := setupLogger(*logLevel, *logFormat)
 	if err != nil {
-		log.Fatalf("invalid specified log level %+v, error: %+v", logLevel, err)
+		log.Fatalf("failed to setup logging, error: %s", err)
 	}
 
 	conf := config.New(logger.WithField("component", "config"))
