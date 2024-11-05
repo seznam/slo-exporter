@@ -100,26 +100,22 @@ func setupLogger(logLevel string, logFormat string) (*logrus.Logger, error) {
 		return nil, err
 	}
 
-	switch logFormat {
-	case "json", "text":
-	default:
-		return nil, fmt.Errorf("invalid log format '%s', must be 'json' or 'text'", logFormat)
-	}
-
 	newLogger := logrus.New()
 	newLogger.SetOutput(os.Stdout)
-
 	const timestampFormat = "2006-01-02T15:04:05.99999Z07:00"
-	if logFormat == "json" {
+	switch logFormat {
+	case "json":
 		newLogger.SetFormatter(&logrus.JSONFormatter{
 			TimestampFormat: timestampFormat,
 		})
-	} else {
+	case "text":
 		newLogger.SetFormatter(&logrus.TextFormatter{
 			DisableColors:   true,
 			FullTimestamp:   true,
 			TimestampFormat: timestampFormat,
 		})
+	default:
+		return nil, fmt.Errorf("invalid log format '%s', must be 'json' or 'text'", logFormat)
 	}
 	newLogger.SetLevel(lvl)
 	return newLogger, nil
