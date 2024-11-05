@@ -19,6 +19,7 @@ Flags:
   --help                     Show context-sensitive help (also try --help-long and --help-man).
   --config-file=CONFIG-FILE  SLO exporter configuration file.
   --log-level="info"         Log level (error, warn, info, debug,trace).
+  --log-format="text"        Log format (text, json).
   --check-config             Only check config file and exit with 0 if ok and other status code if not.
 ```
 

@@ -94,7 +94,7 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 	}
 }
 
-func setupLogger(logLevel string) (*logrus.Logger, error) {
+func setupLogger(logLevel string, logFormat string) (*logrus.Logger, error) {
 	lvl, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		return nil, err
@@ -102,11 +102,21 @@ func setupLogger(logLevel string) (*logrus.Logger, error) {
 
 	newLogger := logrus.New()
 	newLogger.SetOutput(os.Stdout)
-	newLogger.SetFormatter(&logrus.TextFormatter{
-		DisableColors:   true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006-01-02T15:04:05.99999Z07:00",
-	})
+	const timestampFormat = "2006-01-02T15:04:05.99999Z07:00"
+	switch logFormat {
+	case "json":
+		newLogger.SetFormatter(&logrus.JSONFormatter{
+			TimestampFormat: timestampFormat,
+		})
+	case "text":
+		newLogger.SetFormatter(&logrus.TextFormatter{
+			DisableColors:   true,
+			FullTimestamp:   true,
+			TimestampFormat: timestampFormat,
+		})
+	default:
+		return nil, fmt.Errorf("invalid log format '%s', must be 'json' or 'text'", logFormat)
+	}
 	newLogger.SetLevel(lvl)
 	return newLogger, nil
 }
@@ -147,6 +157,7 @@ func main() {
 
 	configFilePath := kingpin.Flag("config-file", "SLO exporter configuration file.").ExistingFile()
 	logLevel := kingpin.Flag("log-level", "Log level (error, warn, info, debug,trace).").Default("info").String()
+	logFormat := kingpin.Flag("log-format", "Log format (text, json).").Default("text").String()
 	checkConfig := kingpin.Flag("check-config", "Only check config file and exit with 0 if ok and other status code if not.").Default("false").Bool()
 	versionFlag := kingpin.Flag("version", "Display version.").Default("false").Bool()
 	kingpin.Parse()
@@ -167,7 +178,12 @@ func main() {
 		logLevel = &envLogLevel
 	}
 
-	logger, err := setupLogger(*logLevel)
+	envLogFormat, ok := syscall.Getenv("SLO_EXPORTER_LOGFORMAT")
+	if ok {
+		logFormat = &envLogFormat
+	}
+
+	logger, err := setupLogger(*logLevel, *logFormat)
 	if err != nil {
 		log.Fatalf("invalid specified log level %+v, error: %+v", logLevel, err)
 	}
