@@ -67,7 +67,10 @@ workflows:
       - lint
       - check_format
       - test
-      - test-release # In case of exhausting CircleCI free credits, this could be run only on master
+      - test-release:
+          filters:
+            branches:
+              only: master
       - build:
           filters:
             tags:
