@@ -72,7 +72,7 @@ cross-build: $(GORELEASER)
 .PHONY: release
 release: $(RELEASE_NOTES) $(GORELEASER)
 	@echo "Releasing new version do GitHub and DockerHub using goreleaser..."
-	$(GORELEASER) release --snapshot --clean --release-notes $(RELEASE_NOTES)
+	$(GORELEASER) release --clean --release-notes $(RELEASE_NOTES)
 
 .PHONY: clean
 clean:
