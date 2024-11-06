@@ -6,7 +6,7 @@ TMP_BIN_DIR ?= $(TMP_DIR)/bin
 GORELEASER_VERSION ?= v2.4.4
 
 .PHONY: all
-all: format lint test-and-coverage build
+all: format lint test-and-coverage build test-release
 
 $(TMP_DIR):
 	mkdir -p $(TMP_DIR)
@@ -68,6 +68,10 @@ test-and-coverage: test
 .PHONY: cross-build
 cross-build: $(GORELEASER)
 	$(GORELEASER) build --clean
+
+.PHONY: test-release
+test-release: $(RELEASE_NOTES) $(GORELEASER)
+	$(GORELEASER) release --snapshot --clean --release-notes $(RELEASE_NOTES)
 
 .PHONY: release
 release: $(RELEASE_NOTES) $(GORELEASER)

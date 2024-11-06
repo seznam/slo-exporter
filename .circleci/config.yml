@@ -16,14 +16,20 @@ jobs:
     steps:
       - checkout
       - run: |
-         make format
-         git diff --color --exit-code
+          make format
+          git diff --color --exit-code
 
   test:
     <<: *defaults
     steps:
       - checkout
       - run: make test-and-coverage
+
+  test-release:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: make test-release
 
   build:
     <<: *defaults
@@ -39,7 +45,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - setup_remote_docker:
+      - setup_remote_docker
       - attach_workspace:
           at: .
       - run: make docker
@@ -48,7 +54,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - setup_remote_docker:
+      - setup_remote_docker
       - run: |
           echo "${DOCKERHUB_PASSWORD}" | docker login -u="${DOCKERHUB_USER}" --password-stdin
           make release
@@ -60,6 +66,7 @@ workflows:
       - lint
       - check_format
       - test
+      - test-release # In case of exhausting CircleCI free credits, this could be run only on master
       - build:
           filters:
             tags:
