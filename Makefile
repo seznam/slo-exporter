@@ -38,11 +38,11 @@ format:
 
 .PHONY: lint
 lint: golangci-lint
-	golangci-lint run
+	golangci-lint run --timeout 10m
 
 .PHONY: lint-fix
 lint-fix: golangci-lint
-	golangci-lint run --fix
+	golangci-lint run --fix --timeout 10m
 
 SLO_EXPORTER_BIN ?= slo_exporter
 .PHONY: build

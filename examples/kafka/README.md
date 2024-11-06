@@ -7,9 +7,9 @@ as a source of data in order to compute SLO of a server which publishes events t
 #### How to run it
 In root of the repo
 ```bash
-make build
+make docker
 cd examples/kafka
-docker-compose up -d
+docker compose up -d
 ```
 Once started see http://localhost:8080/metrics.
 
@@ -21,4 +21,4 @@ Kafkacat is used to publish events to Kafka on behalf of an imaginary server. Ea
 All events whose "result" metadata's key equals to "OK" are considered successful.
 
 #### `quality`
-All events whose all quality degradation tracking metadata's key(s) equals to 0 are considered successful.  
+All events whose all quality degradation tracking metadata's key(s) equals to 0 are considered successful.
