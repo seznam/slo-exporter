@@ -3,7 +3,7 @@ SRC_DIR	:= $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TMP_DIR ?= $(SRC_DIR)/tmp
 TMP_BIN_DIR ?= $(TMP_DIR)/bin
 
-GORELEASER_VERSION ?= v0.140.1
+GORELEASER_VERSION ?= v2.4.4
 
 .PHONY: all
 all: format lint test-and-coverage build
@@ -67,12 +67,12 @@ test-and-coverage: test
 
 .PHONY: cross-build
 cross-build: $(GORELEASER)
-	$(GORELEASER) build --rm-dist
+	$(GORELEASER) build --clean
 
 .PHONY: release
 release: $(RELEASE_NOTES) $(GORELEASER)
 	@echo "Releasing new version do GitHub and DockerHub using goreleaser..."
-	$(GORELEASER) release --rm-dist --release-notes $(RELEASE_NOTES)
+	$(GORELEASER) release --snapshot --clean --release-notes $(RELEASE_NOTES)
 
 .PHONY: clean
 clean:
