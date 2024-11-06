@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 - [#111](https://github.com/seznam/slo-exporter/pull/111) Add JSON logging support
+- [#113](https://github.com/seznam/slo-exporter/pull/113) Remove docker remote version to use the default circleci version
 
 ## [v6.14.0] 2024-01-22
 ### Changed
