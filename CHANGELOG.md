@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v6.15.0] 2024-11-06
 
+:warning: This release never had any published artifacts. Use the v6.15.1 instead
+
 > Big thanks to @mohammedalics who did all the work on this release!
 
 ### Added
