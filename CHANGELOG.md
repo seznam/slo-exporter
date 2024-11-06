@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+- [#115](https://github.com/seznam/slo-exporter/pull/115) Add `qemu` before release to fix the multi-platform release issue.
 
 ## [v6.15.0] 2024-11-06
 
