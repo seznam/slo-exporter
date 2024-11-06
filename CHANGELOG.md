@@ -5,9 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [v6.15.0] 2024-11-06
+
+> Big thanks to @mohammedalics who did all the work on this release!
+
+### Added
 - [#111](https://github.com/seznam/slo-exporter/pull/111) Add JSON logging support
-- [#113](https://github.com/seznam/slo-exporter/pull/113) Remove docker remote version to use the default circleci version
 - [#114](https://github.com/seznam/slo-exporter/pull/114) Add arm64 / multi-platform support
+### Fixed
+- [#113](https://github.com/seznam/slo-exporter/pull/113) Remove docker remote version to use the default circleci version
 
 ## [v6.14.0] 2024-01-22
 ### Changed
