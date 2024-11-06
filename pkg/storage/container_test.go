@@ -2,9 +2,10 @@ package storage
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_Container_Add(t *testing.T) {
@@ -22,7 +23,7 @@ func Test_Container_Add(t *testing.T) {
 			NewInMemoryCappedContainer(containerCapacity),
 		}
 		for _, c := range containers {
-			t.Run(fmt.Sprintf(" | %s | %s", reflect.TypeOf(c).String(), tt.name), func(t *testing.T) {
+			t.Run(fmt.Sprintf(" | %s | %s", reflect.TypeOf(c).String(), tt.name), func(_ *testing.T) {
 				c.Add(tt.item)
 			})
 		}

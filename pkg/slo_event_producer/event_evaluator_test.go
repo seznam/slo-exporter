@@ -1,15 +1,13 @@
-//revive:disable:var-naming
 package slo_event_producer
 
-//revive:enable:var-naming
-
 import (
+	"testing"
+
 	"github.com/go-test/deep"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type sloEventTestCase struct {
@@ -22,18 +20,19 @@ func TestSloEventProducer(t *testing.T) {
 	testCases := []sloEventTestCase{
 		{
 			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "502"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
-			rulesConfig: rulesConfig{Rules: []ruleOptions{
-				{
-					SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
-					MetadataMatcherConditionsOptions: []operatorOptions{},
-					FailureConditionsOptions: []operatorOptions{
-						operatorOptions{
-							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
+			rulesConfig: rulesConfig{
+				Rules: []ruleOptions{
+					{
+						SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
+						MetadataMatcherConditionsOptions: []operatorOptions{},
+						FailureConditionsOptions: []operatorOptions{
+							{
+								Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
+							},
 						},
+						AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 					},
-					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},
-			},
 			},
 			expectedSloEvents: []event.Slo{
 				{
@@ -46,18 +45,19 @@ func TestSloEventProducer(t *testing.T) {
 		},
 		{
 			inputEvent: event.Raw{Metadata: stringmap.StringMap{"statusCode": "200"}, SloClassification: &event.SloClassification{Class: "class", App: "app", Domain: "domain"}},
-			rulesConfig: rulesConfig{Rules: []ruleOptions{
-				{
-					SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
-					MetadataMatcherConditionsOptions: []operatorOptions{},
-					FailureConditionsOptions: []operatorOptions{
-						operatorOptions{
-							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
+			rulesConfig: rulesConfig{
+				Rules: []ruleOptions{
+					{
+						SloMatcher:                       sloMatcher{DomainRegexp: "domain"},
+						MetadataMatcherConditionsOptions: []operatorOptions{},
+						FailureConditionsOptions: []operatorOptions{
+							{
+								Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
+							},
 						},
+						AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 					},
-					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
 				},
-			},
 			},
 			expectedSloEvents: []event.Slo{
 				{
@@ -98,31 +98,32 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 	testCases := []getMetricsFromRuleOptionsTestCase{
 		{
 			Name: "Configured rules are exposed as Prometheus metric",
-			RulesConfig: rulesConfig{[]ruleOptions{
-				{
-					MetadataMatcherConditionsOptions: []operatorOptions{
-						{
-							Operator: "isEqualTo",
-							Key:      "name",
-							Value:    "ad.banner",
+			RulesConfig: rulesConfig{
+				[]ruleOptions{
+					{
+						MetadataMatcherConditionsOptions: []operatorOptions{
+							{
+								Operator: "isEqualTo",
+								Key:      "name",
+								Value:    "ad.banner",
+							},
 						},
+						SloMatcher: sloMatcher{},
+						FailureConditionsOptions: []operatorOptions{
+							{
+								Operator: "numberIsHigherThan",
+								Key:      "prometheusQueryResult",
+								Value:    "6300",
+							},
+							{
+								Operator: "numberIsEqualOrLessThan",
+								Key:      "prometheusQueryResult",
+								Value:    "7000",
+							},
+						},
+						AdditionalMetadata: stringmap.StringMap{"foo": "bar"},
 					},
-					SloMatcher: sloMatcher{},
-					FailureConditionsOptions: []operatorOptions{
-						{
-							Operator: "numberIsHigherThan",
-							Key:      "prometheusQueryResult",
-							Value:    "6300",
-						},
-						{
-							Operator: "numberIsEqualOrLessThan",
-							Key:      "prometheusQueryResult",
-							Value:    "7000",
-						},
-					},
-					AdditionalMetadata: stringmap.StringMap{"foo": "bar"},
 				},
-			},
 			},
 			ExpectedMetric: []metric{
 				{
@@ -149,10 +150,7 @@ func TestConfig_getMetricsFromRuleOptions(t *testing.T) {
 				if err != nil {
 					t.Error(err)
 				}
-				metrics, _, err = evaluator.ruleOptionsToMetrics()
-				if err != nil {
-					t.Error(err)
-				}
+				metrics, _ = evaluator.ruleOptionsToMetrics()
 				assert.Equal(t, testCase.ExpectedMetric, metrics)
 			},
 		)

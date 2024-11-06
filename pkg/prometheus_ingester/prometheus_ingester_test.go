@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,7 +42,6 @@ func (m *MockedRoundTripper) resultFabricator() string {
 }
 
 func (m *MockedRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(req.Body); err != nil {
 		m.t.Error(err)
@@ -58,30 +57,30 @@ func (m *MockedRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 	response := m.resultFabricator()
 
 	return &http.Response{
-		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(response)),
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString(response)),
 		Header: http.Header{
 			"Content-Type": []string{"application/json"},
 		},
 	}, nil
 }
 
-var metricObject = newMetric("test_metric", map[string]string{"job": "kubernetes", "locality": "nagano"})
-var metricStringMap = stringmap.NewFromMetric(metricObject)
+var (
+	metricObject    = newMetric("test_metric", map[string]string{"job": "kubernetes", "locality": "nagano"})
+	metricStringMap = stringmap.NewFromMetric(metricObject)
+)
 
 func newMetric(name model.LabelValue, labels map[string]string) model.Metric {
 	m := map[model.LabelName]model.LabelValue{
 		"__name__": name,
 	}
-	if labels != nil {
-		for k, v := range labels {
-			m[model.LabelName(k)] = model.LabelValue(v)
-		}
+	for k, v := range labels {
+		m[model.LabelName(k)] = model.LabelValue(v)
 	}
 	return m
 }
 
-func HttpRequestsToString(rawResults []*event.Raw) []string {
+func HTTPRequestsToString(rawResults []*event.Raw) []string {
 	stringResults := make([]string, len(rawResults))
 	for i, rawResult := range rawResults {
 		marshalledBytes, err := json.Marshal(*rawResult)
@@ -217,7 +216,7 @@ func Test_Ingests_Various_ModelTypes(t *testing.T) {
 		}
 
 		// Prepare the string interpretation of the actual results
-		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesn't match expected events", "actual", HttpRequestsToString(actualEventResult))
+		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesn't match expected events", "actual", HTTPRequestsToString(actualEventResult))
 	}
 }
 
@@ -356,11 +355,11 @@ func Test_Add_Or_Drop_Labels(t *testing.T) {
 			actualEventResult = append(actualEventResult, newEvent)
 		}
 		// Prepare the string interpretation of the actual results
-		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", HttpRequestsToString(actualEventResult))
+		assert.ElementsMatchf(t, tc.eventsProduced, actualEventResult, "Produced events doesnt match expected events", "actual", HTTPRequestsToString(actualEventResult))
 	}
 }
 
-// Tests roughly that configured query interval generates expected number of events for given period
+// Tests roughly that configured query interval generates expected number of events for given period.
 func TestIngesterScalar_Interval_run(t *testing.T) {
 	interval := 900 * time.Millisecond
 	runFor := 2000 * time.Millisecond
@@ -386,7 +385,6 @@ func TestIngesterScalar_Interval_run(t *testing.T) {
 			},
 		},
 	}, logrus.New())
-
 	if err != nil {
 		t.Error(err)
 		return
@@ -469,9 +467,10 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 					Interval:         interval,
 					ResultAsQuantity: newTrue(),
 				},
-				previousResult: queryResult{timestamp: ts.Add(time.Hour * -1),
+				previousResult: queryResult{
+					timestamp: ts.Add(time.Hour * -1),
 					metrics: map[model.Fingerprint]model.SamplePair{
-						model.Fingerprint(0): {model.Time(0), 0},
+						model.Fingerprint(0): {Timestamp: model.Time(0), Value: 0},
 					},
 				},
 			},
@@ -484,11 +483,6 @@ func TestGetQueryWithRangeSelector(t *testing.T) {
 		result := testCase.query.withRangeSelector(testCase.ts)
 		assert.Equal(t, testCase.expectedQuery, result)
 	}
-
-}
-
-func promTime(ts time.Time, add time.Duration) model.Time {
-	return model.Time(ts.Add(add).Unix())
 }
 
 func Test_processMetricsIncrease(t *testing.T) {
@@ -513,8 +507,8 @@ func Test_processMetricsIncrease(t *testing.T) {
 			previousResult: queryResult{
 				ts.Time(),
 				map[model.Fingerprint]model.SamplePair{
-					x.Fingerprint(): {ts, 0},
-					y.Fingerprint(): {ts, 10},
+					x.Fingerprint(): {Timestamp: ts, Value: 0},
+					y.Fingerprint(): {Timestamp: ts, Value: 10},
 				},
 			},
 			newResult: []*model.SampleStream{
@@ -559,7 +553,7 @@ func Test_processMetricsIncrease(t *testing.T) {
 			previousResult: queryResult{
 				ts.Time(),
 				map[model.Fingerprint]model.SamplePair{
-					x.Fingerprint(): {ts, 0},
+					x.Fingerprint(): {Timestamp: ts, Value: 0},
 				},
 			},
 			newResult: []*model.SampleStream{
@@ -582,7 +576,7 @@ func Test_processMetricsIncrease(t *testing.T) {
 			previousResult: queryResult{
 				ts.Time(),
 				map[model.Fingerprint]model.SamplePair{
-					x.Fingerprint(): {ts, 0},
+					x.Fingerprint(): {Timestamp: ts, Value: 0},
 				},
 			},
 			newResult: []*model.SampleStream{
@@ -661,7 +655,7 @@ func Test_processHistogramIncrease(t *testing.T) {
 		expectedEvents []*event.Raw
 	}
 	ts := model.Time(0)
-	newTs := ts.Add(time.Minute)
+	newTS := ts.Add(time.Minute)
 
 	testCases := []testCase{
 		// monotonic value of x to 10 (in two samples)
@@ -670,27 +664,27 @@ func Test_processHistogramIncrease(t *testing.T) {
 			data: []*model.SampleStream{
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "1"}),
-					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(2)}},
+					Values: []model.SamplePair{{Timestamp: newTS, Value: model.SampleValue(2)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "3"}),
-					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(8)}},
+					Values: []model.SamplePair{{Timestamp: newTS, Value: model.SampleValue(8)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "6"}),
-					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(8)}},
+					Values: []model.SamplePair{{Timestamp: newTS, Value: model.SampleValue(8)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "bar", "le": "+Inf"}),
-					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(10)}},
+					Values: []model.SamplePair{{Timestamp: newTS, Value: model.SampleValue(10)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "0.5"}),
-					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(2)}},
+					Values: []model.SamplePair{{Timestamp: newTS, Value: model.SampleValue(2)}},
 				},
 				{
 					Metric: newMetric("histogram_bucket", stringmap.StringMap{"foo": "xxx", "le": "+Inf"}),
-					Values: []model.SamplePair{{Timestamp: newTs, Value: model.SampleValue(10)}},
+					Values: []model.SamplePair{{Timestamp: newTS, Value: model.SampleValue(10)}},
 				},
 			},
 			expectedEvents: []*event.Raw{
@@ -731,8 +725,8 @@ func Test_processHistogramIncrease(t *testing.T) {
 }
 
 func Test_httpHeaders_toMap(t *testing.T) {
-	var headerValue = "value"
-	var headerValue2 = "value2"
+	headerValue := "value"
+	headerValue2 := "value2"
 
 	tests := []struct {
 		name    string
@@ -780,9 +774,8 @@ httpHeaders:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			var headers struct {
-				HttpHeaders httpHeaders
+				HTTPHeaders httpHeaders
 			}
 			v := viper.New()
 			v.SetConfigType("yaml")
@@ -793,7 +786,7 @@ httpHeaders:
 				t.Fatal(err)
 			}
 
-			got, err := headers.HttpHeaders.toMap()
+			got, err := headers.HTTPHeaders.toMap()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("httpHeader.getValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -804,12 +797,12 @@ httpHeaders:
 }
 
 func Test_httpHeader_getValue(t *testing.T) {
-	var headerName = "headerName"
-	var headerValue = "headerValue"
-	var headerValueFromEnvValue = "headerValueFromEnv"
-	var headerValueFromEnvPrefix = "Prefix"
-	var envName = "envName"
-	var nonExistingEnv = "NON_EXISTING_ENV_NAME"
+	headerName := "headerName"
+	headerValue := "headerValue"
+	headerValueFromEnvValue := "headerValueFromEnv"
+	headerValueFromEnvPrefix := "Prefix"
+	envName := "envName"
+	nonExistingEnv := "NON_EXISTING_ENV_NAME"
 
 	if err := os.Unsetenv(nonExistingEnv); err != nil {
 		t.Fatal(err)
@@ -836,8 +829,10 @@ func Test_httpHeader_getValue(t *testing.T) {
 			name: "valueFromEnv with prefix",
 			fields: fields{
 				Name:         headerName,
-				ValueFromEnv: &httpHeaderValueFromEnv{Name: envName, ValuePrefix: headerValueFromEnvPrefix}},
-			want: headerValueFromEnvPrefix + headerValueFromEnvValue},
+				ValueFromEnv: &httpHeaderValueFromEnv{Name: envName, ValuePrefix: headerValueFromEnvPrefix},
+			},
+			want: headerValueFromEnvPrefix + headerValueFromEnvValue,
+		},
 		{name: "valueFromEnv non existing env", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{Name: nonExistingEnv}}, wantErr: true},
 		{name: "valueFromEnv no env name set", fields: fields{Name: headerName, ValueFromEnv: &httpHeaderValueFromEnv{}}, wantErr: true},
 		{name: "header name not set", fields: fields{Name: "", Value: &headerValue}, wantErr: true},
@@ -863,9 +858,8 @@ func Test_httpHeader_getValue(t *testing.T) {
 
 func Test_queryOffset(t *testing.T) {
 	type testCase struct {
-		name        string
-		queryOpts   queryOptions
-		expectError bool
+		name      string
+		queryOpts queryOptions
 	}
 
 	cases := []testCase{
@@ -893,7 +887,7 @@ func Test_queryOffset(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			_, _, err = ingester.queryExecutors[0].execute(ts.Time())
+			_, _, err = ingester.queryExecutors[0].execute(context.TODO(), ts.Time())
 			assert.NoError(t, err)
 		})
 	}

@@ -40,7 +40,7 @@ type queryResult struct {
 }
 
 func (r *queryResult) String() string {
-	var res []string
+	res := make([]string, 0, len(r.metrics))
 	for k, v := range r.metrics {
 		res = append(res, fmt.Sprintln(v.Timestamp, k, v.Value))
 	}
@@ -55,14 +55,14 @@ func (r *queryResult) dropStaleResults(staleness time.Duration, moment time.Time
 	}
 }
 
-func (r *queryResult) update(new queryResult) {
-	r.timestamp = new.timestamp
-	for m, s := range new.metrics {
+func (r *queryResult) update(qr queryResult) {
+	r.timestamp = qr.timestamp
+	for m, s := range qr.metrics {
 		r.metrics[m] = s
 	}
 }
 
-// withRangeSelector returns q.query concatenated with desired range selector
+// withRangeSelector returns q.query concatenated with desired range selector.
 func (q *queryExecutor) withRangeSelector(ts time.Time) string {
 	var rangeSelector time.Duration
 	if len(q.previousResult.metrics) == 0 {
@@ -74,12 +74,12 @@ func (q *queryExecutor) withRangeSelector(ts time.Time) string {
 	return q.Query.Query + fmt.Sprintf("[%ds]", int64(rangeSelector.Seconds()))
 }
 
-// execute query at provided timestamp ts taking the configured query offser into account. Returns the actual timestamp with offset applied.
-func (q *queryExecutor) execute(ts time.Time) (model.Value, time.Time, error) {
+// execute query at provided timestamp ts taking the configured query offset into account. Returns the actual timestamp with offset applied.
+func (q *queryExecutor) execute(ctx context.Context, ts time.Time) (model.Value, time.Time, error) {
 	ts = ts.Add(-q.Query.Offset)
 	q.queryInProgress.Store(true)
 	defer q.queryInProgress.Store(false)
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), q.queryTimeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, q.queryTimeout)
 	defer cancel()
 	var (
 		err      error
@@ -125,13 +125,13 @@ func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 				q.logger.Warn("skipping query execution, previous query still in progress...")
 				continue
 			}
-			result, queryTs, err := q.execute(time.Now())
+			result, queryTS, err := q.execute(ctx, time.Now())
 			if err != nil {
 				prometheusQueryFail.WithLabelValues(string(q.Query.Type)).Inc()
 				q.logger.WithField("query", q.Query.Query).Errorf("failed querying Prometheus: '%+v'", err)
 				continue
 			}
-			err = q.ProcessResult(result, queryTs)
+			err = q.ProcessResult(result, queryTS)
 			if err != nil {
 				q.logger.WithField("query", q.Query.Query).Errorf("failed processing the query result: '%+v'", err)
 			}
@@ -144,9 +144,9 @@ func (q *queryExecutor) run(ctx context.Context, wg *sync.WaitGroup) {
 func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 	switch q.Query.Type {
 	case histogramQueryType:
-		switch result.(type) {
+		switch r := result.(type) {
 		case model.Matrix:
-			if err := q.processHistogramIncrease(result.(model.Matrix), ts); err != nil {
+			if err := q.processHistogramIncrease(r, ts); err != nil {
 				return err
 			}
 			return nil
@@ -155,22 +155,22 @@ func (q *queryExecutor) ProcessResult(result model.Value, ts time.Time) error {
 			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
 		}
 	case counterQueryType:
-		switch result.(type) {
+		switch r := result.(type) {
 		case model.Matrix:
-			q.processCountersIncrease(result.(model.Matrix), ts)
+			q.processCountersIncrease(r, ts)
 			return nil
 		default:
 			unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
 			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
 		}
 	case simpleQueryType:
-		switch result.(type) {
+		switch r := result.(type) {
 		case model.Matrix:
-			return q.processMatrixResult(result.(model.Matrix))
+			return q.processMatrixResult(r)
 		case model.Vector:
-			return q.processVectorResult(result.(model.Vector))
+			return q.processVectorResult(r)
 		case *model.Scalar:
-			return q.processScalarResult(result.(*model.Scalar))
+			return q.processScalarResult(r)
 		default:
 			unsupportedQueryResultType.WithLabelValues(result.Type().String()).Inc()
 			return fmt.Errorf("unsupported Prometheus value type '%s' for query type '%s'", result.Type().String(), q.Query.Type)
@@ -204,7 +204,7 @@ func (q *queryExecutor) emitEvent(ts time.Time, result float64, metadata stringm
 	q.eventsChan <- e
 }
 
-// increaseBetweenSamples calculates value between two samples
+// increaseBetweenSamples calculates value between two samples.
 func increaseBetweenSamples(previousSample, sample model.SamplePair) float64 {
 	if sample.Value < previousSample.Value {
 		// counter reset
@@ -221,9 +221,7 @@ type metricIncrease struct {
 
 func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Time) error {
 	metricBucketIncreases := make(map[string]map[float64]metricIncrease)
-	var (
-		errors error
-	)
+	var errors error
 	for increase := range q.processMatrixResultAsIncrease(matrix, ts) {
 		bucket, ok := increase.metric["le"]
 		if !ok {
@@ -252,7 +250,7 @@ func (q *queryExecutor) processHistogramIncrease(matrix model.Matrix, ts time.Ti
 			i++
 		}
 		sort.Float64s(metricBuckets)
-		var previousBucketKey float64 = math.Inf(-1)
+		previousBucketKey := math.Inf(-1)
 		// Iterate over all buckets and report event with quantity equal to difference of it's and preceding bucket increase.
 		for _, key := range metricBuckets {
 			maxValue := key

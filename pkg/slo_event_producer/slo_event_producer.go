@@ -1,15 +1,13 @@
-//revive:disable:var-naming
 package slo_event_producer
-
-//revive:enable:var-naming
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/spf13/viper"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -83,7 +81,7 @@ func (sep *SloEventProducer) SetInputChannel(channel chan *event.Raw) {
 	sep.inputChannel = channel
 }
 
-func (sep *SloEventProducer) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (sep *SloEventProducer) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	toRegister := []prometheus.Collector{didNotMatchAnyRule, evaluationDurationSeconds, unclassifiedEventsTotal}
 	for _, collector := range toRegister {
 		if err := wrappedRegistry.Register(collector); err != nil {
@@ -98,9 +96,7 @@ func (sep *SloEventProducer) RegisterMetrics(_ prometheus.Registerer, wrappedReg
 	return nil
 }
 
-func (sep *SloEventProducer) Stop() {
-	return
-}
+func (sep *SloEventProducer) Stop() {}
 
 func (sep *SloEventProducer) Done() bool {
 	return sep.done
@@ -116,8 +112,8 @@ func (sep *SloEventProducer) observeDuration(start time.Time) {
 	}
 }
 
-func (sep *SloEventProducer) generateSLOEvents(event *event.Raw, sloEventsChan chan<- *event.Slo) {
-	sep.eventEvaluator.Evaluate(event, sloEventsChan)
+func (sep *SloEventProducer) generateSLOEvents(e *event.Raw, sloEventsChan chan<- *event.Slo) {
+	sep.eventEvaluator.Evaluate(e, sloEventsChan)
 }
 
 func (sep *SloEventProducer) Run() {

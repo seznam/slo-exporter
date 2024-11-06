@@ -1,14 +1,12 @@
-//revive:disable:var-naming
 package slo_event_producer
-
-//revive:enable:var-naming
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
-	"regexp"
 )
 
 type sloClassificationMatcher struct {
@@ -31,7 +29,7 @@ func (s *sloClassificationMatcher) matchesSloClassification(c event.SloClassific
 }
 
 func getOperators(operatorOpts []operatorOptions) ([]operator, error) {
-	var operators = make([]operator, len(operatorOpts))
+	operators := make([]operator, len(operatorOpts))
 	for i, operatorOpts := range operatorOpts {
 		operator, err := newOperator(operatorOpts)
 		if err != nil {
@@ -101,7 +99,7 @@ func (er *evaluationRule) markEventResult(failed bool, newEvent *event.Slo) {
 	}
 }
 
-// evaluateEvent and return bool on whether it is to be considered as failed
+// evaluateEvent and return bool on whether it is to be considered as failed.
 func (er *evaluationRule) evaluateEvent(newEvent *event.Raw) bool {
 	failed := false
 	// Evaluate all criteria and if matches any, mark it as failed.
@@ -156,5 +154,4 @@ func (er *evaluationRule) processEvent(newEvent *event.Raw) (*event.Slo, bool) {
 	er.markEventResult(failed, newSloEvent)
 	er.logger.WithField("event", newSloEvent).Debug("generated new slo event")
 	return newSloEvent, true
-
 }

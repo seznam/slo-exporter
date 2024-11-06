@@ -1,14 +1,16 @@
 package prometheus_exporter
 
 import (
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"time"
 )
 
 const (
@@ -44,10 +46,6 @@ type labelsNamesConfig struct {
 	EventKey  string
 }
 
-func (c labelsNamesConfig) keys() []string {
-	return []string{c.EventKey, c.Result, c.SloApp, c.SloDomain, c.SloClass}
-}
-
 type prometheusExporterConfig struct {
 	MetricName                  string
 	LabelNames                  labelsNamesConfig
@@ -71,12 +69,12 @@ type PrometheusSloEventExporter struct {
 	logger       logrus.FieldLogger
 }
 
-type InvalidSloEventResult struct {
+type InvalidSloEventResultError struct {
 	result       string
 	validResults []event.Result
 }
 
-func (e *InvalidSloEventResult) Error() string {
+func (e InvalidSloEventResultError) Error() string {
 	return fmt.Sprintf("result '%s' is not valid. Expected one of: %+v", e.result, e.validResults)
 }
 
@@ -119,7 +117,7 @@ func New(config prometheusExporterConfig, logger logrus.FieldLogger) (*Prometheu
 	}, nil
 }
 
-func (e *PrometheusSloEventExporter) RegisterMetrics(rootRegistry prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (e *PrometheusSloEventExporter) RegisterMetrics(rootRegistry, wrappedRegistry prometheus.Registerer) error {
 	if err := e.aggregatedMetricsSet.register(rootRegistry); err != nil {
 		return err
 	}
@@ -136,9 +134,7 @@ func (e *PrometheusSloEventExporter) String() string {
 	return "prometheusExporter"
 }
 
-func (e *PrometheusSloEventExporter) Stop() {
-	return
-}
+func (e *PrometheusSloEventExporter) Stop() {}
 
 func (e *PrometheusSloEventExporter) Done() bool {
 	return e.done
@@ -156,10 +152,9 @@ func (e *PrometheusSloEventExporter) Run() {
 			err := e.processEvent(newEvent)
 			if err != nil {
 				e.logger.Errorf("unable to process slo event: %+v", err)
-				switch err.(type) {
-				case *InvalidSloEventResult:
+				if errors.As(err, &InvalidSloEventResultError{}) {
 					errorsTotal.With(prometheus.Labels{"type": "InvalidResult"}).Inc()
-				default:
+				} else {
 					errorsTotal.With(prometheus.Labels{"type": "Unknown"}).Inc()
 				}
 			}
@@ -185,15 +180,13 @@ func (e *PrometheusSloEventExporter) isCardinalityExceeded(eventKey string) bool
 		// unlimited
 		return false
 	}
-
 	_, ok := e.eventKeyCache[eventKey]
-	if !ok && len(e.eventKeyCache)+1 > e.eventKeyLimit {
+	if !ok && len(e.eventKeyCache) >= e.eventKeyLimit {
 		return true
-	} else {
-		e.eventKeyCache[eventKey]++
-		eventKeys.Set(float64(len(e.eventKeyCache)))
-		return false
 	}
+	e.eventKeyCache[eventKey]++
+	eventKeys.Set(float64(len(e.eventKeyCache)))
+	return false
 }
 
 func (e *PrometheusSloEventExporter) isValidResult(result event.Result) bool {
@@ -205,7 +198,7 @@ func (e *PrometheusSloEventExporter) isValidResult(result event.Result) bool {
 	return false
 }
 
-// for given ev metadata, initialize exposed metric for all possible result label values
+// for given ev metadata, initialize exposed metric for all possible result label values.
 func (e *PrometheusSloEventExporter) initializeMetricForGivenMetadata(metadata stringmap.StringMap) {
 	for _, result := range event.PossibleResults {
 		metadata[e.labelNames.Result] = string(result)
@@ -225,7 +218,7 @@ func (e *PrometheusSloEventExporter) labelsFromEvent(sloEvent *event.Slo) string
 
 func (e *PrometheusSloEventExporter) processEvent(newEvent *event.Slo) error {
 	if !e.isValidResult(newEvent.Result) {
-		return &InvalidSloEventResult{string(newEvent.Result), event.PossibleResults}
+		return &InvalidSloEventResultError{string(newEvent.Result), event.PossibleResults}
 	}
 
 	labels := e.labelsFromEvent(newEvent)

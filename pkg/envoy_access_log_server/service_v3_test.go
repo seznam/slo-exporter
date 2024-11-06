@@ -14,38 +14,36 @@ import (
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
-var (
-	logger = &logrus.Logger{}
-)
+var logger = &logrus.Logger{}
 
 func Test_exportCommonPropertiesV3(t *testing.T) {
 	tests := []struct {
 		description    string
-		input          envoy_data_accesslog_v3.AccessLogCommon
+		input          *envoy_data_accesslog_v3.AccessLogCommon
 		expectedResult stringmap.StringMap
 	}{
 		{
 			description: "Empty AccessLogCommon properties",
-			input:       envoy_data_accesslog_v3.AccessLogCommon{},
+			input:       &envoy_data_accesslog_v3.AccessLogCommon{},
 			expectedResult: stringmap.StringMap{
 				"sampleRate": "0",
 			},
 		},
 		{
 			description: "Non-empty AccessLogCommon properties",
-			input: envoy_data_accesslog_v3.AccessLogCommon{
+			input: &envoy_data_accesslog_v3.AccessLogCommon{
 				SampleRate: 1,
 				DownstreamDirectRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
 					Address:       "127.0.0.1",
-					PortSpecifier: &v3.SocketAddress_PortValue{44848},
+					PortSpecifier: &v3.SocketAddress_PortValue{PortValue: 44848},
 				}}},
 				DownstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
 					Address:       "127.0.0.1",
-					PortSpecifier: &v3.SocketAddress_PortValue{46058},
+					PortSpecifier: &v3.SocketAddress_PortValue{PortValue: 46058},
 				}}},
 				DownstreamLocalAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
 					Address:       "127.0.0.1",
-					PortSpecifier: &v3.SocketAddress_PortValue{8080},
+					PortSpecifier: &v3.SocketAddress_PortValue{PortValue: 8080},
 				}}},
 				TlsProperties: &envoy_data_accesslog_v3.TLSProperties{
 					TlsVersion:     4, // TLSv1_3
@@ -78,11 +76,11 @@ func Test_exportCommonPropertiesV3(t *testing.T) {
 				},
 				UpstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
 					Address:       "77.75.75.172",
-					PortSpecifier: &v3.SocketAddress_PortValue{443},
+					PortSpecifier: &v3.SocketAddress_PortValue{PortValue: 443},
 				}}},
 				UpstreamLocalAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
 					Address:       "10.0.116.130",
-					PortSpecifier: &v3.SocketAddress_PortValue{48734},
+					PortSpecifier: &v3.SocketAddress_PortValue{PortValue: 48734},
 				}}},
 				UpstreamCluster: "service_seznam_cz",
 				ResponseFlags: &envoy_data_accesslog_v3.ResponseFlags{
@@ -122,7 +120,7 @@ func Test_exportCommonPropertiesV3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		f := func(*testing.T) {
-			output := envoyV3AccessLogEntryCommonProperties(tt.input).StringMap(logger)
+			output := envoyV3AccessLogEntryCommonPropertiesToStringMap(logger, tt.input)
 			for k, v := range tt.expectedResult {
 				assert.Equal(t, v, output[k], "expected %s=%s", k, v)
 			}
@@ -134,12 +132,12 @@ func Test_exportCommonPropertiesV3(t *testing.T) {
 func Test_exportHTTPRequestPropertiesV3(t *testing.T) {
 	tests := []struct {
 		description    string
-		input          envoy_data_accesslog_v3.HTTPRequestProperties
+		input          *envoy_data_accesslog_v3.HTTPRequestProperties
 		expectedResult stringmap.StringMap
 	}{
 		{
 			description: "Empty request properties",
-			input:       envoy_data_accesslog_v3.HTTPRequestProperties{},
+			input:       &envoy_data_accesslog_v3.HTTPRequestProperties{},
 			expectedResult: stringmap.StringMap{
 				"requestMethod":       "METHOD_UNSPECIFIED",
 				"requestHeadersBytes": "0",
@@ -148,7 +146,7 @@ func Test_exportHTTPRequestPropertiesV3(t *testing.T) {
 		},
 		{
 			description: "Non-empty request properties",
-			input: envoy_data_accesslog_v3.HTTPRequestProperties{
+			input: &envoy_data_accesslog_v3.HTTPRequestProperties{
 				RequestMethod:       1, // GET
 				Scheme:              "https",
 				Authority:           "www.seznam.cz",
@@ -181,7 +179,7 @@ func Test_exportHTTPRequestPropertiesV3(t *testing.T) {
 	for _, test := range tests {
 		f := func(*testing.T) {
 			for k, v := range test.expectedResult {
-				assert.Equal(t, v, envoyV3AccessLogEntryHttpRequestProperties(test.input).StringMap(logger)[k], "expected %s=%s", k, v)
+				assert.Equal(t, v, envoyV3AccessLogEntryHTTPRequestPropertiesToStringMap(logger, test.input)[k], "expected %s=%s", k, v)
 			}
 		}
 		t.Run(test.description, f)
@@ -191,21 +189,22 @@ func Test_exportHTTPRequestPropertiesV3(t *testing.T) {
 func Test_exportHTTPResponsePropertiesV3(t *testing.T) {
 	tests := []struct {
 		description string
-		input       envoy_data_accesslog_v3.HTTPResponseProperties
+		input       *envoy_data_accesslog_v3.HTTPResponseProperties
 		result      stringmap.StringMap
 	}{
 		{
 			description: "Empty response properties",
-			input:       envoy_data_accesslog_v3.HTTPResponseProperties{},
+			input:       &envoy_data_accesslog_v3.HTTPResponseProperties{},
 			result: stringmap.StringMap{
 				"responseCode":         "0",
 				"responseHeadersBytes": "0",
 				"responseBodyBytes":    "0",
 				"responseCodeDetails":  "",
-			}},
+			},
+		},
 		{
 			description: "Non-empty response properties",
-			input: envoy_data_accesslog_v3.HTTPResponseProperties{
+			input: &envoy_data_accesslog_v3.HTTPResponseProperties{
 				ResponseCode:         &wrappers.UInt32Value{Value: 200},
 				ResponseHeadersBytes: 166,
 				ResponseBodyBytes:    74400,
@@ -227,7 +226,7 @@ func Test_exportHTTPResponsePropertiesV3(t *testing.T) {
 
 	for _, test := range tests {
 		f := func(*testing.T) {
-			assert.Equal(t, test.result, envoyV3AccessLogEntryHttpResponseProperties(test.input).StringMap(logger))
+			assert.Equal(t, test.result, envoyV3AccessLogEntryHTTPResponsePropertiesToStringMap(logger, test.input))
 		}
 		t.Run(test.description, f)
 	}
@@ -237,7 +236,7 @@ func Test_exportHTTPResponsePropertiesV3(t *testing.T) {
 // full extent extraction of request, response and common properties are to be tested separately within:
 // Test_exportHTTPResponsePropertiesV3
 // Test_exportHTTPRequestPropertiesV3
-// Test_exportCommonPropertiesV3
+// Test_exportCommonPropertiesV3.
 func Test_exportHttpLogEntryV3(t *testing.T) {
 	tests := []struct {
 		description    string
@@ -251,7 +250,7 @@ func Test_exportHttpLogEntryV3(t *testing.T) {
 					SampleRate: 1,
 					UpstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
 						Address:       "77.75.75.172",
-						PortSpecifier: &v3.SocketAddress_PortValue{443},
+						PortSpecifier: &v3.SocketAddress_PortValue{PortValue: 443},
 					}}},
 				},
 				ProtocolVersion: 2,
@@ -279,7 +278,7 @@ func Test_exportHttpLogEntryV3(t *testing.T) {
 
 	for _, test := range tests {
 		f := func(*testing.T) {
-			output := envoyV3HttpAccessLogEntry(*test.logEntry).StringMap(logger)
+			output := envoyV3HttpAccessLogEntryToStringMap(logger, test.logEntry)
 			for k, v := range test.expectedOutput {
 				assert.Equal(t, v, output[k], "expected %s=%s", k, v)
 			}
@@ -301,7 +300,7 @@ func Test_exportTcpLogEntryV3(t *testing.T) {
 					SampleRate: 1,
 					UpstreamRemoteAddress: &v3.Address{Address: &v3.Address_SocketAddress{SocketAddress: &v3.SocketAddress{
 						Address:       "77.75.75.172",
-						PortSpecifier: &v3.SocketAddress_PortValue{443},
+						PortSpecifier: &v3.SocketAddress_PortValue{PortValue: 443},
 					}}},
 				},
 				ConnectionProperties: &envoy_data_accesslog_v3.ConnectionProperties{
@@ -316,13 +315,14 @@ func Test_exportTcpLogEntryV3(t *testing.T) {
 				"upstreamCluster":       "",
 				"upstreamRemoteAddress": "77.75.75.172",
 				"upstreamRemotePort":    "443",
-			}},
+			},
+		},
 	}
 
 	for _, test := range tests {
 		f := func(*testing.T) {
 			for k, v := range test.expectedOutput {
-				assert.Equal(t, v, envoyV3TcpAccessLogEntry(*test.logEntry).StringMap(logger)[k], "expected %s=%s", k, v)
+				assert.Equal(t, v, envoyV3TcpAccessLogEntryToStringMap(logger, test.logEntry)[k], "expected %s=%s", k, v)
 			}
 		}
 		t.Run(test.description, f)

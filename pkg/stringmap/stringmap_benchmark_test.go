@@ -11,7 +11,7 @@ type benchmarkCase struct {
 	data StringMap
 }
 
-func generateStringMap(keysCount int, stringLen int) StringMap {
+func generateStringMap(keysCount, stringLen int) StringMap {
 	newMap := make(StringMap, keysCount)
 	for i := 0; i < keysCount; i++ {
 		key := strings.Repeat(strconv.Itoa(i), stringLen)

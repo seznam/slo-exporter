@@ -2,11 +2,12 @@ package stringmap
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/stretchr/testify/assert"
-	"reflect"
-	"testing"
 )
 
 type stringMapMatchTestCase struct {

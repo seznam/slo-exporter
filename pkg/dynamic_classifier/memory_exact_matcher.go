@@ -1,29 +1,25 @@
-//revive:disable:var-naming
 package dynamic_classifier
-
-//revive:enable:var-naming
 
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/seznam/slo-exporter/pkg/event"
-	"github.com/sirupsen/logrus"
 	"io"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 )
 
 const exactMatcherType = "exact"
 
 type memoryExactMatcher struct {
-	exactMatches  map[string]*event.SloClassification
-	matchersCount prometheus.Counter
-	mtx           sync.RWMutex
-	logger        logrus.FieldLogger
+	exactMatches map[string]*event.SloClassification
+	mtx          sync.RWMutex
+	logger       logrus.FieldLogger
 }
 
-// newMemoryExactMatcher returns instance of memoryCache
+// newMemoryExactMatcher returns instance of memoryCache.
 func newMemoryExactMatcher(logger logrus.FieldLogger) *memoryExactMatcher {
 	exactMatches := map[string]*event.SloClassification{}
 	return &memoryExactMatcher{
@@ -33,7 +29,7 @@ func newMemoryExactMatcher(logger logrus.FieldLogger) *memoryExactMatcher {
 	}
 }
 
-// set sets endpoint classification in cache
+// set sets endpoint classification in cache.
 func (c *memoryExactMatcher) set(key string, classification *event.SloClassification) error {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("set", exactMatcherType))
 	defer timer.ObserveDuration()
@@ -44,7 +40,7 @@ func (c *memoryExactMatcher) set(key string, classification *event.SloClassifica
 	return nil
 }
 
-// get gets endpoint classification from cache
+// get gets endpoint classification from cache.
 func (c *memoryExactMatcher) get(key string) (*event.SloClassification, error) {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("get", exactMatcherType))
 	defer timer.ObserveDuration()

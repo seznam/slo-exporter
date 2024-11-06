@@ -1,13 +1,14 @@
 package prometheus_exporter
 
 import (
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
-	"strings"
-	"sync"
-	"time"
 )
 
 func aggregatedMetricName(metricName string, aggregatedLabels ...string) string {
@@ -41,15 +42,7 @@ func (v *aggregatedCounterVector) register(registry prometheus.Registerer) error
 	return nil
 }
 
-func (v *aggregatedCounterVector) inc(labels stringmap.StringMap) {
-	v.add(1, labels)
-}
-
-func (v *aggregatedCounterVector) add(value float64, labels stringmap.StringMap) {
-	v.addWithExemplar(value, labels, stringmap.StringMap{})
-}
-
-func (v *aggregatedCounterVector) addWithExemplar(value float64, labels stringmap.StringMap, exemplarLabels stringmap.StringMap) {
+func (v *aggregatedCounterVector) addWithExemplar(value float64, labels, exemplarLabels stringmap.StringMap) {
 	v.vector.addWithExemplar(value, labels.Without(v.labelsToDrop), exemplarLabels)
 }
 
@@ -74,13 +67,13 @@ func (s *aggregatedCounterVectorSet) add(value float64, labels stringmap.StringM
 	s.addWithExemplar(value, labels, stringmap.StringMap{})
 }
 
-func (s *aggregatedCounterVectorSet) addWithExemplar(value float64, labels stringmap.StringMap, exemplarLabels stringmap.StringMap) {
+func (s *aggregatedCounterVectorSet) addWithExemplar(value float64, labels, exemplarLabels stringmap.StringMap) {
 	for _, metric := range s.aggregatedMetrics {
 		metric.addWithExemplar(value, labels, exemplarLabels)
 	}
 }
 
-func newCounterVector(name, help string, logger logrus.FieldLogger, exemplarMetadataKeys []string) *counterVector {
+func newCounterVector(name, help string, logger logrus.FieldLogger, _ []string) *counterVector {
 	newVector := counterVector{
 		name:     name,
 		help:     help,
@@ -98,10 +91,6 @@ type counter struct {
 	exemplar    *dto.Exemplar
 }
 
-func (e *counter) add(value float64) {
-	e.addWithExemplar(value, stringmap.StringMap{})
-}
-
 func (e *counter) addWithExemplar(value float64, exemplarLabels stringmap.StringMap) {
 	e.value += value
 	if len(exemplarLabels) > 0 {
@@ -113,10 +102,6 @@ func (e *counter) addWithExemplar(value float64, exemplarLabels stringmap.String
 	}
 }
 
-func (e *counter) inc() {
-	e.add(1)
-}
-
 type counterVector struct {
 	name     string
 	help     string
@@ -125,11 +110,7 @@ type counterVector struct {
 	logger   logrus.FieldLogger
 }
 
-func (e *counterVector) add(value float64, labels stringmap.StringMap) {
-	e.addWithExemplar(value, labels, stringmap.StringMap{})
-}
-
-func (e *counterVector) addWithExemplar(value float64, labels stringmap.StringMap, exemplarLabels stringmap.StringMap) {
+func (e *counterVector) addWithExemplar(value float64, labels, exemplarLabels stringmap.StringMap) {
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
 	labelsString := labels.String()
@@ -146,14 +127,8 @@ func (e *counterVector) addWithExemplar(value float64, labels stringmap.StringMa
 	newCounter.addWithExemplar(value, exemplarLabels)
 }
 
-func (e *counterVector) inc(labels stringmap.StringMap) {
-	e.add(1, labels)
-}
-
-func (e *counterVector) Describe(chan<- *prometheus.Desc) {
-	// We do not know the labels beforehand, so we disable registration time checks by not sending any result to channel.
-	return
-}
+// We do not know the labels beforehand, so we disable registration time checks by not sending any result to channel.
+func (e *counterVector) Describe(chan<- *prometheus.Desc) {}
 
 func (e *counterVector) Collect(ch chan<- prometheus.Metric) {
 	e.mtx.RLock()

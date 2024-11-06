@@ -15,14 +15,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	droppedEventsTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "dropped_events_total",
-		Help: "Total number of dropped events.",
-	})
-)
+var droppedEventsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+	Name: "dropped_events_total",
+	Help: "Total number of dropped events.",
+})
 
-func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventRelabelManager, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*EventRelabelManager, error) {
 	// Viper unmarshal the nested structure to nested structure of interface{} types.
 	// Prometheus relabel uses classic YAML unmarshalling so we marshall the structure to YAML again and then let
 	// Prometheus code validate it and unmarshall it.
@@ -37,9 +35,9 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventRe
 	return NewFromConfig(relabelConf, logger)
 }
 
-// New returns requestNormalizer which allows to add Key to RequestEvent
-func NewFromConfig(relabelConfig []relabel.Config, logger logrus.FieldLogger) (*eventRelabelManager, error) {
-	relabelManager := eventRelabelManager{
+// New returns requestNormalizer which allows to add Key to RequestEvent.
+func NewFromConfig(relabelConfig []relabel.Config, logger logrus.FieldLogger) (*EventRelabelManager, error) {
+	relabelManager := EventRelabelManager{
 		relabelConfig: relabelConfig,
 		outputChannel: make(chan *event.Raw),
 		logger:        logger,
@@ -47,7 +45,7 @@ func NewFromConfig(relabelConfig []relabel.Config, logger logrus.FieldLogger) (*
 	return &relabelManager, nil
 }
 
-type eventRelabelManager struct {
+type EventRelabelManager struct {
 	relabelConfig []relabel.Config
 	observer      pipeline.EventProcessingDurationObserver
 	inputChannel  chan *event.Raw
@@ -56,35 +54,33 @@ type eventRelabelManager struct {
 	logger        logrus.FieldLogger
 }
 
-func (r *eventRelabelManager) String() string {
+func (r *EventRelabelManager) String() string {
 	return "relabel"
 }
 
-func (r *eventRelabelManager) Done() bool {
+func (r *EventRelabelManager) Done() bool {
 	return r.done
 }
 
-func (r *eventRelabelManager) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (r *EventRelabelManager) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	return wrappedRegistry.Register(droppedEventsTotal)
 }
 
-func (r *eventRelabelManager) SetInputChannel(channel chan *event.Raw) {
+func (r *EventRelabelManager) SetInputChannel(channel chan *event.Raw) {
 	r.inputChannel = channel
 }
 
-func (r *eventRelabelManager) OutputChannel() chan *event.Raw {
+func (r *EventRelabelManager) OutputChannel() chan *event.Raw {
 	return r.outputChannel
 }
 
-func (r *eventRelabelManager) Stop() {
-	return
-}
+func (r *EventRelabelManager) Stop() {}
 
-func (r *eventRelabelManager) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
+func (r *EventRelabelManager) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	r.observer = observer
 }
 
-func (r *eventRelabelManager) observeDuration(start time.Time) {
+func (r *EventRelabelManager) observeDuration(start time.Time) {
 	if r.observer != nil {
 		r.observer.Observe(time.Since(start).Seconds())
 	}
@@ -92,20 +88,20 @@ func (r *eventRelabelManager) observeDuration(start time.Time) {
 
 // relabelEvent applies the relabel configs on the event metadata.
 // If event is about to be dropped, nil is returned.
-func (r *eventRelabelManager) relabelEvent(event *event.Raw) *event.Raw {
-	newLabels := event.Metadata.AsPrometheusLabels()
+func (r *EventRelabelManager) relabelEvent(e *event.Raw) *event.Raw {
+	newLabels := e.Metadata.AsPrometheusLabels()
 	for _, relabelConfigRule := range r.relabelConfig {
 		newLabels = relabel.Process(newLabels, &relabelConfigRule)
 		if newLabels == nil {
 			return nil
 		}
 	}
-	event.Metadata = stringmap.NewFromLabels(newLabels)
-	return event
+	e.Metadata = stringmap.NewFromLabels(newLabels)
+	return e
 }
 
 // Run event replacer receiving events and filling their Key if not already filled.
-func (r *eventRelabelManager) Run() {
+func (r *EventRelabelManager) Run() {
 	go func() {
 		defer func() {
 			close(r.outputChannel)

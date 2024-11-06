@@ -1,27 +1,24 @@
-//revive:disable:var-naming
 package dynamic_classifier
-
-//revive:enable:var-naming
 
 import (
 	"bytes"
 	"fmt"
-	"github.com/seznam/slo-exporter/pkg/event"
-	"github.com/sirupsen/logrus"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"testing"
 
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
-func newSloClassification(domain string, app string, class string) *event.SloClassification {
+func newTestSloClassification() *event.SloClassification {
 	return &event.SloClassification{
-		Domain: domain,
-		App:    app,
-		Class:  class,
+		Domain: "test-domain",
+		App:    "test-app",
+		Class:  "test-class",
 	}
 }
 
@@ -36,11 +33,11 @@ func TestMatcher(t *testing.T) {
 		setErr      string
 		getErr      string
 	}{
-		{newMemoryExactMatcher(logger), "test", newSloClassification("test-domain", "test-app", "test-class"), "test", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
-		{newMemoryExactMatcher(logger), "", newSloClassification("test-domain", "test-app", "test-class"), "", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
-		{newMemoryExactMatcher(logger), "test", newSloClassification("test-domain", "test-app", "test-class"), "aaa", nil, "", ""},
-		{newRegexpMatcher(logger), ".*", newSloClassification("test-domain", "test-app", "test-class"), "aaa", newSloClassification("test-domain", "test-app", "test-class"), "", ""},
-		{newRegexpMatcher(logger), ".*****", newSloClassification("test-domain", "test-app", "test-class"), "aaa", newSloClassification("test-domain", "test-app", "test-class"), "failed to create new regexp endpoint classification: error parsing regexp: invalid nested repetition operator: `**`", ""},
+		{newMemoryExactMatcher(logger), "test", newTestSloClassification(), "test", newTestSloClassification(), "", ""},
+		{newMemoryExactMatcher(logger), "", newTestSloClassification(), "", newTestSloClassification(), "", ""},
+		{newMemoryExactMatcher(logger), "test", newTestSloClassification(), "aaa", nil, "", ""},
+		{newRegexpMatcher(logger), ".*", newTestSloClassification(), "aaa", newTestSloClassification(), "", ""},
+		{newRegexpMatcher(logger), ".*****", newTestSloClassification(), "aaa", newTestSloClassification(), "failed to create new regexp endpoint classification: error parsing regexp: invalid nested repetition operator: `**`", ""},
 	}
 
 	for _, v := range cases {
@@ -64,7 +61,7 @@ func TestMatcher(t *testing.T) {
 
 func testDumpCSV(t *testing.T, matcher matcher) {
 	expectedDataFilename := filepath.Join("testdata", t.Name()+".golden")
-	expectedDataBytes, err := ioutil.ReadFile(expectedDataFilename)
+	expectedDataBytes, err := os.ReadFile(expectedDataFilename)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,12 +71,12 @@ func testDumpCSV(t *testing.T, matcher matcher) {
 	err = matcher.dumpCSV(dataBuffer)
 	assert.NoError(t, err)
 	assert.EqualValues(t, expectedDataBytes, dataBuffer.Bytes(),
-		fmt.Sprintf("expected:\n%s\nactual:\n%s", string(expectedDataBytes), string(dataBuffer.Bytes())))
+		fmt.Sprintf("expected:\n%s\nactual:\n%s", string(expectedDataBytes), dataBuffer.String()))
 }
 
 func TestMatcherExactDumpCSV(t *testing.T) {
 	matcher := newMemoryExactMatcher(logrus.New())
-	matcher.exactMatches["test-endpoint"] = newSloClassification("test-domain", "test-app", "test-class")
+	matcher.exactMatches["test-endpoint"] = newTestSloClassification()
 	testDumpCSV(t, matcher)
 }
 
@@ -88,7 +85,7 @@ func TestMatcherRegexpDumpCSV(t *testing.T) {
 	matcher.matchers = append(matcher.matchers,
 		&regexpSloClassification{
 			regexpCompiled: regexp.MustCompile(".*"),
-			classification: newSloClassification("test-domain", "test-app", "test-class"),
+			classification: newTestSloClassification(),
 		},
 	)
 	testDumpCSV(t, matcher)

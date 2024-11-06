@@ -21,7 +21,6 @@ import (
 
 var (
 	linesReadTotal = prometheus.NewCounter(prometheus.CounterOpts{
-
 		Name: "lines_read_total",
 		Help: "Total number of lines tailed from the file.",
 	})
@@ -51,12 +50,12 @@ type tailerConfig struct {
 	EmptyGroupRE                string
 }
 
-// getDefaultPositionsFilePath derives positions file path for given tailed filename
+// getDefaultPositionsFilePath derives positions file path for given tailed filename.
 func (c *tailerConfig) getDefaultPositionsFilePath() string {
 	return c.TailedFile + ".pos"
 }
 
-// Tailer is an instance of github.com/hpcloud/tail dedicated to a single file
+// Tailer is an instance of github.com/hpcloud/tail dedicated to a single file.
 type Tailer struct {
 	filename                string
 	tail                    *tail.Tail
@@ -87,7 +86,7 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*Tailer,
 	return New(config, logger)
 }
 
-// New returns an instance of Tailer
+// New returns an instance of Tailer.
 func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 	var (
 		offset int64
@@ -100,7 +99,7 @@ func New(config tailerConfig, logger logrus.FieldLogger) (*Tailer, error) {
 	}
 	pos, err = positions.New(logrusAdapter.NewLogger(logger), positions.Config{SyncPeriod: config.PositionPersistenceInterval, PositionsFile: config.PositionFile})
 	if err != nil {
-		return nil, fmt.Errorf("could not initialize file position persister: %+v", err)
+		return nil, fmt.Errorf("could not initialize file position persister: %w", err)
 	}
 	// check that loaded position for a file is valid
 	fstat, err := os.Stat(config.TailedFile)
@@ -167,7 +166,7 @@ func (t *Tailer) observeDuration(start time.Time) {
 	}
 }
 
-func (t *Tailer) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (t *Tailer) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	toRegister := []prometheus.Collector{linesReadTotal, malformedLinesTotal, fileSizeBytes, fileOffsetBytes}
 	for _, collector := range toRegister {
 		if err := wrappedRegistry.Register(collector); err != nil {
@@ -251,7 +250,7 @@ func (t *Tailer) Stop() {
 
 // marks current file offset and size for the use of:
 // - offset persistence
-// - prometheus metrics
+// - prometheus metrics.
 func (t *Tailer) markOffsetPosition() error {
 	// we may lose a log line due to claimed inaccuracy of Tail.tell (https://godoc.org/github.com/hpcloud/tail#Tail.Tell)
 	offset, err := t.tail.Tell()
@@ -259,9 +258,8 @@ func (t *Tailer) markOffsetPosition() error {
 		if errors.Unwrap(err) != nil {
 			// include more details about the file inaccessibility, if possible
 			return fmt.Errorf("could not get the file offset: %w", errors.Unwrap(err))
-		} else {
-			return fmt.Errorf("could not get the file offset: %w", err)
 		}
+		return fmt.Errorf("could not get the file offset: %w", err)
 	}
 	fileOffsetBytes.Set(float64(offset))
 	t.positions.Put(t.filename, offset)
@@ -277,8 +275,8 @@ func (t *Tailer) markOffsetPosition() error {
 
 // parseLine parses the given line, producing a RequestEvent instance
 // - lineParseRegexp is used to parse the line
-// - if content of any of the matched named groups matches emptyGroupRegexp, it is replaced by an empty string ""
-func parseLine(lineParseRegexp *regexp.Regexp, emptyGroupRegexp *regexp.Regexp, line string) (map[string]string, error) {
+// - if content of any of the matched named groups matches emptyGroupRegexp, it is replaced by an empty string "".
+func parseLine(lineParseRegexp, emptyGroupRegexp *regexp.Regexp, line string) (map[string]string, error) {
 	lineData := make(map[string]string)
 
 	match := lineParseRegexp.FindStringSubmatch(line)

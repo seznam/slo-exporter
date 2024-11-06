@@ -1,11 +1,12 @@
 package metadata_classifier
 
 import (
+	"testing"
+
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMetadataClassifier_generateSloClassification(t *testing.T) {

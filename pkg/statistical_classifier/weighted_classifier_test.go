@@ -1,14 +1,12 @@
-//revive:disable:var-naming
 package statistical_classifier
 
-//revive:enable:var-naming
-
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +16,8 @@ func TestArchive(t *testing.T) {
 			classification: &event.SloClassification{
 				Domain: "test-domain",
 				App:    "test-app",
-				Class:  "test-class"},
+				Class:  "test-class",
+			},
 		},
 	}
 
@@ -43,7 +42,7 @@ func TestArchive(t *testing.T) {
 	assert.EqualValues(t, classificationMapping{}, s.recentWeights)
 
 	// test if history contains 'archived record
-	var archivedRecords []interface{}
+	archivedRecords := make([]interface{}, 0, s.history.Len())
 	for i := range s.history.Stream() {
 		archivedRecords = append(archivedRecords, i)
 	}
@@ -146,42 +145,43 @@ func TestGuess(t *testing.T) {
 			{class: event.SloClassification{Class: "2"}, weight: 0, assert: assert.Equal, value: 0},
 		},
 		[]guessedClass{
-			{class: event.SloClassification{Class: "1"}, weight: 0, assert: assert.Equal, value: 20},
-			{class: event.SloClassification{Class: "2"}, weight: 0, assert: assert.Equal, value: 20},
+			{class: event.SloClassification{Class: "1"}, weight: 0, assert: assert.Equal, value: 0},
+			{class: event.SloClassification{Class: "2"}, weight: 0, assert: assert.Equal, value: 0},
 		},
 		[]guessedClass{
 			{class: event.SloClassification{Class: "1"}, weight: 100, assert: assert.Equal, value: 100},
 		},
 	}
 
-	for _, testCase := range testCases {
-		var classificationCount int
-		classifier, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, toBeGuessed := range testCase {
-			classificationCount += toBeGuessed.weight
-			classifier.increaseWeight(toBeGuessed.class, float64(toBeGuessed.weight))
-		}
-		err = classifier.archive()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		result := map[event.SloClassification]int{}
-		for i := 0; i < classificationCount; i++ {
-			guessedClassification, err := classifier.guessClass()
+	for i, testCase := range testCases {
+		t.Run(fmt.Sprintf("test-case-%d", i), func(t *testing.T) {
+			var classificationCount int
+			classifier, err := newWeightedClassifier(time.Minute, time.Second, logrus.New())
 			if err != nil {
 				t.Fatal(err)
 			}
-			result[*guessedClassification]++
-		}
+			for _, toBeGuessed := range testCase {
+				classificationCount += toBeGuessed.weight
+				classifier.increaseWeight(toBeGuessed.class, float64(toBeGuessed.weight))
+			}
+			err = classifier.archive()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		for _, class := range testCase {
-			class.assert(t, result[class.class], class.value, "failed for input %+v", testCase)
-		}
-		break
+			result := map[event.SloClassification]int{}
+			for i := 0; i < classificationCount; i++ {
+				guessedClassification, err := classifier.guessClass()
+				if err != nil {
+					t.Fatal(err)
+				}
+				result[*guessedClassification]++
+			}
+
+			for _, class := range testCase {
+				class.assert(t, result[class.class], class.value, "failed for input %+v", testCase)
+			}
+		})
 	}
 }
 
@@ -195,7 +195,8 @@ func TestDefaultWeightsGuess(t *testing.T) {
 		"test": &classificationWeight{
 			weight:         1,
 			classification: &testedClassification,
-		}}))
+		},
+	}))
 	guessedClassification, err := s.guessClass()
 	assert.NoError(t, err)
 	assert.Equal(t, testedClassification, *guessedClassification)

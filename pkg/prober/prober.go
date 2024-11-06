@@ -1,15 +1,17 @@
 package prober
 
 import (
+	"errors"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
-	ErrorDefault = fmt.Errorf("initializing")
+	ErrDefault = fmt.Errorf("initializing")
 
 	status = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -36,7 +38,7 @@ func NewReadiness(registry prometheus.Registerer, logger logrus.FieldLogger) (*P
 	if err != nil {
 		return nil, err
 	}
-	p.NotOk(ErrorDefault)
+	p.NotOk(ErrDefault)
 	return p, nil
 }
 
@@ -47,14 +49,14 @@ func newProber(registry prometheus.Registerer, logger logrus.FieldLogger, name s
 		logger:    logger,
 	}
 	if err := registry.Register(status); err != nil {
-		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+		if !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
 			return nil, err
 		}
 	}
 	return &p, nil
 }
 
-// Prober is struct holding information about status
+// Prober is struct holding information about status.
 type Prober struct {
 	name      string
 	status    error
@@ -62,12 +64,12 @@ type Prober struct {
 	logger    logrus.FieldLogger
 }
 
-// Ok sets the Prober to correct status
+// Ok sets the Prober to correct status.
 func (p *Prober) Ok() {
 	p.setStatus(nil)
 }
 
-// NotOk sets the Prober to not ready status and specifies reason as an error
+// NotOk sets the Prober to not ready status and specifies reason as an error.
 func (p *Prober) NotOk(err error) {
 	p.setStatus(err)
 }
@@ -79,13 +81,15 @@ func (p *Prober) IsOk() error {
 	return p.status
 }
 
-// Allows to use Prober in HTTP life-cycle endpoints
-func (p *Prober) HandleFunc(w http.ResponseWriter, req *http.Request) {
+// Allows to use Prober in HTTP life-cycle endpoints.
+func (p *Prober) HandleFunc(w http.ResponseWriter, _ *http.Request) {
 	if p.IsOk() != nil {
 		http.Error(w, p.IsOk().Error(), http.StatusServiceUnavailable)
 		return
 	}
-	_, _ = w.Write([]byte("OK"))
+	if _, err := w.Write([]byte("OK")); err != nil {
+		p.logger.Errorf("error writing response: %v", err)
+	}
 }
 
 func (p *Prober) setStatus(err error) {

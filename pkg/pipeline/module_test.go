@@ -2,12 +2,13 @@ package pipeline
 
 import (
 	"fmt"
+
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
-func testModuleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (Module, error) {
+func testModuleFactory(moduleName string, _ logrus.FieldLogger, _ *viper.Viper) (Module, error) {
 	switch moduleName {
 	case "testRawIngester":
 		return testRawIngester{}, nil
@@ -24,31 +25,21 @@ func testModuleFactory(moduleName string, logger logrus.FieldLogger, conf *viper
 
 type testRawIngester struct{}
 
-func (t testRawIngester) Run() {
-	return
-}
+func (t testRawIngester) Run() {}
 
-func (t testRawIngester) Stop() {
-	return
-}
+func (t testRawIngester) Stop() {}
 
 func (t testRawIngester) Done() bool {
 	return false
 }
 
-func (t testRawIngester) SetInputChannel(chan *event.Raw) {
-	return
-}
+func (t testRawIngester) SetInputChannel(chan *event.Raw) {}
 
 type testRawProducer struct{}
 
-func (t testRawProducer) Run() {
-	return
-}
+func (t testRawProducer) Run() {}
 
-func (t testRawProducer) Stop() {
-	return
-}
+func (t testRawProducer) Stop() {}
 
 func (t testRawProducer) Done() bool {
 	return false
@@ -60,31 +51,21 @@ func (t testRawProducer) OutputChannel() chan *event.Raw {
 
 type testSloIngester struct{}
 
-func (t testSloIngester) Run() {
-	return
-}
+func (t testSloIngester) Run() {}
 
-func (t testSloIngester) Stop() {
-	return
-}
+func (t testSloIngester) Stop() {}
 
 func (t testSloIngester) Done() bool {
 	return false
 }
 
-func (t testSloIngester) SetInputChannel(chan *event.Slo) {
-	return
-}
+func (t testSloIngester) SetInputChannel(chan *event.Slo) {}
 
 type testSloProducer struct{}
 
-func (t testSloProducer) Run() {
-	return
-}
+func (t testSloProducer) Run() {}
 
-func (t testSloProducer) Stop() {
-	return
-}
+func (t testSloProducer) Stop() {}
 
 func (t testSloProducer) Done() bool {
 	return false

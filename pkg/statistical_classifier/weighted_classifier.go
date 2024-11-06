@@ -1,15 +1,13 @@
-//revive:disable:var-naming
 package statistical_classifier
-
-//revive:enable:var-naming
 
 import (
 	"context"
 	"fmt"
-	"github.com/seznam/slo-exporter/pkg/storage"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"github.com/seznam/slo-exporter/pkg/storage"
+	"github.com/sirupsen/logrus"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/event"
@@ -17,14 +15,12 @@ import (
 	"gonum.org/v1/gonum/stat/sampleuv"
 )
 
-var (
-	classificationWeightsMetric = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "classification_weight",
-			Help: "Current weight for given classification.",
-		},
-		[]string{"slo_domain", "slo_class"},
-	)
+var classificationWeightsMetric = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "classification_weight",
+		Help: "Current weight for given classification.",
+	},
+	[]string{"slo_domain", "slo_class"},
 )
 
 type classificationWeight struct {
@@ -61,7 +57,7 @@ func newWeightedClassificationSet() *weightedClassificationSet {
 
 func newWeightedClassificationSetFromClassifications(classifications *classificationMapping) *weightedClassificationSet {
 	newSet := newWeightedClassificationSet()
-	var weights []classificationWeight
+	weights := make([]classificationWeight, 0, len(*classifications))
 	for _, weight := range *classifications {
 		weights = append(weights, *weight)
 	}
@@ -183,7 +179,7 @@ func (s *weightedClassifier) guessClass() (*event.SloClassification, error) {
 	return classificationWeights.index(i), nil
 }
 
-// Run runs statistic refresher - archive recentWeights classifications and recount weightedClassifier
+// Run runs statistic refresher - archive recentWeights classifications and recount weightedClassifier.
 func (s *weightedClassifier) Run(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(s.historyUpdateInterval)

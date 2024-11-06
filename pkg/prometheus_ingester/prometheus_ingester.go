@@ -127,9 +127,9 @@ func (hs httpHeaders) toMap() (map[string]string, error) {
 }
 
 type PrometheusIngesterConfig struct {
-	ApiUrl       string
+	APIURL       string
 	RoundTripper http.RoundTripper
-	HttpHeaders  httpHeaders
+	HTTPHeaders  httpHeaders
 	Queries      []queryOptions
 	QueryTimeout time.Duration
 	Staleness    time.Duration
@@ -150,7 +150,7 @@ func (i *PrometheusIngester) String() string {
 	return "prometheusIngester"
 }
 
-func (i *PrometheusIngester) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (i *PrometheusIngester) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	toRegister := []prometheus.Collector{unsupportedQueryResultType, prometheusQueryFail, prometheusQueryDuration}
 	for _, metric := range toRegister {
 		if err := wrappedRegistry.Register(metric); err != nil {
@@ -180,7 +180,7 @@ func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger, appVer
 	}
 
 	userAgent := "slo-exporter/" + appVersion
-	config.HttpHeaders = append(config.HttpHeaders, httpHeader{
+	config.HTTPHeaders = append(config.HTTPHeaders, httpHeader{
 		Name:  "user-agent",
 		Value: &userAgent,
 	})
@@ -191,7 +191,7 @@ func NewFromViper(viperAppConfig *viper.Viper, logger logrus.FieldLogger, appVer
 	if config.QueryTimeout == time.Duration(0) {
 		return nil, errors.New("mandatory config field QueryTimeout is missing in PrometheusIngester configuration")
 	}
-	if config.ApiUrl == "" {
+	if config.APIURL == "" {
 		return nil, errors.New("mandatory config field ApiUrl is missing in PrometheusIngester configuration")
 	}
 
@@ -211,15 +211,15 @@ func newFalse() *bool {
 }
 
 func New(initConfig PrometheusIngesterConfig, logger logrus.FieldLogger) (*PrometheusIngester, error) {
-	var ingester = PrometheusIngester{}
+	ingester := PrometheusIngester{}
 
-	headers, err := initConfig.HttpHeaders.toMap()
+	headers, err := initConfig.HTTPHeaders.toMap()
 	if err != nil {
 		return nil, err
 	}
 
 	client, err := api.NewClient(api.Config{
-		Address: initConfig.ApiUrl,
+		Address: initConfig.APIURL,
 		RoundTripper: httpHeadersRoundTripper{
 			roudTripper: initConfig.RoundTripper,
 			headers:     headers,

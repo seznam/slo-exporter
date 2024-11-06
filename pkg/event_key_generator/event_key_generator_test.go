@@ -1,10 +1,11 @@
 package event_key_generator
 
 import (
+	"testing"
+
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestEventKeyGenerator_generateEventKey(t *testing.T) {

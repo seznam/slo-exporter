@@ -1,13 +1,11 @@
-//revive:disable:var-naming
 package slo_event_producer
-
-//revive:enable:var-naming
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 )
 
 type sloMatcher struct {
@@ -33,14 +31,14 @@ type rulesConfig struct {
 	Rules []ruleOptions `yaml:"rules"`
 }
 
-func (rc *rulesConfig) loadFromFile(path string) (*rulesConfig, error) {
-	yamlFile, err := ioutil.ReadFile(path)
+func (rc *rulesConfig) loadFromFile(path string) error {
+	yamlFile, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load configuration file: %w", err)
+		return fmt.Errorf("failed to load configuration file: %w", err)
 	}
 	err = yaml.UnmarshalStrict(yamlFile, rc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshall configuration file: %w", err)
+		return fmt.Errorf("failed to unmarshall configuration file: %w", err)
 	}
-	return rc, nil
+	return nil
 }

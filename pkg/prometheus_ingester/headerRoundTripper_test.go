@@ -3,7 +3,7 @@ package prometheus_ingester
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -12,24 +12,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testHttpHeaderRoundTripper struct {
+type testHTTPHeaderRoundTripper struct {
 	expectedHeaders http.Header
 	t               *testing.T
 }
 
-func (rt *testHttpHeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (rt *testHTTPHeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	assert.Equal(rt.t, rt.expectedHeaders, req.Header)
 
 	return &http.Response{
-		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewBufferString("ahoj")),
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString("ahoj")),
 		Header: http.Header{
 			"Content-Type": []string{"application/json"},
 		},
 	}, nil
 }
 
-func testHttpHeaderRoundTripperMapToHeaders(data map[string]string) http.Header {
+func testHTTPHeaderRoundTripperMapToHeaders(data map[string]string) http.Header {
 	h := http.Header{}
 	for k, v := range data {
 		h.Set(k, v)
@@ -38,14 +38,6 @@ func testHttpHeaderRoundTripperMapToHeaders(data map[string]string) http.Header 
 }
 
 func Test_httpHeadersRoundTripper_RoundTrip(t *testing.T) {
-
-	type fields struct {
-		headers map[string]string
-		rt      http.RoundTripper
-	}
-	type args struct {
-		r *http.Request
-	}
 	tests := []struct {
 		name            string
 		initialHeaders  map[string]string
@@ -93,8 +85,8 @@ func Test_httpHeadersRoundTripper_RoundTrip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rt := httpHeadersRoundTripper{
 				headers: tt.appendedHeaders,
-				roudTripper: &testHttpHeaderRoundTripper{
-					expectedHeaders: testHttpHeaderRoundTripperMapToHeaders(tt.expectedHeaders),
+				roudTripper: &testHTTPHeaderRoundTripper{
+					expectedHeaders: testHTTPHeaderRoundTripperMapToHeaders(tt.expectedHeaders),
 					t:               t,
 				},
 			}
@@ -108,12 +100,11 @@ func Test_httpHeadersRoundTripper_RoundTrip(t *testing.T) {
 			}
 			r := &http.Request{
 				URL:    &url.URL{Scheme: "http", Host: "fake-host", Path: "/"},
-				Header: testHttpHeaderRoundTripperMapToHeaders(tt.initialHeaders),
+				Header: testHTTPHeaderRoundTripperMapToHeaders(tt.initialHeaders),
 			}
 			if _, _, err = c.Do(context.Background(), r); err != nil {
 				t.Fatal(err)
 			}
-
 		})
 	}
 }

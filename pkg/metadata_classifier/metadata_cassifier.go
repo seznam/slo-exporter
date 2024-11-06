@@ -2,20 +2,19 @@ package metadata_classifier
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"time"
 )
 
-var (
-	processedEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "processed_events_total",
-		Help: "Total number of processed events by operation.",
-	}, []string{"operation"})
-)
+var processedEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "processed_events_total",
+	Help: "Total number of processed events by operation.",
+}, []string{"operation"})
 
 type metadataClassifierConfig struct {
 	SloDomainMetadataKey   string
@@ -24,7 +23,7 @@ type metadataClassifierConfig struct {
 	OverrideExistingValues bool
 }
 
-type metadataClassifier struct {
+type MetadataClassifier struct {
 	overrideExistingValues bool
 	domainKey              string
 	classKey               string
@@ -36,31 +35,29 @@ type metadataClassifier struct {
 	done                   bool
 }
 
-func (e *metadataClassifier) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (e *MetadataClassifier) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	return wrappedRegistry.Register(processedEventsTotal)
 }
 
-func (e *metadataClassifier) String() string {
+func (e *MetadataClassifier) String() string {
 	return "metadataClassifier"
 }
 
-func (e *metadataClassifier) Done() bool {
+func (e *MetadataClassifier) Done() bool {
 	return e.done
 }
 
-func (e *metadataClassifier) Stop() {
-	return
-}
+func (e *MetadataClassifier) Stop() {}
 
-func (e *metadataClassifier) SetInputChannel(channel chan *event.Raw) {
+func (e *MetadataClassifier) SetInputChannel(channel chan *event.Raw) {
 	e.inputChannel = channel
 }
 
-func (e *metadataClassifier) OutputChannel() chan *event.Raw {
+func (e *MetadataClassifier) OutputChannel() chan *event.Raw {
 	return e.outputChannel
 }
 
-func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*metadataClassifier, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*MetadataClassifier, error) {
 	var config metadataClassifierConfig
 	viperConfig.SetDefault("OverrideExistingValues", true)
 	if err := viperConfig.UnmarshalExact(&config); err != nil {
@@ -69,8 +66,8 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*metadat
 	return NewFromConfig(config, logger)
 }
 
-func NewFromConfig(config metadataClassifierConfig, logger logrus.FieldLogger) (*metadataClassifier, error) {
-	filter := metadataClassifier{
+func NewFromConfig(config metadataClassifierConfig, logger logrus.FieldLogger) (*MetadataClassifier, error) {
+	filter := MetadataClassifier{
 		overrideExistingValues: config.OverrideExistingValues,
 		domainKey:              config.SloDomainMetadataKey,
 		classKey:               config.SloClassMetadataKey,
@@ -83,17 +80,17 @@ func NewFromConfig(config metadataClassifierConfig, logger logrus.FieldLogger) (
 	return &filter, nil
 }
 
-func (e *metadataClassifier) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
+func (e *MetadataClassifier) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	e.observer = observer
 }
 
-func (e *metadataClassifier) observeDuration(start time.Time) {
+func (e *MetadataClassifier) observeDuration(start time.Time) {
 	if e.observer != nil {
 		e.observer.Observe(time.Since(start).Seconds())
 	}
 }
 
-func (e *metadataClassifier) generateSloClassification(toBeClassified *event.Raw) event.SloClassification {
+func (e *MetadataClassifier) generateSloClassification(toBeClassified *event.Raw) event.SloClassification {
 	newClassification := event.SloClassification{}
 	if toBeClassified.SloClassification != nil {
 		newClassification.Domain = toBeClassified.SloClassification.Domain
@@ -115,7 +112,7 @@ func (e *metadataClassifier) generateSloClassification(toBeClassified *event.Raw
 	return newClassification
 }
 
-func (e *metadataClassifier) Run() {
+func (e *MetadataClassifier) Run() {
 	go func() {
 		defer func() {
 			close(e.outputChannel)

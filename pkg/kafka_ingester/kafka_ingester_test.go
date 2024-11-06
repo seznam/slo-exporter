@@ -70,7 +70,8 @@ func Test_processMessage(t *testing.T) {
 					"metadata": {"foo": "bar"},
 					"slo_classification": {"app": "fooApp", "class": "fooClass", "domain": "fooDomain"},
 					"unknown_fields": "foo"
-				}`)},
+				}`),
+			},
 			OutputEvent: &event.Raw{
 				Quantity:          1,
 				Metadata:          stringmap.StringMap{"foo": "bar"},
@@ -80,13 +81,14 @@ func Test_processMessage(t *testing.T) {
 		{
 			Name: "Valid event data, explicit schema version",
 			KafkaMessage: kafka.Message{
-				Headers: []kafka.Header{{schemaVersionMessageHeader, []byte(schemaVerV1)}},
+				Headers: []kafka.Header{{Key: schemaVersionMessageHeader, Value: []byte(schemaVerV1)}},
 				Topic:   "topic",
 				Value: []byte(`{
 					"quantity": 1,
 					"metadata": {"foo": "bar"},
 					"slo_classification": {"app": "fooApp", "class": "fooClass", "domain": "fooDomain"}
-				}`)},
+				}`),
+			},
 			OutputEvent: &event.Raw{
 				Quantity:          1,
 				Metadata:          stringmap.StringMap{"foo": "bar"},
@@ -96,40 +98,43 @@ func Test_processMessage(t *testing.T) {
 		{
 			Name: "Valid event data, unknown schema version",
 			KafkaMessage: kafka.Message{
-				Headers: []kafka.Header{{schemaVersionMessageHeader, []byte("unknown")}},
+				Headers: []kafka.Header{{Key: schemaVersionMessageHeader, Value: []byte("unknown")}},
 				Topic:   "topic",
 				Value: []byte(`{
 					"quantity": 1,
 					"metadata": {"foo": "bar"},
 					"slo_classification": {"app": "fooApp", "class": "fooClass", "domain": "fooDomain"}
-				}`)},
+				}`),
+			},
 			OutputEvent: nil,
 			ErrExpected: true,
 		},
 		{
 			Name: "Invalid event data, invalid quantity type",
 			KafkaMessage: kafka.Message{
-				Headers: []kafka.Header{{schemaVersionMessageHeader, []byte("unknown")}},
+				Headers: []kafka.Header{{Key: schemaVersionMessageHeader, Value: []byte("unknown")}},
 				Topic:   "topic",
 				Value: []byte(`{
 					"quantity": "1",
-				}`)},
+				}`),
+			},
 			OutputEvent: nil,
 			ErrExpected: true,
 		},
 		{
 			Name: "Invalid event data, list of structs rather than struct",
 			KafkaMessage: kafka.Message{
-				Headers: []kafka.Header{{schemaVersionMessageHeader, []byte("unknown")}},
+				Headers: []kafka.Header{{Key: schemaVersionMessageHeader, Value: []byte("unknown")}},
 				Topic:   "topic",
-				Value:   []byte(`[{}]`)},
+				Value:   []byte(`[{}]`),
+			},
 			OutputEvent: nil,
 			ErrExpected: true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			event, err := processMessage(test.KafkaMessage)
+			e, err := processMessage(test.KafkaMessage)
 			if err != nil {
 				if !test.ErrExpected {
 					t.Errorf("Unexpected error while processing kafka message: %v", err)
@@ -138,7 +143,7 @@ func Test_processMessage(t *testing.T) {
 			if test.ErrExpected && err == nil {
 				t.Errorf("Event processing was expected to result in error, but none occurred")
 			}
-			assert.Equal(t, test.OutputEvent, event)
+			assert.Equal(t, test.OutputEvent, e)
 		})
 	}
 }
@@ -159,7 +164,7 @@ func Test_getSchemaVersionFromHeaders(t *testing.T) {
 		{
 			"Schema version present in the headers",
 			[]kafka.Header{
-				kafka.Header{
+				{
 					Key:   schemaVersionMessageHeader,
 					Value: []byte(schemaVerV1),
 				},

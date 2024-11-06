@@ -3,34 +3,33 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/gorilla/mux"
 	"github.com/iancoleman/strcase"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/config"
 	"github.com/sirupsen/logrus"
-	"strings"
-	"time"
 )
 
-var (
-	eventProcessingDurationSeconds = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "event_processing_duration_seconds",
-			Help:    "Duration histogram of event processing per module.",
-			Buckets: prometheus.ExponentialBuckets(0.0005, 5, 6),
-		},
-		[]string{"module"},
-	)
+var eventProcessingDurationSeconds = prometheus.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Name:    "event_processing_duration_seconds",
+		Help:    "Duration histogram of event processing per module.",
+		Buckets: prometheus.ExponentialBuckets(0.0005, 5, 6),
+	},
+	[]string{"module"},
 )
 
-func NewManager(moduleFactory moduleFactoryFunction, config *config.Config, logger logrus.FieldLogger) (*Manager, error) {
+func NewManager(moduleFactory moduleFactoryFunction, cfg *config.Config, logger logrus.FieldLogger) (*Manager, error) {
 	manager := Manager{
 		pipeline: []pipelineItem{},
 		logger:   logger,
 	}
 	// Initialize the pipeline and link it together.
-	for _, moduleName := range config.Pipeline {
-		newPipelineItem, err := manager.newPipelineItem(moduleName, config, moduleFactory)
+	for _, moduleName := range cfg.Pipeline {
+		newPipelineItem, err := manager.newPipelineItem(moduleName, cfg, moduleFactory)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create pipeline module: %w", err)
 		}
@@ -49,7 +48,6 @@ type pipelineItem struct {
 
 type Manager struct {
 	pipeline []pipelineItem
-	config   config.Config
 	logger   logrus.FieldLogger
 }
 
@@ -59,7 +57,7 @@ func (m *Manager) StartPipeline() error {
 	if len(m.pipeline) == 0 {
 		return fmt.Errorf("failed to execute the empty pipeline (no pipeline modules defined in the config)")
 	}
-	var pipelineSchema []string
+	pipelineSchema := make([]string, 0, len(m.pipeline))
 	for _, pipelineItem := range m.pipeline {
 		pipelineItem.module.Run()
 		pipelineSchema = append(pipelineSchema, pipelineItem.name)
@@ -107,7 +105,7 @@ func (m *Manager) observeModuleEventProcessingDuration(item pipelineItem) {
 	}
 }
 
-func (m *Manager) RegisterPrometheusMetrics(rootRegistry prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (m *Manager) RegisterPrometheusMetrics(rootRegistry, wrappedRegistry prometheus.Registerer) error {
 	if err := rootRegistry.Register(eventProcessingDurationSeconds); err != nil {
 		return err
 	}
@@ -164,19 +162,19 @@ func linkModules(previous, next Module) error {
 		return fmt.Errorf("trying to link module %s to previous module but it is not an ingester", next)
 	}
 	// Check if event types of producer end ingester matches.
-	switch previous.(type) {
+	switch previousRaw := previous.(type) {
 	case RawEventProducerModule:
 		nextRaw, ok := next.(RawEventIngesterModule)
 		if !ok {
 			return fmt.Errorf("trying to link raw event producer %s with slo event ingester %s", previous, next)
 		}
-		nextRaw.SetInputChannel(previous.(RawEventProducerModule).OutputChannel())
+		nextRaw.SetInputChannel(previousRaw.OutputChannel())
 	case SloEventProducerModule:
 		nextRaw, ok := next.(SloEventIngesterModule)
 		if !ok {
 			return fmt.Errorf("trying to link SLO event producer %s with raw event ingester %s", previous, next)
 		}
-		nextRaw.SetInputChannel(previous.(SloEventProducerModule).OutputChannel())
+		nextRaw.SetInputChannel(previousRaw.OutputChannel())
 	}
 	return nil
 }
@@ -210,8 +208,8 @@ func (m *Manager) addModuleToPipelineEnd(newItem pipelineItem) error {
 	return nil
 }
 
-func (m *Manager) newPipelineItem(moduleName string, config *config.Config, factoryFunction moduleFactoryFunction) (pipelineItem, error) {
-	moduleConfig, err := config.ModuleConfig(moduleName)
+func (m *Manager) newPipelineItem(moduleName string, cfg *config.Config, factoryFunction moduleFactoryFunction) (pipelineItem, error) {
+	moduleConfig, err := cfg.ModuleConfig(moduleName)
 	if err != nil {
 		return pipelineItem{}, fmt.Errorf("failed to load configuration for module %s: %w", moduleName, err)
 	}
