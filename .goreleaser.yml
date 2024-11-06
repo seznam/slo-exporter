@@ -14,6 +14,7 @@ builds:
     goarch:
       - amd64
       - 386
+      - arm64
 
     ignore:
     - goos: darwin
@@ -26,10 +27,11 @@ dockers:
   - goos: linux
     goarch: amd64
     image_templates:
-      - seznam/slo-exporter:{{ .Tag }}
-      - seznam/slo-exporter:v{{ .Major }}.{{ .Minor }}
-      - seznam/slo-exporter:v{{ .Major }}
-      - seznam/slo-exporter:latest
+      - seznam/slo-exporter:{{ .Tag }}-amd64
+      - seznam/slo-exporter:v{{ .Major }}.{{ .Minor }}-amd64
+      - seznam/slo-exporter:v{{ .Major }}-amd64
+      - seznam/slo-exporter:latest-amd64
+    use: buildx
     build_flag_templates:
       - --pull
       # Labels according to opencontainers label schema https://github.com/opencontainers/image-spec/blob/master/annotations.md
@@ -43,4 +45,43 @@ dockers:
       - --label=org.opencontainers.image.authors=sklik.devops@firma.seznam.cz
       - --label=org.opencontainers.image.url={{.GitURL}}
       - --label=org.opencontainers.image.documentation={{.GitURL}}
-      - --label=org.opencontainers.image.source={{replace .GitURL ".git" "" }}
+      - "--platform=linux/amd64"
+  - goos: linux
+    goarch: arm64
+    image_templates:
+      - seznam/slo-exporter:{{ .Tag }}-arm64
+      - seznam/slo-exporter:v{{ .Major }}.{{ .Minor }}-arm64
+      - seznam/slo-exporter:v{{ .Major }}-arm64
+      - seznam/slo-exporter:latest-arm64
+    use: buildx
+    build_flag_templates:
+      - --pull
+      # Labels according to opencontainers label schema https://github.com/opencontainers/image-spec/blob/master/annotations.md
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.description=Tool to evaluate and generate standardizedSLO metrics from distinct data sources.
+      - --label=org.opencontainers.image.vendor=Seznam, a.s.
+      - --label=org.opencontainers.image.authors=sklik.devops@firma.seznam.cz
+      - --label=org.opencontainers.image.url={{.GitURL}}
+      - --label=org.opencontainers.image.documentation={{.GitURL}}
+      - "--platform=linux/arm64"
+docker_manifests:
+  - name_template: "seznam/slo-exporter:{{ .Tag }}"
+    image_templates:
+      - "seznam/slo-exporter:{{ .Tag }}-amd64"
+      - "seznam/slo-exporter:{{ .Tag }}-arm64"
+  - name_template: "seznam/slo-exporter:v{{ .Major }}.{{ .Minor }}"
+    image_templates:
+      - "seznam/slo-exporter:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "seznam/slo-exporter:v{{ .Major }}.{{ .Minor }}-arm64"
+  - name_template: "seznam/slo-exporter:v{{ .Major }}"
+    image_templates:
+      - "seznam/slo-exporter:v{{ .Major }}-amd64"
+      - "seznam/slo-exporter:v{{ .Major }}-arm64"
+  - name_template: "seznam/slo-exporter:latest"
+    image_templates:
+      - "seznam/slo-exporter:latest-amd64"
+      - "seznam/slo-exporter:latest-arm64"
