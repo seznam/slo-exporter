@@ -306,7 +306,7 @@ func offsetPersistenceTestRun(t offsetPersistenceTest) error {
 	eventCount := make(chan int)
 	persistPositionInterval, err := time.ParseDuration("10s")
 	if err != nil {
-		return fmt.Errorf("Error while parsing duration: %w", err)
+		return fmt.Errorf("error while parsing duration: %w", err)
 	}
 
 	for i := 0; i < t.pre; i++ {

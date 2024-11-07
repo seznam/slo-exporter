@@ -6,7 +6,7 @@ import (
 	pbduration "github.com/golang/protobuf/ptypes/duration"
 )
 
-// Returns deterministic string representation of 'pbduration' - ns.
+// Returns deterministic string representation of the given duration - ns.
 func pbDurationDeterministicString(d *pbduration.Duration) (string, error) {
 	if d == nil {
 		return "", fmt.Errorf("<nil> duration given")
