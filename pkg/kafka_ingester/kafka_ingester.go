@@ -182,11 +182,9 @@ func (k *KafkaIngester) Run() {
 			close(k.outputChannel)
 			k.done = true
 		}()
-		for range k.shutdownChannel {
-			cancel()
-			k.kafkaReader.Close()
-			return
-		}
+		<-k.shutdownChannel
+		cancel()
+		k.kafkaReader.Close()
 	}()
 
 	// Main goroutine for reading messages from Kafka

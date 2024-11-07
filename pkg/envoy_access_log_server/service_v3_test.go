@@ -236,7 +236,7 @@ func Test_exportHTTPResponsePropertiesV3(t *testing.T) {
 // full extent extraction of request, response and common properties are to be tested separately within:
 // Test_exportHTTPResponsePropertiesV3
 // Test_exportHTTPRequestPropertiesV3
-// Test_exportCommonPropertiesV3.
+// Test_exportCommonPropertiesV3
 func Test_exportHttpLogEntryV3(t *testing.T) {
 	tests := []struct {
 		description    string

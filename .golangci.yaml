@@ -6,7 +6,6 @@ linters:
     - errname
     - errorlint
     - gocritic
-    - godot
     - gofmt
     - gofumpt
     - goimports
@@ -64,7 +63,6 @@ linters-settings:
       - fieldalignment # I'm ok to waste some bytes
 
   nakedret:
-    # No naked returns, ever.
     max-func-lines: 1 # Default: 30
 
 issues:
