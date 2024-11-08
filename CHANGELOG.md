@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Changed
+- [#117](https://github.com/seznam/slo-exporter/pull/117) Switch to golangci-lint and fix all the lint (lot of changes, some just formatting, some might have impact on functionality)
 - [#118](https://github.com/seznam/slo-exporter/pull/118) Upgrade Go to 1.23
 - [#119](https://github.com/seznam/slo-exporter/pull/119) Upgrade all deps
 
