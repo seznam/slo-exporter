@@ -9,7 +9,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run: make lint
+      - run: GOMAXPROCS=1 GOMEMLIMIT=1750MiB make lint
 
   check_format:
     <<: *defaults
