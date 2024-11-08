@@ -5,7 +5,7 @@ orbs:
 defaults: &defaults
   executor:
     name: go/default # Use the default executor from the orb
-    tag: "1.19.2"
+    tag: "1.23"
 
 jobs:
   lint:
