@@ -1,15 +1,20 @@
-defaults: &defaults
-  docker:
-    - image: cimg/go:1.23
-  resource_class: small
+version: 2.1
+orbs:
+  go: circleci/go@1.7.3
 
-version: 2
+defaults: &defaults
+  executor:
+    name: go/default # Use the default executor from the orb
+    tag: "1.19.2"
+
 jobs:
   lint:
     <<: *defaults
     steps:
-      - checkout
+      - checkout # checkout source code
+      - go/load-cache # Load cached Go modules.
       - run: GOMAXPROCS=1 GOMEMLIMIT=1750MiB make lint
+      - go/save-cache # Save Go modules to cache.
 
   check_format:
     <<: *defaults
@@ -22,8 +27,10 @@ jobs:
   test:
     <<: *defaults
     steps:
-      - checkout
+      - checkout # checkout source code
+      - go/load-cache # Load cached Go modules.
       - run: make test-and-coverage
+      - go/save-cache # Save Go modules to cache.
 
   test-release:
     <<: *defaults
@@ -35,8 +42,10 @@ jobs:
   build:
     <<: *defaults
     steps:
-      - checkout
+      - checkout # checkout source code
+      - go/load-cache # Load cached Go modules.
       - run: make build
+      - go/save-cache # Save Go modules to cache.
       - persist_to_workspace:
           root: .
           paths:
@@ -54,7 +63,8 @@ jobs:
   release:
     <<: *defaults
     steps:
-      - checkout
+      - checkout # checkout source code
+      - go/load-cache # Load cached Go modules.
       - setup_remote_docker
       - run: |
           echo "${DOCKERHUB_PASSWORD}" | docker login -u="${DOCKERHUB_USER}" --password-stdin
