@@ -26,10 +26,10 @@ $(RELEASE_NOTES): $(TMP_DIR)
 	@mv $(TMP_DIR)/release-notes-part1 $(RELEASE_NOTES)
 	@rm $(TMP_DIR)/release-notes-part*
 
-.PHONY: revive
-revive:
-	@echo "Downloading linter revive..."
-	go install github.com/mgechev/revive@v1.0.7
+.PHONY: golangci-lint
+golangci-lint:
+	@echo "Downloading golangci-lint..."
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
 
 .PHONY: format
 format:
@@ -37,8 +37,12 @@ format:
 	go fmt ./...
 
 .PHONY: lint
-lint: revive
-	revive -formatter friendly -config .revive.toml $(shell find $(SRC_DIR) -name "*.go" | grep -v "^$(SRC_DIR)/vendor/")
+lint: golangci-lint
+	golangci-lint run --timeout 10m
+
+.PHONY: lint-fix
+lint-fix: golangci-lint
+	golangci-lint run --fix --timeout 10m
 
 SLO_EXPORTER_BIN ?= slo_exporter
 .PHONY: build

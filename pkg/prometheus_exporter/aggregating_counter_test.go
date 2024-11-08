@@ -1,13 +1,14 @@
 package prometheus_exporter
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
 )
 
 func Test_aggregatingCounter(t *testing.T) {

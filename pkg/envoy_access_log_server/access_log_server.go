@@ -2,14 +2,15 @@ package envoy_access_log_server
 
 import (
 	"fmt"
+	"net"
+	"time"
+
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	"net"
-	"time"
 )
 
 var (
@@ -35,7 +36,7 @@ type AccessLogServer struct {
 	logger                  logrus.FieldLogger
 	done                    bool
 	server                  *grpc.Server
-	service_v3              *AccessLogServiceV3
+	serviceV3               *AccessLogServiceV3
 	address                 string
 	gracefulShutdownTimeout time.Duration
 }
@@ -58,7 +59,7 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*AccessL
 	return New(config, logger)
 }
 
-// New returns an instance of AccessLogServer
+// New returns an instance of AccessLogServer.
 func New(config accessLogServerConfig, logger logrus.FieldLogger) (*AccessLogServer, error) {
 	als := AccessLogServer{
 		outputChannel:           make(chan *event.Raw),
@@ -78,11 +79,11 @@ func (als *AccessLogServer) Run() {
 		grpc.StreamInterceptor(serverMetrics.StreamServerInterceptor()),
 	)
 
-	als.service_v3 = &AccessLogServiceV3{
+	als.serviceV3 = &AccessLogServiceV3{
 		outChan: als.outputChannel,
 		logger:  als.logger.WithField("EnvoyApiVersion", "3"),
 	}
-	als.service_v3.Register(als.server)
+	als.serviceV3.Register(als.server)
 
 	serverMetrics.InitializeMetrics(als.server)
 
@@ -119,14 +120,16 @@ func (als *AccessLogServer) Done() bool {
 	return als.done
 }
 
-func (als *AccessLogServer) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (als *AccessLogServer) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	toRegister := []prometheus.Collector{logEntriesTotal, errorsTotal}
 	for _, collector := range toRegister {
 		if err := wrappedRegistry.Register(collector); err != nil {
 			return fmt.Errorf("error registering metric %s: %w", collector, err)
 		}
 	}
-	wrappedRegistry.Register(serverMetrics)
+	if err := wrappedRegistry.Register(serverMetrics); err != nil {
+		return fmt.Errorf("error registering metric %+v: %w", serverMetrics, err)
+	}
 	return nil
 }
 

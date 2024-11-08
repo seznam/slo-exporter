@@ -1,15 +1,13 @@
-//revive:disable:var-naming
 package slo_event_producer
-
-//revive:enable:var-naming
 
 import (
 	"fmt"
-	"github.com/seznam/slo-exporter/pkg/event"
-	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
 var operatorFactoryRegistry = map[string]operatorFactory{
@@ -41,12 +39,12 @@ type metric struct {
 	Value  float64
 }
 
-// operator which is able to expose itself as a metric
+// operator which is able to expose itself as a metric.
 type exposableOperator interface {
 	AsMetric() metric
 }
 
-// operators which is able to represent itself as a labels of Prometheus metric
+// operators which is able to represent itself as a labels of Prometheus metric.
 type labelsExposableOperator interface {
 	Labels() stringmap.StringMap
 }
@@ -87,7 +85,7 @@ func (n *numberComparisonOperator) LoadOptions(options operatorOptions) error {
 	return nil
 }
 
-func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.Raw) (float64, bool, error) {
+func (n *numberComparisonOperator) getKeyNumber(evaluatedEvent *event.Raw) (value float64, found bool, err error) {
 	metadataValue, ok := evaluatedEvent.Metadata[n.key]
 	if !ok {
 		return 0, false, nil
@@ -106,7 +104,7 @@ func (n *numberComparisonOperator) AsMetric() metric {
 	}
 }
 
-// Operator `numberIsHigherThan`
+// Operator `numberIsHigherThan`.
 func newNumberIsHigherThan() operator {
 	return &numberIsHigherThan{numberComparisonOperator{name: "numberIsHigherThan"}}
 }
@@ -123,7 +121,7 @@ func (r *numberIsHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return testedValue > r.value, nil
 }
 
-// Operator `numberIsEqualOrHigherThan`
+// Operator `numberIsEqualOrHigherThan`.
 func newNumberIsEqualOrHigherThan() operator {
 	return &numberIsEqualOrHigherThan{numberComparisonOperator{name: "numberIsEqualOrHigherThan"}}
 }
@@ -140,7 +138,7 @@ func (r *numberIsEqualOrHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, e
 	return testedValue >= r.value, nil
 }
 
-// Operator `numberIsEqualOrLessThan`
+// Operator `numberIsEqualOrLessThan`.
 func newNumberIsEqualOrLessThan() operator {
 	return &numberIsEqualOrLessThan{numberComparisonOperator{name: "numberIsEqualOrLessThan"}}
 }
@@ -157,7 +155,7 @@ func (r *numberIsEqualOrLessThan) Evaluate(evaluatedEvent *event.Raw) (bool, err
 	return testedValue <= r.value, nil
 }
 
-// Operator `numberIsEqualTo`
+// Operator `numberIsEqualTo`.
 func newNumberIsEqualTo() operator {
 	return &numberIsEqualTo{numberComparisonOperator{name: "numberIsEqualTo"}}
 }
@@ -178,7 +176,7 @@ func (r *numberIsEqualTo) Labels() stringmap.StringMap {
 	return stringmap.StringMap{r.key: fmt.Sprintf("%g", r.value)}
 }
 
-// Operator `numberIsNotEqualTo`
+// Operator `numberIsNotEqualTo`.
 func newNumberIsNotEqualTo() operator {
 	return &numberIsNotEqualTo{numberComparisonOperator{name: "numberIsNotEqualTo"}}
 }
@@ -195,7 +193,7 @@ func (r *numberIsNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return testedValue != r.value, nil
 }
 
-// Operator `durationIsHigherThan`
+// Operator `durationIsHigherThan`.
 func newDurationIsHigherThan() operator {
 	return &durationIsHigherThan{}
 }
@@ -231,7 +229,7 @@ func (r *durationIsHigherThan) Evaluate(evaluatedEvent *event.Raw) (bool, error)
 	return testedDuration > r.thresholdDuration, nil
 }
 
-// Operator `isEqualTo`
+// Operator `isEqualTo`.
 func newIsEqualTo() operator {
 	return &isEqualTo{}
 }
@@ -263,7 +261,7 @@ func (r *isEqualTo) Labels() stringmap.StringMap {
 	return stringmap.StringMap{r.key: r.value}
 }
 
-// Operator `isNotEqualTo`
+// Operator `isNotEqualTo`.
 func newIsNotEqualTo() operator {
 	return &isNotEqualTo{}
 }
@@ -291,7 +289,7 @@ func (r *isNotEqualTo) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return r.value != testedValue, nil
 }
 
-// Operator `isMatchingRegexp`
+// Operator `isMatchingRegexp`.
 func newIsMatchingRegexp() operator {
 	return &isMatchingRegexp{}
 }
@@ -322,7 +320,7 @@ func (r *isMatchingRegexp) Evaluate(evaluatedEvent *event.Raw) (bool, error) {
 	return r.regexp.MatchString(testedValue), nil
 }
 
-// Operator `isNotMatchingRegexp`
+// Operator `isNotMatchingRegexp`.
 func newIsNotMatchingRegexp() operator {
 	return &isNotMatchingRegexp{}
 }

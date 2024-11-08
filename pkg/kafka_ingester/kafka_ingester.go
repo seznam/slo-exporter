@@ -3,6 +3,7 @@ package kafka_ingester
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -101,12 +102,12 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*KafkaIn
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 	if _, ok := fallbackStartOffsetMapping[config.FallbackStartOffset]; !ok {
-		return nil, fmt.Errorf("Invalid 'fallbackStartOffset' value provided: %s", config.FallbackStartOffset)
+		return nil, fmt.Errorf("invalid 'fallbackStartOffset' value provided: %s", config.FallbackStartOffset)
 	}
 	return New(config, logger)
 }
 
-// New returns an instance of KafkaIngester
+// New returns an instance of KafkaIngester.
 func New(config kafkaIngesterConfig, logger logrus.FieldLogger) (*KafkaIngester, error) {
 	var kafkaLogger, kafkaErrorLogger logrus.FieldLogger
 	if config.LogKafkaEvents {
@@ -153,7 +154,7 @@ func (k *KafkaIngester) observeDuration(start time.Time) {
 	}
 }
 
-func (k *KafkaIngester) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (k *KafkaIngester) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	toRegister := []prometheus.Collector{kafkaConnectionInfo, messagesReadTotal, malformedMessagesTotal}
 	for _, collector := range toRegister {
 		if err := wrappedRegistry.Register(collector); err != nil {
@@ -181,14 +182,9 @@ func (k *KafkaIngester) Run() {
 			close(k.outputChannel)
 			k.done = true
 		}()
-		for {
-			select {
-			case <-k.shutdownChannel:
-				cancel()
-				k.kafkaReader.Close()
-				return
-			}
-		}
+		<-k.shutdownChannel
+		cancel()
+		k.kafkaReader.Close()
 	}()
 
 	// Main goroutine for reading messages from Kafka
@@ -197,7 +193,7 @@ func (k *KafkaIngester) Run() {
 			m, err := k.kafkaReader.ReadMessage(ctx)
 			start := time.Now()
 			if err != nil {
-				if err == io.EOF || err == context.Canceled {
+				if errors.Is(err, io.EOF) || errors.Is(err, context.Canceled) {
 					return
 				}
 				k.logger.Errorf("error while reading message from Kafka: %w", err)
@@ -218,15 +214,13 @@ func (k *KafkaIngester) Run() {
 	}()
 }
 
-func getSchemaVersionFromHeaders(headers []kafka.Header) (schemaVer string, found bool) {
+func getSchemaVersionFromHeaders(headers []kafka.Header) (string, bool) {
 	for _, header := range headers {
 		if header.Key == schemaVersionMessageHeader {
-			schemaVer = string(header.Value)
-			found = true
-			return
+			return string(header.Value), true
 		}
 	}
-	return
+	return "", false
 }
 
 func processMessage(m kafka.Message) (*event.Raw, error) {
@@ -238,7 +232,7 @@ func processMessage(m kafka.Message) (*event.Raw, error) {
 	case schemaVerV1:
 		return processEventV1(m)
 	default:
-		return nil, fmt.Errorf("Unknown schema version: %s", schemaVer)
+		return nil, fmt.Errorf("unknown schema version: %s", schemaVer)
 	}
 }
 

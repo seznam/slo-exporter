@@ -2,6 +2,7 @@ package event
 
 import (
 	"fmt"
+
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
@@ -16,9 +17,7 @@ const (
 	Fail    Result = "fail"
 )
 
-var (
-	PossibleResults = []Result{Success, Fail}
-)
+var PossibleResults = []Result{Success, Fail}
 
 type Slo struct {
 	// same value as in source event Raw.EventKey()

@@ -1,16 +1,14 @@
-//revive:disable:var-naming
 package dynamic_classifier
 
-//revive:enable:var-naming
-
 import (
-	"github.com/seznam/slo-exporter/pkg/event"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"testing"
+
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func newClassifier(t *testing.T, config classifierConfig) *DynamicClassifier {
@@ -31,7 +29,7 @@ func TestLoadExactMatchesFromMultipleCSV(t *testing.T) {
 	}
 	classifier := newClassifier(t, config)
 
-	expectedClassification := newSloClassification("test-domain", "test-app", "test-class")
+	expectedClassification := newTestSloClassification()
 	expectedExactMatches := newMemoryExactMatcher(logrus.New())
 	expectedExactMatches.exactMatches["GET:/testing-endpoint"] = expectedClassification
 
@@ -46,7 +44,7 @@ func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 	}
 	classifier := newClassifier(t, config)
 
-	expectedClassification := newSloClassification("test-domain", "test-app", "test-class")
+	expectedClassification := newTestSloClassification()
 	expectedRegexpSloClassification := &regexpSloClassification{
 		regexpCompiled: regexp.MustCompile(".*"),
 		classification: expectedClassification,
@@ -57,7 +55,6 @@ func TestLoadRegexpMatchesFromMultipleCSV(t *testing.T) {
 	classification, err := classifier.regexpMatches.get("foo")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedClassification, classification)
-
 }
 
 func TestClassificationByExactMatches(t *testing.T) {
@@ -71,7 +68,7 @@ func TestClassificationByExactMatches(t *testing.T) {
 		expectedClassification *event.SloClassification
 		expectedOk             bool
 	}{
-		{"GET:/testing-endpoint", newSloClassification("test-domain", "test-app", "test-class"), true},
+		{"GET:/testing-endpoint", newTestSloClassification(), true},
 		{"non-classified-endpoint", nil, false},
 	}
 
@@ -104,8 +101,8 @@ func TestClassificationByRegexpMatches(t *testing.T) {
 		expectedClassification *event.SloClassification
 		expectedOk             bool
 	}{
-		{"/api/test/asdf", newSloClassification("test-domain", "test-app", "test-class"), true},
-		{"/api/asdf", newSloClassification("test-domain", "test-app", "test-class-all"), true},
+		{"/api/test/asdf", newTestSloClassification(), true},
+		{"/api/asdf", newTestSloClassification(), true},
 		{"non-classified-endpoint", nil, false},
 	}
 
@@ -153,7 +150,7 @@ func Test_DynamicClassifier_Classify_UpdatesEmptyCache(t *testing.T) {
 	}
 }
 
-// test that classified event updates dynamic classifier cache as initialized from golden file
+// test that classified event updates dynamic classifier cache as initialized from golden file.
 func Test_DynamicClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
 	classifiedEvent := &event.Raw{
@@ -166,16 +163,12 @@ func Test_DynamicClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 	classifiedEvent.SetEventKey(eventKey)
 
 	classifier := newClassifier(t, classifierConfig{RegexpMatchesCsvFiles: goldenFile(t)})
-	classification, err := classifier.exactMatches.get(eventKey)
-	if err != nil {
-		t.Fatalf("error while getting the tested event key from exact Matches classifier: %v", err)
-	}
 
 	ok, err := classifier.Classify(classifiedEvent)
 	if !ok || err != nil {
 		t.Fatalf("unable to classify tested event %+v: %v", classifiedEvent, err)
 	}
-	classification, err = classifier.exactMatches.get(eventKey)
+	classification, err := classifier.exactMatches.get(eventKey)
 	if err != nil {
 		t.Fatalf("error while getting the tested event key from exact Matches classifier: %v", err)
 	}
@@ -184,7 +177,7 @@ func Test_DynamicClassifier_Classify_OverridesCacheFromConfig(t *testing.T) {
 	}
 }
 
-// test that classified event updates dynamic classifier cache build from previous classified events
+// test that classified event updates dynamic classifier cache build from previous classified events.
 func Test_DynamicClassifier_Classify_OverridesCacheFromPreviousClassifiedEvent(t *testing.T) {
 	eventKey := "GET:/testing-endpoint"
 	eventClasses := []string{"class1", "class2"}

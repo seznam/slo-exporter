@@ -1,6 +1,7 @@
 package envoy_access_log_server
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -8,7 +9,6 @@ import (
 
 	envoy_data_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/data/accesslog/v3"
 	envoy_service_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -22,11 +22,8 @@ type AccessLogServiceV3 struct {
 	envoy_service_accesslog_v3.UnimplementedAccessLogServiceServer
 }
 
-type envoyV3AccessLogEntryCommonProperties envoy_data_accesslog_v3.AccessLogCommon
-
-func (p envoyV3AccessLogEntryCommonProperties) StringMap(logger logrus.FieldLogger) stringmap.StringMap {
+func envoyV3AccessLogEntryCommonPropertiesToStringMap(logger logrus.FieldLogger, p *envoy_data_accesslog_v3.AccessLogCommon) stringmap.StringMap {
 	m := stringmap.StringMap{}
-
 	if p.DownstreamDirectRemoteAddress != nil {
 		if sa := p.DownstreamDirectRemoteAddress.GetSocketAddress(); sa != nil {
 			m["downstreamDirectRemoteAddress"] = sa.GetAddress()
@@ -56,11 +53,11 @@ func (p envoyV3AccessLogEntryCommonProperties) StringMap(logger logrus.FieldLogg
 	}
 	m["routeName"] = p.RouteName
 	if ts := p.StartTime; ts != nil {
-		if t, err := ptypes.Timestamp(ts); err == nil {
-			m["startTime"] = t.Format(time.RFC3339)
-		} else {
+		if !ts.IsValid() {
 			logger.Warnf("Unable to parse %s timestamp", "StartTime")
 			errorsTotal.WithLabelValues("InvalidTimestamp").Inc()
+		} else {
+			m["startTime"] = ts.AsTime().Format(time.RFC3339)
 		}
 	}
 	if p.TimeToFirstDownstreamTxByte != nil {
@@ -144,9 +141,7 @@ func (p envoyV3AccessLogEntryCommonProperties) StringMap(logger logrus.FieldLogg
 	return m
 }
 
-type envoyV3AccessLogEntryHttpRequestProperties envoy_data_accesslog_v3.HTTPRequestProperties
-
-func (request envoyV3AccessLogEntryHttpRequestProperties) StringMap(logger logrus.FieldLogger) stringmap.StringMap {
+func envoyV3AccessLogEntryHTTPRequestPropertiesToStringMap(_ logrus.FieldLogger, request *envoy_data_accesslog_v3.HTTPRequestProperties) stringmap.StringMap {
 	result := stringmap.StringMap{}
 
 	result["authority"] = request.Authority
@@ -157,8 +152,8 @@ func (request envoyV3AccessLogEntryHttpRequestProperties) StringMap(logger logru
 
 	// request headers are encoded with `http_` prefix (to keep the scheme used by Nginx)
 	if request.RequestHeaders != nil {
-		for header_name, header_value := range request.RequestHeaders {
-			result["http_"+header_name] = header_value
+		for headerName, headerValue := range request.RequestHeaders {
+			result["http_"+headerName] = headerValue
 		}
 	}
 
@@ -172,9 +167,7 @@ func (request envoyV3AccessLogEntryHttpRequestProperties) StringMap(logger logru
 	return result
 }
 
-type envoyV3AccessLogEntryHttpResponseProperties envoy_data_accesslog_v3.HTTPResponseProperties
-
-func (response envoyV3AccessLogEntryHttpResponseProperties) StringMap(logger logrus.FieldLogger) stringmap.StringMap {
+func envoyV3AccessLogEntryHTTPResponsePropertiesToStringMap(_ logrus.FieldLogger, response *envoy_data_accesslog_v3.HTTPResponseProperties) stringmap.StringMap {
 	result := stringmap.StringMap{}
 
 	result["responseBodyBytes"] = strconv.FormatUint(response.ResponseBodyBytes, 10)
@@ -183,32 +176,28 @@ func (response envoyV3AccessLogEntryHttpResponseProperties) StringMap(logger log
 	result["responseHeadersBytes"] = strconv.FormatUint(response.ResponseHeadersBytes, 10)
 	// response headers are encoded with `sent_http_` prefix (to keep the scheme used by Nginx)
 	if response.ResponseHeaders != nil {
-		for header_name, header_value := range response.ResponseHeaders {
-			result["sent_http_"+header_name] = header_value
+		for headerName, headerValue := range response.ResponseHeaders {
+			result["sent_http_"+headerName] = headerValue
 		}
 	}
 	if response.ResponseTrailers != nil {
-		for trailer_name, trailer_value := range response.ResponseTrailers {
-			result["sent_trailer_"+trailer_name] = trailer_value
+		for trailerName, trailerValue := range response.ResponseTrailers {
+			result["sent_trailer_"+trailerName] = trailerValue
 		}
 	}
 	return result
 }
 
-type envoyV3HttpAccessLogEntry envoy_data_accesslog_v3.HTTPAccessLogEntry
-
-func (l envoyV3HttpAccessLogEntry) StringMap(logger logrus.FieldLogger) stringmap.StringMap {
-	m := envoyV3AccessLogEntryCommonProperties(*l.CommonProperties).StringMap(logger)
+func envoyV3HttpAccessLogEntryToStringMap(logger logrus.FieldLogger, l *envoy_data_accesslog_v3.HTTPAccessLogEntry) stringmap.StringMap {
+	m := envoyV3AccessLogEntryCommonPropertiesToStringMap(logger, l.CommonProperties)
 	m["protocolVersion"] = l.ProtocolVersion.String()
-	m = m.Merge(envoyV3AccessLogEntryHttpRequestProperties(*l.Request).StringMap(logger))
-	m = m.Merge(envoyV3AccessLogEntryHttpResponseProperties(*l.Response).StringMap(logger))
+	m = m.Merge(envoyV3AccessLogEntryHTTPRequestPropertiesToStringMap(logger, l.Request))
+	m = m.Merge(envoyV3AccessLogEntryHTTPResponsePropertiesToStringMap(logger, l.Response))
 	return m
 }
 
-type envoyV3TcpAccessLogEntry envoy_data_accesslog_v3.TCPAccessLogEntry
-
-func (l envoyV3TcpAccessLogEntry) StringMap(logger logrus.FieldLogger) stringmap.StringMap {
-	m := envoyV3AccessLogEntryCommonProperties(*l.CommonProperties).StringMap(logger)
+func envoyV3TcpAccessLogEntryToStringMap(logger logrus.FieldLogger, l *envoy_data_accesslog_v3.TCPAccessLogEntry) stringmap.StringMap {
+	m := envoyV3AccessLogEntryCommonPropertiesToStringMap(logger, l.CommonProperties)
 	m["receivedBytes"] = strconv.FormatUint(l.ConnectionProperties.ReceivedBytes, 10)
 	m["sentBytes"] = strconv.FormatUint(l.ConnectionProperties.SentBytes, 10)
 	return m
@@ -219,7 +208,7 @@ func (service_v3 *AccessLogServiceV3) emitEvents(msg *envoy_service_accesslog_v3
 		for _, l := range logs.LogEntry {
 			logEntriesTotal.WithLabelValues("HTTP", "v3").Inc()
 			e := &event.Raw{
-				Metadata: envoyV3HttpAccessLogEntry(*l).StringMap(service_v3.logger),
+				Metadata: envoyV3HttpAccessLogEntryToStringMap(service_v3.logger, l),
 				Quantity: 1,
 			}
 			service_v3.logger.Debug(e)
@@ -229,7 +218,7 @@ func (service_v3 *AccessLogServiceV3) emitEvents(msg *envoy_service_accesslog_v3
 		for _, l := range logs.LogEntry {
 			logEntriesTotal.WithLabelValues("TCP", "v3").Inc()
 			e := &event.Raw{
-				Metadata: envoyV3TcpAccessLogEntry(*l).StringMap(service_v3.logger),
+				Metadata: envoyV3TcpAccessLogEntryToStringMap(service_v3.logger, l),
 				Quantity: 1,
 			}
 			service_v3.logger.Debug(e)
@@ -245,7 +234,7 @@ func (service_v3 *AccessLogServiceV3) emitEvents(msg *envoy_service_accesslog_v3
 func (service_v3 *AccessLogServiceV3) StreamAccessLogs(stream envoy_service_accesslog_v3.AccessLogService_StreamAccessLogsServer) error {
 	for {
 		msg, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return nil
 		}
 		if err != nil {
@@ -254,7 +243,6 @@ func (service_v3 *AccessLogServiceV3) StreamAccessLogs(stream envoy_service_acce
 		}
 		service_v3.emitEvents(msg)
 	}
-	return nil
 }
 
 func (service_v3 *AccessLogServiceV3) Register(server *grpc.Server) {

@@ -14,14 +14,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	renamingCollisionsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "renaming_collisions_total",
-		Help: "Total number of collision occurred while attempting to rename a metadata key.",
-	}, []string{"Source", "Destination"})
-)
+var renamingCollisionsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "renaming_collisions_total",
+	Help: "Total number of collision occurred while attempting to rename a metadata key.",
+}, []string{"Source", "Destination"})
 
-func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventMetadataRenamerManager, error) {
+func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*EventMetadataRenamerManager, error) {
 	var config []renamerConfig
 	marshalledConfig, err := yaml.Marshal(viperConfig.Get("eventMetadataRenamerConfigs"))
 	if err != nil {
@@ -33,9 +31,9 @@ func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*eventMe
 	return NewFromConfig(config, logger)
 }
 
-// New returns requestNormalizer which allows to add Key to RequestEvent
-func NewFromConfig(config []renamerConfig, logger logrus.FieldLogger) (*eventMetadataRenamerManager, error) {
-	relabelManager := eventMetadataRenamerManager{
+// New returns requestNormalizer which allows to add Key to RequestEvent.
+func NewFromConfig(config []renamerConfig, logger logrus.FieldLogger) (*EventMetadataRenamerManager, error) {
+	relabelManager := EventMetadataRenamerManager{
 		renamerConfig: config,
 		outputChannel: make(chan *event.Raw),
 		logger:        logger,
@@ -47,7 +45,7 @@ type renamerConfig struct {
 	Source, Destination string
 }
 
-type eventMetadataRenamerManager struct {
+type EventMetadataRenamerManager struct {
 	renamerConfig []renamerConfig
 	observer      pipeline.EventProcessingDurationObserver
 	inputChannel  chan *event.Raw
@@ -56,42 +54,40 @@ type eventMetadataRenamerManager struct {
 	logger        logrus.FieldLogger
 }
 
-func (r *eventMetadataRenamerManager) String() string {
+func (r *EventMetadataRenamerManager) String() string {
 	return "eventMetadataRenamer"
 }
 
-func (r *eventMetadataRenamerManager) Done() bool {
+func (r *EventMetadataRenamerManager) Done() bool {
 	return r.done
 }
 
-func (r *eventMetadataRenamerManager) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (r *EventMetadataRenamerManager) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	return wrappedRegistry.Register(renamingCollisionsTotal)
 }
 
-func (r *eventMetadataRenamerManager) SetInputChannel(channel chan *event.Raw) {
+func (r *EventMetadataRenamerManager) SetInputChannel(channel chan *event.Raw) {
 	r.inputChannel = channel
 }
 
-func (r *eventMetadataRenamerManager) OutputChannel() chan *event.Raw {
+func (r *EventMetadataRenamerManager) OutputChannel() chan *event.Raw {
 	return r.outputChannel
 }
 
-func (r *eventMetadataRenamerManager) Stop() {
-	return
-}
+func (r *EventMetadataRenamerManager) Stop() {}
 
-func (r *eventMetadataRenamerManager) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
+func (r *EventMetadataRenamerManager) RegisterEventProcessingDurationObserver(observer pipeline.EventProcessingDurationObserver) {
 	r.observer = observer
 }
 
-func (r *eventMetadataRenamerManager) observeDuration(start time.Time) {
+func (r *EventMetadataRenamerManager) observeDuration(start time.Time) {
 	if r.observer != nil {
 		r.observer.Observe(time.Since(start).Seconds())
 	}
 }
 
 // renameEventMetadata applies the relabel configs on the event metadata.
-func (r *eventMetadataRenamerManager) renameEventMetadata(e *event.Raw) *event.Raw {
+func (r *EventMetadataRenamerManager) renameEventMetadata(e *event.Raw) *event.Raw {
 	for _, renameConfig := range r.renamerConfig {
 		if _, ok := e.Metadata[renameConfig.Source]; !ok {
 			continue
@@ -108,7 +104,7 @@ func (r *eventMetadataRenamerManager) renameEventMetadata(e *event.Raw) *event.R
 }
 
 // Run event replacer receiving events and filling their Key if not already filled.
-func (r *eventMetadataRenamerManager) Run() {
+func (r *EventMetadataRenamerManager) Run() {
 	go func() {
 		defer func() {
 			close(r.outputChannel)

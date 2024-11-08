@@ -8,17 +8,17 @@ import (
 	"github.com/prometheus/prometheus/pkg/labels"
 )
 
-func NewFromMetric(labels model.Metric) StringMap {
+func NewFromMetric(l model.Metric) StringMap {
 	newStringMap := StringMap{}
-	for name, value := range labels {
+	for name, value := range l {
 		newStringMap[string(name)] = string(value)
 	}
 	return newStringMap
 }
 
-func NewFromLabels(labels labels.Labels) StringMap {
+func NewFromLabels(l labels.Labels) StringMap {
 	newStringMap := StringMap{}
-	for _, label := range labels {
+	for _, label := range l {
 		newStringMap[label.Name] = label.Value
 	}
 	return newStringMap
@@ -53,8 +53,8 @@ func (m StringMap) NewWith(key, value string) StringMap {
 
 // Keys returns non-ordered list of StringMap keys.
 func (m StringMap) Keys() []string {
-	var keys []string
-	for k, _ := range m {
+	keys := make([]string, 0, len(m))
+	for k := range m {
 		keys = append(keys, k)
 	}
 	return keys
@@ -79,7 +79,7 @@ func (m StringMap) SortedKeys() []string {
 
 // Values returns non-ordered list of StringMap values.
 func (m StringMap) Values() []string {
-	var values []string
+	values := make([]string, 0, len(m))
 	for _, v := range m {
 		values = append(values, v)
 	}

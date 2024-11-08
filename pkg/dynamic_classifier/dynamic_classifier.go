@@ -1,27 +1,24 @@
-//revive:disable:var-naming
 package dynamic_classifier
-
-//revive:enable:var-naming
 
 import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/seznam/slo-exporter/pkg/event"
-	"github.com/seznam/slo-exporter/pkg/pipeline"
-	"github.com/seznam/slo-exporter/pkg/stringmap"
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"os"
 	"sort"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/hashicorp/go-multierror"
 	"github.com/iancoleman/strcase"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -53,7 +50,7 @@ type classifierConfig struct {
 	RegexpMatchesCsvFiles         []string
 }
 
-// DynamicClassifier is classifier based on cache and regexp matches
+// DynamicClassifier is classifier based on cache and regexp matches.
 type DynamicClassifier struct {
 	exactMatches                  matcher
 	regexpMatches                 matcher
@@ -75,8 +72,8 @@ func (dc *DynamicClassifier) RegisterInMux(router *mux.Router) {
 		err := dc.DumpCSV(w, matcherType)
 		if err != nil {
 			http.Error(w, "Failed to dump matcher '"+matcherType+"': "+err.Error(), http.StatusInternalServerError)
+			return
 		}
-
 	})
 }
 
@@ -84,7 +81,7 @@ func (dc *DynamicClassifier) String() string {
 	return "dynamicClassifier"
 }
 
-func (dc *DynamicClassifier) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (dc *DynamicClassifier) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	toRegister := []prometheus.Collector{dc.eventsMetric, errorsTotal, matcherOperationDurationSeconds}
 	for _, collector := range toRegister {
 		if err := wrappedRegistry.Register(collector); err != nil {
@@ -99,7 +96,6 @@ func (dc *DynamicClassifier) Done() bool {
 }
 
 func (dc *DynamicClassifier) Stop() {
-	return
 }
 
 func (dc *DynamicClassifier) SetInputChannel(channel chan *event.Raw) {
@@ -122,7 +118,7 @@ func metadataKeyToLabel(metadataKey string) string {
 	return "metadata_" + strcase.ToSnake(metadataKey)
 }
 
-// New returns new instance of DynamicClassifier
+// New returns new instance of DynamicClassifier.
 func New(conf classifierConfig, logger logrus.FieldLogger) (*DynamicClassifier, error) {
 	sort.Strings(conf.UnclassifiedEventMetadataKeys)
 	classifier := DynamicClassifier{
@@ -166,7 +162,6 @@ func (dc *DynamicClassifier) reportEvent(result, classifiedBy string, metadata s
 		} else {
 			labels[metadataKeyToLabel(key)] = ""
 		}
-
 	}
 	dc.eventsMetric.With(prometheus.Labels(labels)).Inc()
 }
@@ -181,12 +176,12 @@ func (dc *DynamicClassifier) observeDuration(start time.Time) {
 	}
 }
 
-// LoadExactMatchesFromMultipleCSV loads exact matches from csv
+// LoadExactMatchesFromMultipleCSV loads exact matches from csv.
 func (dc *DynamicClassifier) LoadExactMatchesFromMultipleCSV(paths []string) error {
 	return dc.loadMatchesFromMultipleCSV(dc.exactMatches, paths)
 }
 
-// LoadRegexpMatchesFromMultipleCSV loads regexp matches from csv
+// LoadRegexpMatchesFromMultipleCSV loads regexp matches from csv.
 func (dc *DynamicClassifier) LoadRegexpMatchesFromMultipleCSV(paths []string) error {
 	return dc.loadMatchesFromMultipleCSV(dc.regexpMatches, paths)
 }
@@ -219,7 +214,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 
 	for {
 		line, err := csvReader.Read()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -250,7 +245,7 @@ func (dc *DynamicClassifier) loadMatchesFromCSV(matcher matcher, path string) er
 	return nil
 }
 
-// Classify classifies endpoint by updating its Classification field
+// Classify classifies endpoint by updating its Classification field.
 func (dc *DynamicClassifier) Classify(newEvent *event.Raw) (bool, error) {
 	var (
 		classificationErrors error
@@ -296,7 +291,7 @@ func (dc *DynamicClassifier) Classify(newEvent *event.Raw) (bool, error) {
 	return true, nil
 }
 
-// DumpCSV dump matches in CSV format to io.Writer
+// DumpCSV dump matches in CSV format to io.Writer.
 func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
 	matchers := map[string]matcher{
 		string(dc.exactMatches.getType()):  dc.exactMatches,
@@ -311,8 +306,8 @@ func (dc *DynamicClassifier) DumpCSV(w io.Writer, matcherType string) error {
 	return matcher.dumpCSV(w)
 }
 
-func (dc *DynamicClassifier) classifyByMatch(matcher matcher, event *event.Raw) (*event.SloClassification, error) {
-	return matcher.get(event.EventKey())
+func (dc *DynamicClassifier) classifyByMatch(matcher matcher, e *event.Raw) (*event.SloClassification, error) {
+	return matcher.get(e.EventKey())
 }
 
 // Run event normalizer receiving events and filling their Key if not already filled.

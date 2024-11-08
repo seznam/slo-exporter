@@ -1,11 +1,9 @@
-//revive:disable:var-naming
 package dynamic_classifier
 
-//revive:enable:var-naming
-
 import (
-	"github.com/seznam/slo-exporter/pkg/event"
 	"io"
+
+	"github.com/seznam/slo-exporter/pkg/event"
 )
 
 type matcherType string

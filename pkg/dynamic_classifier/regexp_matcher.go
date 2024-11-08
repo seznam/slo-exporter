@@ -1,36 +1,33 @@
-//revive:disable:var-naming
 package dynamic_classifier
-
-//revive:enable:var-naming
 
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/seznam/slo-exporter/pkg/event"
-	"github.com/sirupsen/logrus"
 	"io"
 	"regexp"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/sirupsen/logrus"
 )
 
 const regexpMatcherType = "regexp"
 
-// regexpSloClassification encapsulates combination of regexp and endpoint classification
+// regexpSloClassification encapsulates combination of regexp and endpoint classification.
 type regexpSloClassification struct {
 	regexpCompiled *regexp.Regexp
 	classification *event.SloClassification
 }
 
-// regexpMatcher is list of endpoint classifications
+// regexpMatcher is list of endpoint classifications.
 type regexpMatcher struct {
 	matchers []*regexpSloClassification
 	mtx      sync.RWMutex
 	logger   logrus.FieldLogger
 }
 
-// newRegexpMatcher returns new instance of regexpMatcher
+// newRegexpMatcher returns new instance of regexpMatcher.
 func newRegexpMatcher(logger logrus.FieldLogger) *regexpMatcher {
 	return &regexpMatcher{
 		mtx:    sync.RWMutex{},
@@ -38,7 +35,7 @@ func newRegexpMatcher(logger logrus.FieldLogger) *regexpMatcher {
 	}
 }
 
-// newRegexSloClassification returns new instance of regexpSloClassification
+// newRegexSloClassification returns new instance of regexpSloClassification.
 func newRegexSloClassification(regexpString string, classification *event.SloClassification) (*regexpSloClassification, error) {
 	compiledMatcher, err := regexp.Compile(regexpString)
 	if err != nil {
@@ -51,7 +48,7 @@ func newRegexSloClassification(regexpString string, classification *event.SloCla
 	return rec, nil
 }
 
-// set adds new endpoint classification regexp to list
+// set adds new endpoint classification regexp to list.
 func (rm *regexpMatcher) set(regexpString string, classification *event.SloClassification) error {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("set", regexpMatcherType))
 	defer timer.ObserveDuration()
@@ -66,14 +63,14 @@ func (rm *regexpMatcher) set(regexpString string, classification *event.SloClass
 	return nil
 }
 
-// get gets through all regexes and returns first endpoint classification which matches it
+// get gets through all regexes and returns first endpoint classification which matches it.
 func (rm *regexpMatcher) get(key string) (*event.SloClassification, error) {
 	timer := prometheus.NewTimer(matcherOperationDurationSeconds.WithLabelValues("get", regexpMatcherType))
 	defer timer.ObserveDuration()
 	rm.mtx.RLock()
 	defer rm.mtx.RUnlock()
 
-	var classification *event.SloClassification = nil
+	var classification *event.SloClassification
 	for _, r := range rm.matchers {
 		// go next if no match
 		if !r.regexpCompiled.MatchString(key) {

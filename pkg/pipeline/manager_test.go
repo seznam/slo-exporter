@@ -2,6 +2,9 @@ package pipeline
 
 import (
 	"context"
+	"strings"
+	"testing"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/seznam/slo-exporter/pkg/config"
@@ -9,18 +12,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
 )
 
 type testModule struct {
 	done bool
 }
 
-func (t *testModule) RegisterMetrics(rootRegistry prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (t *testModule) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	wrappedRegistry.MustRegister(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "test",
-		Help: "test",
+		Name: "test_total",
+		Help: "test_total",
 	}))
 	return nil
 }
@@ -54,7 +55,7 @@ func newTestManager() (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = manager.addModuleToPipelineEnd(pipelineItem{name: "test_module", module: &testModule{}}); err != nil {
+	if err := manager.addModuleToPipelineEnd(pipelineItem{name: "test_module", module: &testModule{}}); err != nil {
 		return nil, err
 	}
 	return manager, nil
@@ -69,16 +70,16 @@ func TestManager_RegisterPrometheusMetrics(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedMetrics := `
-# HELP test_module_test test
-# TYPE test_module_test counter
-test_module_test 0
+# HELP test_module_test_total test_total
+# TYPE test_module_test_total counter
+test_module_test_total 0
 `
 
 	err = testutil.GatherAndCompare(registry, strings.NewReader(expectedMetrics))
 	assert.NoError(t, err)
 }
 
-// Empty pipeline refuses to start
+// Empty pipeline refuses to start.
 func TestManager_StartEmptyPipeline(t *testing.T) {
 	manager, err := newEmptyManager()
 	assert.NoError(t, err)
@@ -89,7 +90,7 @@ func TestManager_StartEmptyPipeline(t *testing.T) {
 func TestManager_StartPipeline(t *testing.T) {
 	manager, err := newTestManager()
 	assert.NoError(t, err)
-	manager.StartPipeline()
+	assert.NoError(t, manager.StartPipeline())
 	assert.False(t, manager.Done())
 }
 

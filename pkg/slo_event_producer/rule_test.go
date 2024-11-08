@@ -1,15 +1,13 @@
-//revive:disable:var-naming
 package slo_event_producer
 
-//revive:enable:var-naming
-
 import (
+	"regexp"
+	"testing"
+
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"regexp"
-	"testing"
 )
 
 type ruleTestCase struct {
@@ -102,7 +100,7 @@ func TestEvaluateEvent(t *testing.T) {
 			ok:             false,
 		},
 		{
-			name: "metadata matcher matches, failure_condition does not match -> succesful event",
+			name: "metadata matcher matches, failure_condition does not match -> successful event",
 			rule: evaluationRule{
 				sloMatcher:         sloClassificationMatcher{domainRegexp: regexp.MustCompile("domain")},
 				metadataMatcher:    []operator{&isMatchingRegexp{key: "key", regexp: regexp.MustCompile("value")}},
@@ -127,7 +125,6 @@ func TestEvaluateEvent(t *testing.T) {
 			sloEvent, ok := tc.rule.processEvent(&tc.inputEvent)
 			assert.Equal(t, ok, tc.ok)
 			assert.Equal(t, tc.outputSloEvent, sloEvent, "unexpected result evaluating rule: %+v\n  with conditions: %+v\non event:\n  metadata: %+v\n  classification: %+v", tc.rule, tc.rule.failureConditions[0], tc.inputEvent.Metadata, tc.inputEvent.SloClassification)
-
 		})
 	}
 }

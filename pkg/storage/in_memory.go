@@ -19,19 +19,19 @@ type inMemoryCappedContainer struct {
 	lock     sync.RWMutex
 }
 
-// Len returns current size of container
+// Len returns current size of container.
 func (h *inMemoryCappedContainer) Len() int {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
 	return h.list.Len()
 }
 
-// Capacity returns maximum limit of the capped container
+// Capacity returns maximum limit of the capped container.
 func (h *inMemoryCappedContainer) Capacity() int {
 	return h.capacity
 }
 
-// Add adds new item to container
+// Add adds new item to container.
 func (h *inMemoryCappedContainer) Add(record interface{}) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
@@ -43,7 +43,7 @@ func (h *inMemoryCappedContainer) Add(record interface{}) {
 	}
 }
 
-// Stream writes items to returned channel
+// Stream writes items to returned channel.
 func (h *inMemoryCappedContainer) Stream() <-chan interface{} {
 	stream := make(chan interface{})
 	go func() {

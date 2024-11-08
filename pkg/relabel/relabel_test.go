@@ -70,7 +70,7 @@ func TestRelabel_Run(t *testing.T) {
   replacement: "$1"
 - action: labelmap
   regex: "http_(.*)"
-  replacement: "$1"  
+  replacement: "$1"
 `
 	var config []relabel.Config
 	err := yaml.UnmarshalStrict([]byte(configYaml), &config)
@@ -100,9 +100,9 @@ eventRelabelConfigs:
     replacement: "$1" `)
 		viper.SetConfigType("yaml")
 		err := viper.ReadConfig(bytes.NewBuffer(config))
-		assert.Nilf(t, err, "Unexpected error occured: %s", err)
+		assert.Nilf(t, err, "Unexpected error occurred: %s", err)
 		vc := viper.Sub("EventRelabelConfigs")
 		_, err = NewFromViper(vc, logrus.New())
-		assert.NotNilf(t, err, "Expected error but no one occured")
+		assert.NotNilf(t, err, "Expected error but no one occurred")
 	})
 }

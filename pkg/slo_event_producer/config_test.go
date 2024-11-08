@@ -1,12 +1,10 @@
-//revive:disable:var-naming
 package slo_event_producer
 
-//revive:enable:var-naming
-
 import (
+	"testing"
+
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type configTestCase struct {
@@ -25,12 +23,13 @@ func TestConfig_loadFromFile(t *testing.T) {
 				{
 					SloMatcher: sloMatcher{DomainRegexp: "domain"},
 					FailureConditionsOptions: []operatorOptions{
-						operatorOptions{
+						{
 							Operator: "numberIsHigherThan", Key: "statusCode", Value: "500",
 						},
 					},
 					AdditionalMetadata: stringmap.StringMap{"slo_type": "availability"},
-				}}},
+				},
+			}},
 			expectedError: false,
 		},
 		{
@@ -52,7 +51,7 @@ func TestConfig_loadFromFile(t *testing.T) {
 			c.name,
 			func(t *testing.T) {
 				var config rulesConfig
-				var _, err = config.loadFromFile(c.path)
+				err := config.loadFromFile(c.path)
 				if c.expectedError {
 					assert.Error(t, err)
 					return

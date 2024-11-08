@@ -2,10 +2,11 @@ package event
 
 import (
 	"fmt"
+
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 )
 
-// Raw represents single event as received by an EventsProcessor instance
+// Raw represents single event as received by an EventsProcessor instance.
 type Raw struct {
 	Metadata          stringmap.StringMap
 	SloClassification *SloClassification
@@ -27,12 +28,12 @@ func (r *Raw) SetEventKey(k string) {
 	r.Metadata[eventKeyMetadataKey] = k
 }
 
-// UpdateSLOClassification updates SloClassification field
+// UpdateSLOClassification updates SloClassification field.
 func (r *Raw) UpdateSLOClassification(classification *SloClassification) {
 	r.SloClassification = classification
 }
 
-// IsClassified check if all SloClassification fields are set
+// IsClassified check if all SloClassification fields are set.
 func (r *Raw) IsClassified() bool {
 	if r.SloClassification != nil &&
 		r.SloClassification.Domain != "" &&

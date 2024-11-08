@@ -1,7 +1,4 @@
-//revive:disable:var-naming
 package slo_event_producer
-
-//revive:enable:var-naming
 
 import (
 	"github.com/hashicorp/go-multierror"
@@ -17,7 +14,7 @@ const (
 
 func configFromFile(path string) (*rulesConfig, error) {
 	var config rulesConfig
-	if _, err := config.loadFromFile(path); err != nil {
+	if err := config.loadFromFile(path); err != nil {
 		return nil, err
 	}
 	return &config, nil
@@ -61,7 +58,7 @@ type EventEvaluator struct {
 	logger logrus.FieldLogger
 }
 
-func (re *EventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabels []string, err error) {
+func (re *EventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabels []string) {
 	metrics = []metric{}
 	possibleLabelsMap := stringmap.StringMap{}
 
@@ -88,15 +85,11 @@ func (re *EventEvaluator) ruleOptionsToMetrics() (metrics []metric, possibleLabe
 		}
 	}
 
-	return metrics, possibleLabelsMap.Keys(), nil
+	return metrics, possibleLabelsMap.Keys()
 }
 
 func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer) error {
-	metrics, possibleLabels, err := re.ruleOptionsToMetrics()
-	if err != nil {
-		return err
-	}
-
+	metrics, possibleLabels := re.ruleOptionsToMetrics()
 	thresholdsGaugeVec := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name:        metricFromRulesName,
@@ -115,7 +108,7 @@ func (re *EventEvaluator) registerMetrics(wrappedRegistry prometheus.Registerer)
 		m.Set(metric.Value)
 	}
 
-	err = wrappedRegistry.Register(thresholdsGaugeVec)
+	err := wrappedRegistry.Register(thresholdsGaugeVec)
 	if err != nil {
 		return err
 	}

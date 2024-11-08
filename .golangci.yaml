@@ -1,0 +1,71 @@
+linters:
+  enable:
+    - contextcheck
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - gocritic
+    - gofmt
+    - gofumpt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - prealloc
+    - predeclared
+    - promlinter
+    - revive
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+
+linters-settings:
+  # I'm biased and I'm enabling more than 100 checks
+  # Might be too much for you. See https://go-critic.com/overview.html
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      # These 3 will detect many cases, but they do sense
+      # if it's performance oriented code
+      - hugeParam
+      - rangeExprCopy
+      - rangeValCopy
+
+  errcheck:
+    # Report `a := b.(MyStruct)` when `a, ok := ...` should be.
+    check-type-assertions: true # Default: false
+
+    # Report skipped checks:`num, _ := strconv.Atoi(numStr)`.
+    check-blank: true # Default: false
+
+    # Function to skip.
+    exclude-functions:
+      - io/ioutil.ReadFile
+      - io.Copy(*bytes.Buffer)
+      - io.Copy(os.Stdout)
+
+  govet:
+    disable:
+      - fieldalignment # I'm ok to waste some bytes
+
+  nakedret:
+    max-func-lines: 1 # Default: 30
+
+issues:
+  exclude:
+    - "var-naming: don't use an underscore in package name"
+    - "ST1003: should not use underscores in package names"

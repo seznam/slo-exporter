@@ -2,21 +2,20 @@ package event_key_generator
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/event"
 	"github.com/seznam/slo-exporter/pkg/pipeline"
 	"github.com/seznam/slo-exporter/pkg/stringmap"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"time"
 )
 
-var (
-	processedEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "processed_events_total",
-		Help: "Total number of processed events by operation.",
-	}, []string{"operation"})
-)
+var processedEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "processed_events_total",
+	Help: "Total number of processed events by operation.",
+}, []string{"operation"})
 
 type eventKeyGeneratorConfig struct {
 	FiledSeparator           string
@@ -35,7 +34,7 @@ type EventKeyGenerator struct {
 	done                bool
 }
 
-func (e *EventKeyGenerator) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (e *EventKeyGenerator) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	return wrappedRegistry.Register(processedEventsTotal)
 }
 
@@ -47,9 +46,7 @@ func (e *EventKeyGenerator) Done() bool {
 	return e.done
 }
 
-func (e *EventKeyGenerator) Stop() {
-	return
-}
+func (e *EventKeyGenerator) Stop() {}
 
 func (e *EventKeyGenerator) SetInputChannel(channel chan *event.Raw) {
 	e.inputChannel = channel

@@ -3,7 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
@@ -23,13 +29,6 @@ import (
 	"github.com/seznam/slo-exporter/pkg/slo_event_producer"
 	"github.com/seznam/slo-exporter/pkg/statistical_classifier"
 	"github.com/seznam/slo-exporter/pkg/tailer"
-
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -62,7 +61,7 @@ func init() {
 	prometheusRegistry.MustRegister(appBuildInfo)
 }
 
-// Factory to instantiate pipeline modules
+// Factory to instantiate pipeline modules.
 func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Viper) (pipeline.Module, error) {
 	switch moduleName {
 	case "tailer":
@@ -94,7 +93,7 @@ func moduleFactory(moduleName string, logger logrus.FieldLogger, conf *viper.Vip
 	}
 }
 
-func setupLogger(logLevel string, logFormat string) (*logrus.Logger, error) {
+func setupLogger(logLevel, logFormat string) (*logrus.Logger, error) {
 	lvl, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		return nil, fmt.Errorf("invalid log level '%s', must be one of 'error', 'warn', 'info', 'debug', 'trace'", logLevel)
@@ -121,7 +120,7 @@ func setupLogger(logLevel string, logFormat string) (*logrus.Logger, error) {
 	return newLogger, nil
 }
 
-func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *prober.Prober, logger *logrus.Logger) (*http.Server, *mux.Router) {
+func setupDefaultServer(listenAddr string, liveness, readiness *prober.Prober, logger *logrus.Logger) (*http.Server, *mux.Router) {
 	dynamicLoggingHandler := func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost {
 			lvl, err := logrus.ParseLevel(req.URL.Query().Get("level"))
@@ -130,10 +129,14 @@ func setupDefaultServer(listenAddr string, liveness *prober.Prober, readiness *p
 				return
 			}
 			logger.SetLevel(lvl)
-			_, _ = w.Write([]byte("logging level set to: " + lvl.String()))
+			if _, err := w.Write([]byte("logging level set to: " + lvl.String())); err != nil {
+				logger.Errorf("error writing response: %v", err)
+			}
 			return
 		}
-		_, _ = w.Write([]byte("current logging level is: " + logger.Level.String()))
+		if _, err := w.Write([]byte("current logging level is: " + logger.Level.String())); err != nil {
+			logger.Errorf("error writing response: %v", err)
+		}
 	}
 
 	promHandler := promhttp.InstrumentMetricHandler(
@@ -245,14 +248,15 @@ func main() {
 		case <-gracefulShutdownRequestChan:
 			logger.Info("gracefully shutting down")
 			readiness.NotOk(fmt.Errorf("shutting down"))
-			shutdownCtx, _ := context.WithTimeout(context.Background(), conf.MaximumGracefulShutdownDuration)
-
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), conf.MaximumGracefulShutdownDuration)
 			<-pipelineManager.StopPipeline(shutdownCtx)
+			cancel()
 			// Add the delay after pipeline shutdown.
-			delayedShutdownContext, _ := context.WithTimeout(shutdownCtx, conf.AfterPipelineShutdownDelay)
+			delayedShutdownContext, cancel := context.WithTimeout(shutdownCtx, conf.AfterPipelineShutdownDelay)
 			// Wait until any of the context expires
 			logger.Infof("waiting the configured delay %s after pipeline has finished", conf.AfterPipelineShutdownDelay)
 			<-delayedShutdownContext.Done()
+			cancel()
 
 			if err := defaultServer.Shutdown(shutdownCtx); err != nil {
 				logger.Errorf("failed to gracefully shutdown HTTP server %+v. ", err)
@@ -271,5 +275,4 @@ func main() {
 			}
 		}
 	}
-
 }

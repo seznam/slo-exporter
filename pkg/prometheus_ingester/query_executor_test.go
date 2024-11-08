@@ -1,10 +1,11 @@
 package prometheus_ingester
 
 import (
-	"github.com/prometheus/common/model"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/prometheus/common/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_queryResult_applyStaleness(t *testing.T) {

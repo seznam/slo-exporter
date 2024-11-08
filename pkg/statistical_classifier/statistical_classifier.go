@@ -1,17 +1,14 @@
-//revive:disable:var-naming
 package statistical_classifier
-
-//revive:enable:var-naming
 
 import (
 	"context"
 	"fmt"
-	"github.com/seznam/slo-exporter/pkg/pipeline"
-	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/seznam/slo-exporter/pkg/event"
+	"github.com/seznam/slo-exporter/pkg/pipeline"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -53,7 +50,7 @@ type classifierConfig struct {
 	DefaultWeights              []defaultClassificationWeight
 }
 
-// StatisticalClassifier is classifier based on cache and regexp matches
+// StatisticalClassifier is classifier based on cache and regexp matches.
 type StatisticalClassifier struct {
 	classifier    *weightedClassifier
 	observer      pipeline.EventProcessingDurationObserver
@@ -63,7 +60,7 @@ type StatisticalClassifier struct {
 	done          bool
 }
 
-// NewFromViper create new instance of StatisticalClassifier based on viper config
+// NewFromViper create new instance of StatisticalClassifier based on viper config.
 func NewFromViper(viperConfig *viper.Viper, logger logrus.FieldLogger) (*StatisticalClassifier, error) {
 	var config classifierConfig
 	defaultWindowSize, err := time.ParseDuration("30m")
@@ -87,7 +84,7 @@ func defaultWeightsSetFromConfig(conf classifierConfig) *weightedClassificationS
 	if len(conf.DefaultWeights) < 1 {
 		return nil
 	}
-	var defaultWeights []classificationWeight
+	defaultWeights := make([]classificationWeight, 0, len(conf.DefaultWeights))
 	for _, initialWeight := range conf.DefaultWeights {
 		newWeight := classificationWeight{
 			classification: &event.SloClassification{
@@ -104,7 +101,7 @@ func defaultWeightsSetFromConfig(conf classifierConfig) *weightedClassificationS
 	return defaultWeightSet
 }
 
-// New returns new instance of StatisticalClassifier
+// New returns new instance of StatisticalClassifier.
 func New(conf classifierConfig, logger logrus.FieldLogger) (*StatisticalClassifier, error) {
 	newClassifier, err := newWeightedClassifier(conf.HistoryWindowSize, conf.HistoryWeightUpdateInterval, logger)
 	if err != nil {
@@ -132,15 +129,13 @@ func (sc *StatisticalClassifier) RegisterEventProcessingDurationObserver(observe
 	sc.observer = observer
 }
 
-func (sc *StatisticalClassifier) Stop() {
-	return
-}
+func (sc *StatisticalClassifier) Stop() {}
 
 func (sc *StatisticalClassifier) Done() bool {
 	return sc.done
 }
 
-func (sc *StatisticalClassifier) RegisterMetrics(_ prometheus.Registerer, wrappedRegistry prometheus.Registerer) error {
+func (sc *StatisticalClassifier) RegisterMetrics(_, wrappedRegistry prometheus.Registerer) error {
 	toRegister := []prometheus.Collector{eventsTotal, errorsTotal, classificationWeightsMetric}
 	for _, metric := range toRegister {
 		if err := wrappedRegistry.Register(metric); err != nil {
@@ -164,17 +159,17 @@ func (sc *StatisticalClassifier) sanitizeGuessedClassification(classification *e
 }
 
 // Classify classifies event. Classification is guessed based on frequency of observed classifications over history window.
-func (sc *StatisticalClassifier) Classify(event *event.Raw) error {
-	if !event.IsClassified() {
+func (sc *StatisticalClassifier) Classify(e *event.Raw) error {
+	if !e.IsClassified() {
 		classification, err := sc.classifier.guessClass()
 		if err != nil {
 			eventsTotal.WithLabelValues("unclassified").Inc()
 			return err
 		}
-		event.UpdateSLOClassification(classification)
+		e.UpdateSLOClassification(classification)
 		eventsTotal.WithLabelValues("classified").Inc()
 	} else {
-		sc.classifier.increaseWeight(sc.sanitizeGuessedClassification(event.GetSloClassification()), 1)
+		sc.classifier.increaseWeight(sc.sanitizeGuessedClassification(e.GetSloClassification()), 1)
 		eventsTotal.WithLabelValues("increased-weight").Inc()
 	}
 	return nil
