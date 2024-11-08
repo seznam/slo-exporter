@@ -16,14 +16,6 @@ jobs:
       - run: GOMAXPROCS=1 GOMEMLIMIT=1750MiB make lint
       - go/save-cache # Save Go modules to cache.
 
-  check_format:
-    <<: *defaults
-    steps:
-      - checkout
-      - run: |
-          make format
-          git diff --color --exit-code
-
   test:
     <<: *defaults
     steps:
