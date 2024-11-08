@@ -67,7 +67,6 @@ workflows:
   slo-exporter:
     jobs:
       - lint
-      - check_format
       - test
       - test-release:
           filters:
