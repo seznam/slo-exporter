@@ -6,7 +6,7 @@ TMP_BIN_DIR ?= $(TMP_DIR)/bin
 GORELEASER_VERSION ?= v2.4.4
 
 .PHONY: all
-all: format lint test-and-coverage build test-release
+all: lint test-and-coverage build test-release
 
 $(TMP_DIR):
 	mkdir -p $(TMP_DIR)
@@ -30,11 +30,6 @@ $(RELEASE_NOTES): $(TMP_DIR)
 golangci-lint:
 	@echo "Downloading golangci-lint..."
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
-
-.PHONY: format
-format:
-	go mod tidy
-	go fmt ./...
 
 .PHONY: lint
 lint: golangci-lint

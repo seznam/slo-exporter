@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Changed
 - [#118](https://github.com/seznam/slo-exporter/pull/118) Upgrade Go to 1.23
+- [#119](https://github.com/seznam/slo-exporter/pull/119) Upgrade all deps
 
 ## [v6.15.1] 2024-11-06
 ### Added
