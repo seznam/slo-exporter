@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [v6.16.0] 2024-11-15
 ### Changed
 - [#117](https://github.com/seznam/slo-exporter/pull/117) Switch to golangci-lint and fix all the lint (lot of changes, some just formatting, some might have impact on functionality)
 - [#118](https://github.com/seznam/slo-exporter/pull/118) Upgrade Go to 1.23
