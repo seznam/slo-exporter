@@ -26,8 +26,9 @@ Flags:
 #### Processing pipeline
 Slo-exporter allows to dynamically compose the pipeline structure,
 but there is few basic rules it needs to follow:
-  - [`ingester`](architecture.md#ingester) module cannot be at the beginning of pipeline.
-  - [`ingester`](architecture.md#ingester) module can only be linked to preceding [`producer`](architecture.md#producer) module.
+  - [`producer`](#producers) can be only at the beginning of the pipeline (meaning only single producer is allowed)
+  - [`ingester`](#ingesters) module cannot be at the beginning of pipeline.
+  - [`ingester`](#ingesters) module can only be linked to preceding [`producer`](architecture.md#producer) module.
   - Type of produced event by the preceding module must match the ingested type of the following one.
 
 
